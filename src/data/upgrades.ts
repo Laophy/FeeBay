@@ -1,0 +1,226 @@
+import type { Upgrade } from '../types';
+
+export const UPGRADES: Upgrade[] = [
+  // --- Tools / info tier ---
+  {
+    id: 'basic_filters',
+    name: 'Basic Search Filters',
+    cost: 50,
+    effect: 'reveal_value_range',
+    description: 'Shows estimated value range on listings so you stop guessing.',
+  },
+  {
+    id: 'magnifying_glass',
+    name: 'Magnifying Glass',
+    cost: 100,
+    effect: 'better_condition_hint',
+    description: 'Sharper condition hints. Spot creases, whitening, and centering lean.',
+  },
+  {
+    id: 'fake_detector',
+    name: 'Fake Detector Light',
+    cost: 250,
+    effect: 'show_fake_risk',
+    description: 'Reveals the fake risk percentage on every listing.',
+  },
+  {
+    id: 'market_tracker',
+    name: 'Market Tracker Dashboard',
+    cost: 500,
+    effect: 'show_trends',
+    description: 'See which trend tags are pumping or dumping right now.',
+  },
+  {
+    id: 'comp_tracker',
+    name: 'Comp Tracker',
+    cost: 800,
+    effect: 'show_comps',
+    description: 'Shows a card\'s lifetime average sold-price on listings & details.',
+  },
+  {
+    id: 'power_filters',
+    name: 'Power Filters',
+    cost: 2500,
+    effect: 'show_all_hidden',
+    description: 'Reveals exact centering offsets and grade potential on every listing.',
+  },
+
+  // --- Capacity tier ---
+  {
+    id: 'storage_shelves',
+    name: 'Storage Shelves',
+    cost: 300,
+    effect: 'inventory_+20',
+    description: '+20 inventory slots. Your closet thanks you.',
+  },
+  {
+    id: 'storage_shelves_2',
+    name: 'Storage Annex',
+    cost: 1800,
+    effect: 'inventory_+30',
+    description: '+30 more inventory slots. The whole spare room now.',
+  },
+  {
+    id: 'storage_vault',
+    name: 'Card Vault',
+    cost: 8000,
+    effect: 'inventory_+100',
+    description: '+100 more inventory slots. A literal vault.',
+  },
+
+  // --- Negotiation / selling ---
+  {
+    id: 'auto_lister',
+    name: 'Auto-Lister Bot',
+    cost: 750,
+    effect: 'reduce_fees',
+    description: 'Reduces selling fees by 25%.',
+  },
+  {
+    id: 'auto_lister_2',
+    name: 'Auto-Lister Pro',
+    cost: 6000,
+    effect: 'reduce_fees_2',
+    description: 'Total selling fee reduction: 50%. Stack on top of Auto-Lister.',
+  },
+  {
+    id: 'negotiation_templates',
+    name: 'Negotiation Templates',
+    cost: 1200,
+    effect: 'better_negotiation',
+    description: 'Headbook & JaredsList sellers accept offers ~10% lower than usual.',
+  },
+
+  // --- Grading ---
+  {
+    id: 'grading_membership',
+    name: 'ZAG Grading Membership',
+    cost: 1000,
+    effect: 'unlock_grading',
+    description: 'Unlocks ZAG card grading submissions.',
+  },
+  {
+    id: 'bucket_membership',
+    name: 'Bucket Grading Card',
+    cost: 600,
+    effect: 'unlock_bucket',
+    description: 'Cheap chaos. Bucket Grading randomly bumps or dumps grades by a tier.',
+  },
+  {
+    id: 'pza_membership',
+    name: 'PZA Premium Membership',
+    cost: 3500,
+    effect: 'unlock_pza',
+    description: 'PZA slabs command higher resale. Slower, pricier, prestigious.',
+  },
+  {
+    id: 'express_grading',
+    name: 'Express Grading Lane',
+    cost: 4500,
+    effect: 'express_grading',
+    description: 'All grading submissions resolve 50% faster across every company.',
+  },
+  {
+    id: 'bulk_grade',
+    name: 'Bulk Grading Account',
+    cost: 3000,
+    effect: 'bulk_grade',
+    description: '20% discount on every grading submission. Volume reseller perk.',
+  },
+
+  // --- Marketplaces / discovery ---
+  {
+    id: 'deal_bot',
+    name: 'Deal Bot 9000',
+    cost: 2500,
+    effect: 'highlight_deal',
+    description: 'Highlights one potentially undervalued listing per refresh. Refresh cooldown halved.',
+  },
+  {
+    id: 'deal_bot_pro',
+    name: 'Deal Bot Pro',
+    cost: 9000,
+    effect: 'highlight_deal_pro',
+    description: 'Highlights up to 3 deals per refresh — top, mid, sleeper.',
+  },
+  {
+    id: 'auction_paddle',
+    name: 'BidGoblin Paddle',
+    cost: 1500,
+    effect: 'unlock_auctions',
+    description: 'Gets you onto the BidGoblin auction floor.',
+  },
+  {
+    id: 'auto_sniper',
+    name: 'Auto-Sniper',
+    cost: 4000,
+    effect: 'auto_snipe',
+    description: 'Set a max bid and the goblin snipes for you at the buzzer.',
+  },
+  {
+    id: 'convention_insider',
+    name: 'Convention Insider Pass',
+    cost: 7500,
+    effect: 'convention_insider',
+    description: 'See conventions 60s before they go public. +5% boost while attending.',
+  },
+
+  // --- Hired help (idle automation) ---
+  {
+    id: 'hire_apprentice',
+    name: 'Hire: Apprentice',
+    cost: 5000,
+    effect: 'hire_apprentice',
+    description: 'Auto-flips raw cards worth under $80 every ~30s. Small steady income.',
+  },
+  {
+    id: 'hire_buyer_agent',
+    name: 'Hire: Buyer Agent',
+    cost: 15000,
+    effect: 'hire_buyer_agent',
+    description: 'Quietly buys any listing priced at ≤60% of true value, capped at $500.',
+  },
+  {
+    id: 'hire_marketing',
+    name: 'Hire: Marketing Manager',
+    cost: 12000,
+    effect: 'hire_marketing',
+    description: 'Builds your brand. Passive +1 reputation per minute.',
+  },
+  {
+    id: 'hire_vault_keeper',
+    name: 'Hire: Vault Keeper',
+    cost: 25000,
+    effect: 'hire_vault_keeper',
+    description: 'Vault-held cards become immune to market noise. Hold the chase pieces stable.',
+  },
+];
+
+export const UPGRADE_EFFECTS = {
+  REVEAL_RANGE: 'reveal_value_range',
+  BETTER_HINT: 'better_condition_hint',
+  SHOW_FAKE_RISK: 'show_fake_risk',
+  INVENTORY_BONUS_1: 'inventory_+20',
+  INVENTORY_BONUS_2: 'inventory_+30',
+  INVENTORY_BONUS_3: 'inventory_+100',
+  SHOW_TRENDS: 'show_trends',
+  SHOW_COMPS: 'show_comps',
+  SHOW_ALL_HIDDEN: 'show_all_hidden',
+  REDUCE_FEES: 'reduce_fees',
+  REDUCE_FEES_2: 'reduce_fees_2',
+  BETTER_NEGOTIATION: 'better_negotiation',
+  UNLOCK_GRADING: 'unlock_grading',
+  UNLOCK_BUCKET: 'unlock_bucket',
+  UNLOCK_PZA: 'unlock_pza',
+  EXPRESS_GRADING: 'express_grading',
+  BULK_GRADE: 'bulk_grade',
+  HIGHLIGHT_DEAL: 'highlight_deal',
+  HIGHLIGHT_DEAL_PRO: 'highlight_deal_pro',
+  UNLOCK_AUCTIONS: 'unlock_auctions',
+  AUTO_SNIPE: 'auto_snipe',
+  CONVENTION_INSIDER: 'convention_insider',
+  HIRE_APPRENTICE: 'hire_apprentice',
+  HIRE_BUYER_AGENT: 'hire_buyer_agent',
+  HIRE_MARKETING: 'hire_marketing',
+  HIRE_VAULT_KEEPER: 'hire_vault_keeper',
+} as const;
