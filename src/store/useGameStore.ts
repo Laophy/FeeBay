@@ -809,6 +809,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   consumeBulkReveal() {
     set({ pendingBulkReveal: [] });
+    get().save();
   },
 
   consumeGradeReveal(submissionId) {
@@ -1578,6 +1579,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastListingRefresh: state.lastListingRefresh,
       lastMarketEvent: state.lastMarketEvent,
       pendingGradeReveals: state.pendingGradeReveals,
+      pendingBulkReveal: state.pendingBulkReveal,
       pendingLotReveals: state.pendingLotReveals,
       achievementsUnlocked: state.achievementsUnlocked,
       achievementsClaimed: state.achievementsClaimed,
