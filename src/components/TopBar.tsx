@@ -10,9 +10,18 @@ function fmt(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-type Props = { route: Route };
+const LOGO_LETTERS: { char: string; color: string }[] = [
+  { char: 'F', color: 'text-ebayRed-500' },
+  { char: 'e', color: 'text-feebay-500' },
+  { char: 'e', color: 'text-ebayYellow-500' },
+  { char: 'B', color: 'text-ebayGreen-500' },
+  { char: 'a', color: 'text-ebayRed-500' },
+  { char: 'y', color: 'text-feebay-500' },
+];
 
-export function TopBar({ route }: Props) {
+type Props = { route: Route; bounceLogo?: boolean };
+
+export function TopBar({ route, bounceLogo }: Props) {
   const cash = useGameStore((s) => s.cash);
   const reputation = useGameStore((s) => s.reputation);
   const inventory = useGameStore((s) => s.inventory);
@@ -38,17 +47,37 @@ export function TopBar({ route }: Props) {
         {/* Logo — eBay-style multi-color letters */}
         <div className="flex items-baseline shrink-0 select-none">
           <span className="text-2xl xl:text-3xl font-black tracking-tight leading-none">
-            <span className="text-ebayRed-500">F</span>
-            <span className="text-feebay-500">e</span>
-            <span className="text-ebayYellow-500">e</span>
-            <span className="text-ebayGreen-500">B</span>
-            <span className="text-ebayRed-500">a</span>
-            <span className="text-feebay-500">y</span>
+            {LOGO_LETTERS.map((l, i) => (
+              <span
+                key={i}
+                className={`inline-block ${l.color} ${bounceLogo ? 'nav-bounce' : ''}`}
+                style={{
+                  animationDelay: bounceLogo ? `${i * 110}ms` : undefined,
+                  transformOrigin: '50% 100%',
+                }}
+              >
+                {l.char}
+              </span>
+            ))}
           </span>
           <span className="hidden 2xl:inline ml-2 text-xs text-ink-500 font-medium tracking-wide">
             simulator
           </span>
         </div>
+        <style>{`
+          @keyframes navBounce {
+            0%   { transform: translateY(0)     scale(1, 1); }
+            22%  { transform: translateY(-22px) scale(0.95, 1.1); }
+            44%  { transform: translateY(0)     scale(1.15, 0.82); }
+            58%  { transform: translateY(-7px)  scale(0.98, 1.04); }
+            72%  { transform: translateY(0)     scale(1.04, 0.96); }
+            100% { transform: translateY(0)     scale(1, 1); }
+          }
+          .nav-bounce {
+            animation: navBounce 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 1 both;
+            will-change: transform;
+          }
+        `}</style>
 
         {/* Search — flex-1 with hard min-width so it can shrink but stays usable */}
         <div className="order-3 lg:order-2 basis-full lg:basis-auto lg:flex-1 lg:max-w-3xl min-w-0">

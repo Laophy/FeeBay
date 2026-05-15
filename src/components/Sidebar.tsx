@@ -94,6 +94,17 @@ export function Sidebar({ route, setRoute }: Props) {
   ).length;
   const [muted, setMutedState] = useState(isMuted());
   const [lockedOpen, setLockedOpen] = useState(false);
+  const [bouncingId, setBouncingId] = useState<Route | null>(null);
+
+  function navTo(id: Route) {
+    SFX.click();
+    setRoute(id);
+    setBouncingId(id);
+    window.setTimeout(
+      () => setBouncingId((cur) => (cur === id ? null : cur)),
+      600,
+    );
+  }
 
   const annotateNav = NAV_GROUPS.map((g) => ({
     ...g,
@@ -138,10 +149,7 @@ export function Sidebar({ route, setRoute }: Props) {
                   return (
                     <button
                       key={n.id}
-                      onClick={() => {
-                        SFX.click();
-                        setRoute(n.id);
-                      }}
+                      onClick={() => navTo(n.id)}
                       className={`group w-full flex items-center gap-3 pl-3 pr-2 py-2 rounded-md text-sm transition relative ${
                         active
                           ? 'bg-feebay-50 text-feebay-700 font-semibold'
@@ -151,11 +159,16 @@ export function Sidebar({ route, setRoute }: Props) {
                       {active && (
                         <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-feebay-500" />
                       )}
-                      <Icon
-                        name={n.icon}
-                        size={17}
-                        className={active ? 'text-feebay-600' : 'text-ink-500 group-hover:text-ink-700'}
-                      />
+                      <span
+                        className={`inline-flex ${bouncingId === n.id ? 'nav-icon-bounce' : ''}`}
+                        style={{ transformOrigin: '50% 60%' }}
+                      >
+                        <Icon
+                          name={n.icon}
+                          size={17}
+                          className={active ? 'text-feebay-600' : 'text-ink-500 group-hover:text-ink-700'}
+                        />
+                      </span>
                       <span className="flex-1 text-left">{n.label}</span>
                       {b && (
                         <span
@@ -222,6 +235,20 @@ export function Sidebar({ route, setRoute }: Props) {
       <div className="px-4 py-2 text-[10px] text-ink-400 border-t border-line">
         Fictional brands only. No real cards harmed.
       </div>
+
+      <style>{`
+        @keyframes navIconBounce {
+          0%   { transform: translateY(0)    scale(1, 1); }
+          25%  { transform: translateY(-7px) scale(0.95, 1.12); }
+          50%  { transform: translateY(2px)  scale(1.15, 0.85); }
+          70%  { transform: translateY(-2px) scale(0.98, 1.04); }
+          100% { transform: translateY(0)    scale(1, 1); }
+        }
+        .nav-icon-bounce {
+          animation: navIconBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+          will-change: transform;
+        }
+      `}</style>
     </aside>
   );
 }

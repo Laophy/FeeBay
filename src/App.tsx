@@ -19,6 +19,7 @@ import { LotRevealModal } from './components/LotRevealModal';
 import { IntroModal } from './components/IntroModal';
 import { EndOfDayModal } from './components/EndOfDayModal';
 import { TitleBar } from './components/TitleBar';
+import { LoadingScreen } from './components/LoadingScreen';
 
 export type Route =
   | 'dashboard'
@@ -35,6 +36,7 @@ export type Route =
 
 export default function App() {
   const [route, setRoute] = useState<Route>('dashboard');
+  const [booting, setBooting] = useState(true);
   const init = useGameStore((s) => s.init);
   const resolveDueGrading = useGameStore((s) => s.resolveDueGrading);
   const tickTrends = useGameStore((s) => s.tickTrends);
@@ -129,7 +131,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar route={route} setRoute={setRoute} />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <TopBar route={route} />
+          <TopBar route={route} bounceLogo={!booting} />
           <main className="flex-1 overflow-y-auto p-6 bg-paper">
           {route === 'dashboard' && <Dashboard onNavigate={setRoute} />}
           {route === 'marketplace' && <Marketplace />}
@@ -150,6 +152,7 @@ export default function App() {
       <GradingRevealModal />
       <EndOfDayModal />
       <IntroModal />
+      {booting && <LoadingScreen onDone={() => setBooting(false)} />}
     </div>
   );
 }
