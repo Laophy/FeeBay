@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useGameStore } from '../store/useGameStore';
 import { getCardById } from '../data/cards';
 import { CardArt } from './CardArt';
+import { CardZoomOverlay } from './CardZoomOverlay';
 import { Icon } from './Icon';
 import { Sparkline } from './Sparkline';
 import {
@@ -41,6 +42,7 @@ export function CardDetailModal(props: Props) {
   // Build a 60-sample history feed for the per-card sparkline.
   // We snapshot the noise every refresh of this modal — synthetic but immediate.
   const [history, setHistory] = useState<{ t: number; v: number }[]>([]);
+  const [zoomed, setZoomed] = useState(false);
   useEffect(() => {
     setHistory((prev) => {
       const next = [...prev, { t: Date.now(), v: currentNoise }];
@@ -59,6 +61,10 @@ export function CardDetailModal(props: Props) {
     item && item.status === 'graded'
       ? unlocked.filter((m) => m === 'SlabHub' || m === 'FeeBay')
       : unlocked.filter((m) => m !== 'SlabHub');
+  // Raw cards sell to the player's primary store with a single click.
+  const uiPrimary = useGameStore((s) => s.ui.primaryMarketplace);
+  const sellPrimary: MarketplaceSource =
+    unlocked.includes(uiPrimary) && uiPrimary !== 'SlabHub' ? uiPrimary : 'FeeBay';
 
   return createPortal(
     <div
@@ -70,16 +76,26 @@ export function CardDetailModal(props: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-5">
-          <CardArt
-            name={card.name}
-            rarity={card.rarity}
-            hue={card.hue}
-            cardId={card.id}
-            grade={item?.grade}
-            gradingCompany={item?.gradingCompany}
-            centeringOffsetX={item?.centeringOffsetX ?? 0}
-            centeringOffsetY={item?.centeringOffsetY ?? 0}
-          />
+          <div className="relative shrink-0">
+            <CardArt
+              name={card.name}
+              rarity={card.rarity}
+              hue={card.hue}
+              cardId={card.id}
+              grade={item?.grade}
+              gradingCompany={item?.gradingCompany}
+              centeringOffsetX={item?.centeringOffsetX ?? 0}
+              centeringOffsetY={item?.centeringOffsetY ?? 0}
+              large
+            />
+            <button
+              onClick={() => setZoomed(true)}
+              className="absolute -top-2.5 -right-2.5 z-20 w-8 h-8 rounded-full bg-feebay-500 hover:bg-feebay-600 text-white flex items-center justify-center shadow-md border-2 border-white transition"
+              title="Zoom in to inspect quality & centering"
+            >
+              <Icon name="search" size={15} />
+            </button>
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -186,18 +202,15 @@ export function CardDetailModal(props: Props) {
 
             {item.status === 'raw' && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {sellableMarkets.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      sell(item.id, m);
-                      props.onClose();
-                    }}
-                    className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
-                  >
-                    Sell on {m}
-                  </button>
-                ))}
+                <button
+                  onClick={() => {
+                    sell(item.id, sellPrimary);
+                    props.onClose();
+                  }}
+                  className="text-xs px-3 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white font-semibold"
+                >
+                  Sell on {sellPrimary}
+                </button>
                 {availableCompanies.map((c) => (
                   <button
                     key={c.id}
@@ -261,6 +274,21 @@ export function CardDetailModal(props: Props) {
           Close
         </button>
       </div>
+
+      {zoomed && (
+        <CardZoomOverlay
+          name={card.name}
+          rarity={card.rarity}
+          hue={card.hue}
+          cardId={card.id}
+          grade={item?.grade}
+          gradingCompany={item?.gradingCompany}
+          centeringOffsetX={item?.centeringOffsetX ?? 0}
+          centeringOffsetY={item?.centeringOffsetY ?? 0}
+          condition={item?.rawCondition}
+          onClose={() => setZoomed(false)}
+        />
+      )}
     </div>,
     document.body,
   );

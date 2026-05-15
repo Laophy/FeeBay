@@ -266,6 +266,28 @@ export function Sidebar({ route, setRoute }: Props) {
             ))}
           </span>
         </button>
+        <button
+          onClick={() => {
+            SFX.click();
+            window.open('https://buymeacoffee.com/laophy', '_blank');
+          }}
+          className="coffee-btn mt-2 w-full flex items-center justify-center gap-2 rounded px-2.5 py-1.5 text-xs font-bold text-ink-900 bg-[#FFDD00] hover:bg-[#f0ce00] transition"
+        >
+          <span className="coffee-icon inline-flex">
+            <Icon name="coffee" size={15} />
+          </span>
+          <span>
+            {'Buy me a coffee'.split('').map((ch, i) => (
+              <span
+                key={i}
+                className="coffee-letter inline-block whitespace-pre"
+                style={{ animationDelay: `${i * 0.045}s` }}
+              >
+                {ch}
+              </span>
+            ))}
+          </span>
+        </button>
         <div className="mt-2 text-[10px] text-ink-400 text-center">
           Fictional brands only. No real cards harmed.
         </div>
@@ -282,6 +304,42 @@ export function Sidebar({ route, setRoute }: Props) {
         .nav-icon-bounce {
           animation: navIconBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
           will-change: transform;
+        }
+
+        /* Discord button hover — logo shakes, letters jump in a wave. */
+        @keyframes discordLetterJump {
+          0%, 55%, 100% { transform: translateY(0); }
+          28%           { transform: translateY(-5px); }
+        }
+        @keyframes discordIconShake {
+          0%, 100% { transform: rotate(0deg); }
+          20%      { transform: rotate(-15deg); }
+          45%      { transform: rotate(12deg); }
+          70%      { transform: rotate(-8deg); }
+          88%      { transform: rotate(4deg); }
+        }
+        .discord-btn:hover .discord-letter {
+          animation: discordLetterJump 0.7s ease-in-out infinite;
+        }
+        .discord-btn:hover .discord-icon {
+          animation: discordIconShake 0.5s ease-in-out infinite;
+        }
+
+        /* Buy Me a Coffee button hover — cup tips for a sip, letters jump. */
+        @keyframes coffeeCupTip {
+          0%, 100% { transform: rotate(0deg); }
+          30%      { transform: rotate(-22deg); }
+          58%      { transform: rotate(9deg); }
+          80%      { transform: rotate(-4deg); }
+        }
+        .coffee-icon {
+          transform-origin: 55% 88%;
+        }
+        .coffee-btn:hover .coffee-icon {
+          animation: coffeeCupTip 0.8s ease-in-out infinite;
+        }
+        .coffee-btn:hover .coffee-letter {
+          animation: discordLetterJump 0.7s ease-in-out infinite;
         }
       `}</style>
     </aside>

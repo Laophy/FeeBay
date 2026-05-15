@@ -9,6 +9,7 @@ import { Icon } from '../../components/Icon';
 import { getCardById } from '../../data/cards';
 import { CardDetailModal } from '../../components/CardDetailModal';
 import { ListForSaleModal } from '../../components/ListForSaleModal';
+import { SellStoreModal } from '../../components/SellStoreModal';
 
 type SortKey = 'value' | 'profit' | 'rarity' | 'condition' | 'recent';
 
@@ -30,13 +31,18 @@ export function Inventory() {
   const filter = useGameStore((s) => s.ui.inventoryFilter);
   const setSortKey = useGameStore((s) => s.setInventorySortKey);
   const setFilter = useGameStore((s) => s.setInventoryFilter);
+  const uiPrimary = useGameStore((s) => s.ui.primaryMarketplace);
 
   const availableCompanies = GRADING_COMPANIES.filter((c) => upgrades.includes(c.unlockUpgradeId));
+  // The raw-card Sell button targets this store (fall back to FeeBay if invalid).
+  const sellPrimary: MarketplaceSource =
+    unlocked.includes(uiPrimary) && uiPrimary !== 'SlabHub' ? uiPrimary : 'FeeBay';
 
   const [bundleMode, setBundleMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailItem, setDetailItem] = useState<InventoryItem | null>(null);
   const [listingItem, setListingItem] = useState<InventoryItem | null>(null);
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
 
   const sorted = useMemo(() => {
     const showcaseSet = new Set(showcaseIds);
@@ -181,6 +187,14 @@ export function Inventory() {
               <Icon name="package" size={12} /> Bundle mode
             </button>
           )}
+          <span className="border-l border-line mx-1" />
+          <button
+            onClick={() => setStoreModalOpen(true)}
+            className="px-3 py-1.5 rounded-md border border-line text-ink-700 hover:border-feebay-500 bg-white flex items-center gap-1.5"
+          >
+            <Icon name="tag" size={12} />
+            Sell store: <span className="font-bold text-feebay-700">{sellPrimary}</span>
+          </button>
         </div>
       </div>
 
@@ -264,6 +278,7 @@ export function Inventory() {
               noisePrev={noisePrev[item.cardId] ?? 1}
               availableCompanies={availableCompanies.map((c) => c.id)}
               unlocked={unlocked}
+              primary={sellPrimary}
               onSell={(mkt) => sell(item.id, mkt)}
               onGrade={(c) => grade(item.id, c)}
               onList={() => setListingItem(item)}
@@ -284,6 +299,7 @@ export function Inventory() {
       {listingItem && (
         <ListForSaleModal item={listingItem} onClose={() => setListingItem(null)} />
       )}
+      {storeModalOpen && <SellStoreModal onClose={() => setStoreModalOpen(false)} />}
     </div>
   );
 }
@@ -295,6 +311,7 @@ function ItemCard({
   noisePrev,
   availableCompanies,
   unlocked,
+  primary,
   onSell,
   onGrade,
   onList,
@@ -311,6 +328,7 @@ function ItemCard({
   noisePrev: number;
   availableCompanies: GradingCompanyId[];
   unlocked: MarketplaceSource[];
+  primary: MarketplaceSource;
   onSell: (mkt?: MarketplaceSource) => void;
   onGrade: (companyId: GradingCompanyId) => void;
   onList: () => void;
@@ -462,15 +480,12 @@ function ItemCard({
             <>
               {item.status === 'raw' && (
                 <>
-                  {sellableTo.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => onSell(m)}
-                      className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
-                    >
-                      Sell on {m}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => onSell(primary)}
+                    className="text-xs px-3 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white font-semibold"
+                  >
+                    Sell on {primary}
+                  </button>
                   <button
                     onClick={onList}
                     className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"

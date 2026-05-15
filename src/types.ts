@@ -339,6 +339,8 @@ export type GameState = {
     inventoryFilter: 'all' | 'raw' | 'grading' | 'graded' | 'listed' | 'showcased';
     inventorySortKey: 'value' | 'profit' | 'rarity' | 'condition' | 'recent';
     marketplaceActiveSource: 'all' | MarketplaceSource;
+    /** Default store raw cards sell to from the one-click Sell button. */
+    primaryMarketplace: MarketplaceSource;
   };
 };
 

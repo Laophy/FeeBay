@@ -17,7 +17,7 @@ export const MARKETPLACES: MarketplaceDef[] = [
     id: 'FeeBay',
     tagline: 'Auctions and listings. Fees included whether you like it or not.',
     description: 'Best for singles, slabs, sniped deals. Famously ridiculous fees.',
-    sellerFeePct: 0.13,
+    sellerFeePct: 0.11,
     paymentFeePct: 0.03,
     flatFee: 0.3,
     unlockReputation: 0,

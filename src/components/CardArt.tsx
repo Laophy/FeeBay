@@ -75,6 +75,8 @@ type Props = {
   centeringOffsetX?: number;
   centeringOffsetY?: number;
   small?: boolean;
+  /** Larger render for detail/inspect screens. */
+  large?: boolean;
   cardId?: string;
   /** When false, holo foil renders statically (no infinite animation). Use for big grids. */
   animated?: boolean;
@@ -123,6 +125,7 @@ export const CardArt = memo(function CardArt({
   centeringOffsetX = 0,
   centeringOffsetY = 0,
   small,
+  large,
   cardId,
   animated = true,
 }: Props) {
@@ -145,7 +148,7 @@ export const CardArt = memo(function CardArt({
     }
   }
 
-  const size = small ? 'h-24 w-16' : 'h-40 w-28';
+  const size = small ? 'h-24 w-16' : large ? 'h-[252px] w-[176px]' : 'h-40 w-28';
   const isSlabbed = grade !== undefined && grade > 0 && !!gradingCompany;
   const isAuthFail = grade === 0;
   const borderColor = cardBorderColor(setName, firstEdition);

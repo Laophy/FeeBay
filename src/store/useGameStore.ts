@@ -212,6 +212,7 @@ function defaultState(): GameState {
       inventoryFilter: 'all',
       inventorySortKey: 'recent',
       marketplaceActiveSource: 'all',
+      primaryMarketplace: 'FeeBay',
     },
   };
 }
@@ -271,6 +272,7 @@ type Actions = {
   setInventoryFilter(filter: GameState['ui']['inventoryFilter']): void;
   setInventorySortKey(key: GameState['ui']['inventorySortKey']): void;
   setMarketplaceActiveSource(src: GameState['ui']['marketplaceActiveSource']): void;
+  setPrimaryMarketplace(src: MarketplaceSource): void;
   negotiate(
     listingId: string,
     offer: number,
@@ -1896,6 +1898,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   setMarketplaceActiveSource(src) {
     set((s) => ({ ui: { ...s.ui, marketplaceActiveSource: src } }));
+  },
+  setPrimaryMarketplace(src) {
+    set((s) => ({ ui: { ...s.ui, primaryMarketplace: src } }));
+    get().save();
   },
 }));
 
