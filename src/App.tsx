@@ -13,7 +13,6 @@ import { Achievements } from './features/achievements/Achievements';
 import { Collection } from './features/collection/Collection';
 import { Stats } from './features/stats/Stats';
 import { Storefront } from './features/storefront/Storefront';
-import { NotificationStack } from './components/NotificationStack';
 import { LotRevealModal } from './components/LotRevealModal';
 import { IntroModal } from './components/IntroModal';
 import { EndOfDayModal } from './components/EndOfDayModal';
@@ -143,7 +142,6 @@ export default function App() {
         </main>
         </div>
       </div>
-      <NotificationStack />
       <LotRevealModal />
       <EndOfDayModal />
       <IntroModal />

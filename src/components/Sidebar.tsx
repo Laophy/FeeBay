@@ -3,6 +3,7 @@ import type { Route } from '../App';
 import { useGameStore } from '../store/useGameStore';
 import { isMuted, setMuted, SFX } from '../game/audio';
 import { Icon, type IconName } from './Icon';
+import { NotificationStack } from './NotificationStack';
 
 type NavEntry = {
   id: Route;
@@ -225,6 +226,8 @@ export function Sidebar({ route, setRoute }: Props) {
           </div>
         )}
       </nav>
+
+      <NotificationStack />
 
       <div className="px-3 py-2 border-t border-line">
         <button
