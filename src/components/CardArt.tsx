@@ -269,6 +269,146 @@ function cardBodyGradient(hue: number, variant: CardVariant): string {
   return `linear-gradient(160deg, hsl(${hue}, 30%, 56%) 0%, hsl(${hue}, 28%, 44%) 100%)`;
 }
 
+// --- Holographic foil ------------------------------------------------------
+// Idle iridescent foil, rebuilt from scratch. Three drifting gradient layers
+// plus a static glitter layer, all sized in fixed px and clipped to the card,
+// so the effect is identical at every card size and zoom level — no
+// size-dependent math (the old version pinned font-size to the card width).
+//
+// Seamless: every drifting layer is a repeating-linear-gradient whose first and
+// last colour are identical, translated by exactly one band period along X
+// (period / sin(angle); see the holoSheen* / holoGlareSweep keyframes). Each
+// loop maps the pattern onto itself, so there is no jump — the old tearing came
+// from translate distances that did not line up with the band period.
+//
+// Isolated: CardBody sets `isolation: isolate`, so these blend-mode layers
+// composite only against their own card, never against neighbouring cards or
+// the page (the old version's cross-card "connection" artefacts).
+
+// Primary iridescent sheen — full hue cycle, identical end colours. 21px band.
+const SHEEN_A =
+  'repeating-linear-gradient(115deg, hsl(348,95%,73%) 0px, hsl(45,95%,71%) 3.5px, hsl(150,80%,67%) 7px, hsl(192,92%,71%) 10.5px, hsl(255,88%,77%) 14px, hsl(320,90%,75%) 17.5px, hsl(348,95%,73%) 21px)';
+// Crossing sheen — different angle and hue order for a shifting prism. 26px band.
+const SHEEN_B =
+  'repeating-linear-gradient(68deg, hsl(190,92%,73%) 0px, hsl(255,88%,77%) 4.333px, hsl(320,90%,75%) 8.667px, hsl(20,95%,73%) 13px, hsl(95,78%,69%) 17.333px, hsl(150,82%,69%) 21.667px, hsl(190,92%,73%) 26px)';
+// One soft white glare per 76px — mostly transparent with a single bump.
+const GLARE =
+  'repeating-linear-gradient(110deg, transparent 0px, transparent 26px, rgba(255,255,255,0.10) 33px, rgba(255,255,255,0.55) 38px, rgba(255,255,255,0.10) 43px, transparent 50px, transparent 76px)';
+
+// Rainbow-rare variants — brighter, with white sheen streaks woven in and a
+// colour-tinted glare. Band periods match the holo tier, so the same keyframes
+// drive both unchanged.
+const SHEEN_A_RB =
+  'repeating-linear-gradient(115deg, hsl(348,100%,79%) 0px, hsl(255,100%,85%) 3.5px, #ffffff 7px, hsl(190,100%,81%) 10.5px, hsl(140,95%,77%) 14px, #ffffff 17.5px, hsl(348,100%,79%) 21px)';
+const SHEEN_B_RB =
+  'repeating-linear-gradient(68deg, hsl(45,100%,81%) 0px, #ffffff 4.333px, hsl(190,100%,83%) 8.667px, hsl(300,100%,83%) 13px, #ffffff 17.333px, hsl(140,95%,79%) 21.667px, hsl(45,100%,81%) 26px)';
+const GLARE_RB =
+  'repeating-linear-gradient(110deg, transparent 0px, transparent 24px, hsla(45,100%,80%,0.22) 31px, rgba(255,255,255,0.62) 38px, hsla(280,100%,82%,0.24) 45px, transparent 52px, transparent 76px)';
+
+// Fine glitter — two offset dot grids. Twinkles in place, never drifts, so
+// there is no seam to align. One variant per tier sets the glitter strength.
+const SPARKLE =
+  'radial-gradient(circle, rgba(255,255,255,0.9) 0.6px, transparent 1.5px), radial-gradient(circle, rgba(255,255,255,0.6) 0.5px, transparent 1.2px)';
+const SPARKLE_SOFT =
+  'radial-gradient(circle, rgba(255,255,255,0.5) 0.6px, transparent 1.5px), radial-gradient(circle, rgba(255,255,255,0.3) 0.5px, transparent 1.2px)';
+const SPARKLE_RB =
+  'radial-gradient(circle, rgba(255,255,255,1) 0.7px, transparent 1.6px), radial-gradient(circle, rgba(255,255,255,0.8) 0.5px, transparent 1.2px)';
+
+function HoloFoil({
+  tier,
+  animated,
+}: {
+  tier: 'holo' | 'reverse' | 'rainbow';
+  animated: boolean;
+}) {
+  const isRainbow = tier === 'rainbow';
+  const isReverse = tier === 'reverse';
+
+  // Drifting layers overflow the card by 100px — comfortably more than the
+  // largest drift (~81px) — so a sliding pattern never exposes a blank edge.
+  // Static renders (big grids, animated=false) just cover the card exactly.
+  const spread: React.CSSProperties = {
+    position: 'absolute',
+    inset: animated ? '-100px' : 0,
+  };
+
+  const sheenA = isRainbow ? SHEEN_A_RB : SHEEN_A;
+  const sheenB = isRainbow ? SHEEN_B_RB : SHEEN_B;
+  const glare = isRainbow ? GLARE_RB : GLARE;
+  const sparkle = isReverse ? SPARKLE_SOFT : isRainbow ? SPARKLE_RB : SPARKLE;
+
+  // Calm, slow drift for a refined look; rainbow rares run a little livelier.
+  const spd = isRainbow
+    ? { a: '9s', b: '13s', g: '7s', t: '2.6s' }
+    : { a: '15s', b: '21s', g: '11s', t: '3.8s' };
+
+  // Refined opacities — clearly iridescent without washing out the card art.
+  const opSheenA = isReverse ? 0.16 : isRainbow ? 0.46 : 0.34;
+  const opSheenB = isRainbow ? 0.3 : 0.17;
+  const opGlare = isRainbow ? 0.44 : 0.32;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Primary iridescent sheen */}
+      <div
+        className="holo-layer"
+        style={{
+          ...spread,
+          backgroundImage: sheenA,
+          mixBlendMode: 'overlay',
+          opacity: opSheenA,
+          willChange: animated ? 'transform' : undefined,
+          animation: animated ? `holoSheenA ${spd.a} linear infinite` : undefined,
+        }}
+      />
+      {/* Crossing sheen — prismatic shift (skipped on the subtle reverse tier) */}
+      {!isReverse && (
+        <div
+          className="holo-layer"
+          style={{
+            ...spread,
+            backgroundImage: sheenB,
+            mixBlendMode: 'color-dodge',
+            opacity: opSheenB,
+            willChange: animated ? 'transform' : undefined,
+            animation: animated ? `holoSheenB ${spd.b} linear infinite` : undefined,
+          }}
+        />
+      )}
+      {/* Soft glare sweep */}
+      {!isReverse && (
+        <div
+          className="holo-layer"
+          style={{
+            ...spread,
+            backgroundImage: glare,
+            mixBlendMode: 'screen',
+            opacity: opGlare,
+            willChange: animated ? 'transform' : undefined,
+            animation: animated
+              ? `holoGlareSweep ${spd.g} linear infinite`
+              : undefined,
+          }}
+        />
+      )}
+      {/* Glitter — twinkles in place, so there is no seam to align */}
+      <div
+        className="holo-layer absolute inset-0"
+        style={{
+          backgroundImage: sparkle,
+          backgroundSize: '7px 7px, 11px 11px',
+          backgroundPosition: '0 0, 3px 5px',
+          mixBlendMode: 'screen',
+          opacity: animated ? undefined : 0.46,
+          animation: animated
+            ? `holoTwinkle ${spd.t} ease-in-out infinite`
+            : undefined,
+        }}
+      />
+    </div>
+  );
+}
+
 function CardBody({
   name,
   rarity,
@@ -322,7 +462,7 @@ function CardBody({
   return (
     <div
       className="relative w-full h-full flex flex-col"
-      style={{ background: cardBodyGradient(hue, variant) }}
+      style={{ background: cardBodyGradient(hue, variant), isolation: 'isolate' }}
     >
       {!hideHeader && (
         <div className={`relative z-10 flex items-center gap-1 px-1 ${small ? 'pt-0.5' : 'pt-1'}`}>
@@ -477,96 +617,11 @@ function CardBody({
         </div>
       )}
 
-      {/* Texture overlay — pronounced on holo, faint on reverse, none on normal */}
+      {/* Holographic foil — iridescent sheen, soft glare and glitter. */}
       {!isNormal && (
-        <div
-          className="absolute inset-0 mix-blend-overlay pointer-events-none"
-          style={{
-            opacity: isHolo ? 0.22 : 0.12,
-            backgroundImage:
-              'repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 2px, transparent 2px 7px)',
-          }}
-        />
-      )}
-
-      {/* Holo foil — full sweep + sparkle on holo, sparkle-only on reverse holo */}
-      {isHolo && (
-        <>
-          <div
-            className="absolute inset-0 pointer-events-none mix-blend-screen"
-            style={{
-              opacity: 0.6,
-              backgroundImage:
-                'linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.7) 50%, transparent 68%)',
-              backgroundSize: '200% 200%',
-              backgroundPosition: animated ? undefined : '62% 0%',
-              animation: animated ? 'holoShine 6s linear infinite' : undefined,
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none mix-blend-screen opacity-35"
-            style={{
-              backgroundImage:
-                'radial-gradient(rgba(255,255,255,0.65) 0.6px, transparent 1.4px)',
-              backgroundSize: '7px 7px',
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none mix-blend-color-dodge"
-            style={{
-              opacity: 0.18,
-              backgroundImage:
-                'linear-gradient(60deg, hsla(0,90%,60%,0.5), hsla(60,90%,60%,0.5), hsla(140,90%,60%,0.5), hsla(220,90%,60%,0.5), hsla(300,90%,60%,0.5))',
-              backgroundSize: '300% 300%',
-              backgroundPosition: animated ? undefined : '50% 50%',
-              animation: animated ? 'holoShine 9s linear infinite' : undefined,
-            }}
-          />
-        </>
-      )}
-      {/* Rainbow foil — full rainbow wash, bright moving sheen, dense glitter. */}
-      {isRainbow && (
-        <>
-          <div
-            className="absolute inset-0 pointer-events-none mix-blend-color-dodge"
-            style={{
-              opacity: 0.4,
-              backgroundImage:
-                'linear-gradient(125deg, hsla(0,95%,62%,0.7), hsla(48,95%,62%,0.7), hsla(140,85%,55%,0.7), hsla(200,95%,60%,0.7), hsla(280,90%,64%,0.7), hsla(330,95%,64%,0.7))',
-              backgroundSize: '300% 300%',
-              backgroundPosition: animated ? undefined : '50% 50%',
-              animation: animated ? 'rainbowFlow 7s linear infinite' : undefined,
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none mix-blend-screen"
-            style={{
-              opacity: 0.7,
-              backgroundImage:
-                'linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.85) 50%, transparent 70%)',
-              backgroundSize: '200% 200%',
-              backgroundPosition: animated ? undefined : '60% 0%',
-              animation: animated ? 'holoShine 4.5s linear infinite' : undefined,
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none mix-blend-screen opacity-45"
-            style={{
-              backgroundImage:
-                'radial-gradient(rgba(255,255,255,0.8) 0.7px, transparent 1.5px)',
-              backgroundSize: '6px 6px',
-            }}
-          />
-        </>
-      )}
-      {isReverse && (
-        <div
-          className="absolute inset-0 pointer-events-none mix-blend-screen opacity-40"
-          style={{
-            backgroundImage:
-              'radial-gradient(rgba(255,255,255,0.55) 0.7px, transparent 1.6px)',
-            backgroundSize: '6px 6px',
-          }}
+        <HoloFoil
+          tier={isRainbow ? 'rainbow' : isReverse ? 'reverse' : 'holo'}
+          animated={animated}
         />
       )}
     </div>
@@ -702,7 +757,7 @@ function SlabFrame({
           style={{
             background:
               'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)',
-            animation: 'slabShine 6s linear infinite',
+            animation: 'slabShine 8s linear infinite',
           }}
         />
       </div>
