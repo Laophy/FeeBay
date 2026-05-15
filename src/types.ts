@@ -192,6 +192,22 @@ export type GradingReveal = {
   company: GradingCompanyId;
 };
 
+export type BulkGradeReveal = {
+  itemId: string;
+  cardId: string;
+  cardName: string;
+  rarity: CardRarity;
+  hue: number;
+  centeringOffsetX: number;
+  centeringOffsetY: number;
+  grade: number;
+  gradeLabel: string;
+  company: GradingCompanyId;
+  paid: number;
+  finalValue: number;
+  profit: number;
+};
+
 export type LotReveal = {
   id: string;
   source: MarketplaceSource;
@@ -268,6 +284,8 @@ export type GameState = {
   lastListingRefresh: number;
   lastMarketEvent: number;
   pendingGradeReveals: GradingReveal[];
+  /** Session-only — populated when Reveal All fires, consumed by the bulk-reveal modal. Not persisted. */
+  pendingBulkReveal: BulkGradeReveal[];
   pendingLotReveals: LotReveal[];
   achievementsUnlocked: string[];
   achievementsClaimed: string[];

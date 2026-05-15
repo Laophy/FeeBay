@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   AuctionListing,
+  BulkGradeReveal,
   GameNotification,
   GameState,
   GradingCompanyId,
@@ -168,6 +169,7 @@ function defaultState(): GameState {
     lastListingRefresh: 0,
     lastMarketEvent: 0,
     pendingGradeReveals: [],
+    pendingBulkReveal: [],
     pendingLotReveals: [],
     achievementsUnlocked: [],
     achievementsClaimed: [],
@@ -220,6 +222,10 @@ type Actions = {
   sendToGrading(itemId: string, companyId: GradingCompanyId): void;
   /** Manually reveal a submission whose timer is up. Rolls the grade, updates inventory/stats, queues a reveal modal entry. */
   revealGradingSubmission(submissionId: string): void;
+  /** Reveal every ready submission at once. Populates pendingBulkReveal for the cinematic modal. Requires mass_grade_reveal upgrade. */
+  revealAllReadyGrading(): void;
+  /** Clear the bulk reveal queue once the modal has played through. */
+  consumeBulkReveal(): void;
   consumeGradeReveal(submissionId: string): void;
   consumeLotReveal(lotId: string): void;
   triggerMarketEvent(): void;
@@ -227,6 +233,7 @@ type Actions = {
   purchaseUpgrade(upgradeId: string): void;
   pushNotification(message: string, kind?: GameNotification['kind']): void;
   dismissNotification(id: string): void;
+  dismissAllNotifications(): void;
   hasUpgrade(effect: string): boolean;
   inventorySlots(): number;
   resetGame(): void;
@@ -727,6 +734,83 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 
+  revealAllReadyGrading() {
+    const state = get();
+    if (!state.upgradesPurchased.includes('mass_grade_reveal')) {
+      get().pushNotification('Buy the Mass-Reveal Cracker upgrade first.', 'warning');
+      return;
+    }
+    const now = Date.now();
+    const ready = state.gradingSubmissions.filter((s) => s.resolveAt <= now);
+    if (ready.length === 0) return;
+
+    let inventory = state.inventory;
+    let collection = state.collection;
+    const stats = {
+      ...state.stats,
+      gradesReceived: { ...state.stats.gradesReceived },
+      gradingCompaniesUsed: [...state.stats.gradingCompaniesUsed],
+    };
+    const bulkReveals: BulkGradeReveal[] = [];
+    const gradedItems: InventoryItem[] = [];
+
+    for (const sub of ready) {
+      const item = inventory.find((i) => i.id === sub.itemId);
+      if (!item) continue;
+      const result = rollGrade(item, sub.company);
+      const updated: InventoryItem = {
+        ...item,
+        status: 'graded',
+        grade: result.grade,
+        gradeLabel: result.label,
+        gradingCompany: result.company,
+      };
+      inventory = inventory.map((i) => (i.id === item.id ? updated : i));
+      const finalValue = calculateCurrentValue(updated, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state));
+      const key = String(result.grade);
+      stats.gradesReceived[key] = (stats.gradesReceived[key] ?? 0) + 1;
+      if (!stats.gradingCompaniesUsed.includes(result.company)) {
+        stats.gradingCompaniesUsed.push(result.company);
+      }
+      if (result.grade >= 10) stats.gem10sToday = (stats.gem10sToday ?? 0) + 1;
+      collection = recordGradeUpdate(collection, item.cardId, result.grade);
+      bulkReveals.push({
+        itemId: item.id,
+        cardId: item.cardId,
+        cardName: item.name,
+        rarity: item.rarity,
+        hue: item.hue,
+        centeringOffsetX: item.centeringOffsetX,
+        centeringOffsetY: item.centeringOffsetY,
+        grade: result.grade,
+        gradeLabel: result.label,
+        company: result.company,
+        paid: item.purchasePrice,
+        finalValue,
+        profit: +(finalValue - item.purchasePrice).toFixed(2),
+      });
+      gradedItems.push(updated);
+    }
+
+    const readyIds = new Set(ready.map((s) => s.id));
+    set({
+      inventory,
+      gradingSubmissions: state.gradingSubmissions.filter((s) => !readyIds.has(s.id)),
+      stats,
+      collection,
+      pendingBulkReveal: bulkReveals,
+    });
+
+    for (const item of gradedItems) {
+      get().evaluateAndApplyAchievements({ kind: 'graded', grade: item.grade ?? 0, item });
+    }
+    get().save();
+  },
+
+  consumeBulkReveal() {
+    set({ pendingBulkReveal: [] });
+  },
+
   consumeGradeReveal(submissionId) {
     set((state) => ({
       pendingGradeReveals: state.pendingGradeReveals.filter((r) => r.submissionId !== submissionId),
@@ -784,11 +868,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       kind,
       createdAt: Date.now(),
     };
-    set((s) => ({ notifications: [note, ...s.notifications].slice(0, 30) }));
+    set((s) => ({ notifications: [note, ...s.notifications].slice(0, 12) }));
   },
 
   dismissNotification(id) {
     set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) }));
+  },
+
+  dismissAllNotifications() {
+    set({ notifications: [] });
   },
 
   hasUpgrade(effect) {

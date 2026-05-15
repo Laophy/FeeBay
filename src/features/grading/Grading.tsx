@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { GRADING_COMPANIES } from '../../data/gradingCompanies';
 import { GradingRevealModal } from '../../components/GradingRevealModal';
+import { BulkGradeRevealModal } from '../../components/BulkGradeRevealModal';
 import { Icon } from '../../components/Icon';
 
 export function Grading() {
@@ -10,6 +11,8 @@ export function Grading() {
   const inventory = useGameStore((s) => s.inventory);
   const stats = useGameStore((s) => s.stats);
   const revealGrading = useGameStore((s) => s.revealGradingSubmission);
+  const revealAll = useGameStore((s) => s.revealAllReadyGrading);
+  const hasMassReveal = upgrades.includes('mass_grade_reveal');
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -73,14 +76,26 @@ export function Grading() {
       </div>
 
       <div className="rounded-lg border border-line bg-white shadow-card p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div className="text-sm font-semibold">Active submissions ({submissions.length})</div>
-          {submissions.some((s) => Date.now() >= s.resolveAt) && (
-            <div className="text-[11px] uppercase tracking-widest font-bold text-ebayGreen-700 flex items-center gap-1">
-              <Icon name="sparkle" size={12} />
-              {submissions.filter((s) => Date.now() >= s.resolveAt).length} ready to reveal
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {submissions.some((s) => Date.now() >= s.resolveAt) && (
+              <div className="text-[11px] uppercase tracking-widest font-bold text-ebayGreen-700 flex items-center gap-1">
+                <Icon name="sparkle" size={12} />
+                {submissions.filter((s) => Date.now() >= s.resolveAt).length} ready
+              </div>
+            )}
+            {hasMassReveal && submissions.some((s) => Date.now() >= s.resolveAt) && (
+              <button
+                onClick={revealAll}
+                className="rounded-md bg-feebay-500 hover:bg-feebay-600 text-white px-3 py-1.5 text-[11px] font-black uppercase tracking-widest border-2 border-feebay-600 shadow-sm inline-flex items-center gap-1.5"
+                title="Crack every ready slab at once"
+              >
+                <Icon name="bolt" size={12} />
+                Reveal All
+              </button>
+            )}
+          </div>
         </div>
         {submissions.length === 0 ? (
           <div className="text-sm text-ink-500">
@@ -208,6 +223,7 @@ export function Grading() {
       </div>
 
       <GradingRevealModal />
+      <BulkGradeRevealModal />
     </div>
   );
 }

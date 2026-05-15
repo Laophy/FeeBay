@@ -92,6 +92,7 @@ export function Sidebar({ route, setRoute }: Props) {
   const auctionsCount = state.auctions.filter((a) => !a.resolved).length;
   const pendingGrades = state.gradingSubmissions.length;
   const inventoryCount = state.inventory.length;
+  const inventoryMax = state.inventorySlots();
   const storefrontCount = state.playerListings.length;
   const achievementsUnlocked = state.achievementsUnlocked.length;
   const unclaimedAchievements = state.achievementsUnlocked.filter(
@@ -127,7 +128,7 @@ export function Sidebar({ route, setRoute }: Props) {
   }));
 
   const badge = (id: Route): string | null => {
-    if (id === 'inventory' && inventoryCount > 0) return `${inventoryCount}`;
+    if (id === 'inventory' && inventoryCount > 0) return `${inventoryCount}/${inventoryMax}`;
     if (id === 'storefront' && storefrontCount > 0) return `${storefrontCount}`;
     if (id === 'grading' && pendingGrades > 0) return `${pendingGrades}`;
     if (id === 'auctions' && auctionsCount > 0) return `${auctionsCount}`;

@@ -148,6 +148,13 @@ export const UPGRADES: Upgrade[] = [
     effect: 'bulk_grade',
     description: '20% discount on every grading submission. Volume reseller perk.',
   },
+  {
+    id: 'mass_grade_reveal',
+    name: 'Mass-Reveal Cracker',
+    cost: 3500,
+    effect: 'mass_grade_reveal',
+    description: 'Unlocks a Reveal All button on the Grading screen. Crack every ready slab at once, no waiting through animations.',
+  },
 
   // --- Marketplaces / discovery ---
   {
@@ -238,6 +245,7 @@ export const UPGRADE_EFFECTS = {
   UNLOCK_PZA: 'unlock_pza',
   EXPRESS_GRADING: 'express_grading',
   BULK_GRADE: 'bulk_grade',
+  MASS_GRADE_REVEAL: 'mass_grade_reveal',
   HIGHLIGHT_DEAL: 'highlight_deal',
   HIGHLIGHT_DEAL_PRO: 'highlight_deal_pro',
   UNLOCK_AUCTIONS: 'unlock_auctions',
