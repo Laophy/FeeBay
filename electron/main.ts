@@ -19,6 +19,12 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 // folder rather than the package name. Must run before the app is ready.
 app.setName('FeeBay');
 app.setPath('userData', path.join(app.getPath('appData'), 'FeeBay'));
+// Ensures Windows groups the app and shows the right taskbar icon.
+app.setAppUserModelId('com.feebay.simulator');
+
+// Window/taskbar icon. In packaged builds the embedded .exe icon is used;
+// this drives the icon during `npm run dev`.
+const APP_ICON = path.join(process.env.APP_ROOT, 'icon.ico');
 
 let win: BrowserWindow | null = null;
 
@@ -92,6 +98,17 @@ ipcMain.on('steam:cloud-save', (_e, payload: CloudSavePayload) => {
   if (payload && typeof payload.state === 'string') writeCloudSave(payload);
 });
 
+// Unlock a Steam achievement. The Steam API name must match the in-game id.
+ipcMain.on('steam:unlock-achievement', (_e, apiName: unknown) => {
+  try {
+    if (steamClient?.achievement?.activate && typeof apiName === 'string') {
+      steamClient.achievement.activate(apiName);
+    }
+  } catch (err) {
+    console.warn('[steam] achievement unlock failed:', (err as Error)?.message);
+  }
+});
+
 // ---------------------------------------------------------------------------
 
 function createWindow() {
@@ -101,6 +118,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 720,
     title: 'FeeBay Simulator',
+    icon: APP_ICON,
     backgroundColor: '#0b1220',
     autoHideMenuBar: true,
     frame: false, // custom title bar inside the renderer

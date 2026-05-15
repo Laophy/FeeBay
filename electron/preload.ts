@@ -38,5 +38,12 @@ contextBridge.exposeInMainWorld('feebay', {
         /* offline / steam unavailable — local save still holds */
       }
     },
+    unlockAchievement: (id: string) => {
+      try {
+        ipcRenderer.send('steam:unlock-achievement', id);
+      } catch {
+        /* steam unavailable — in-game achievement still records */
+      }
+    },
   },
 });

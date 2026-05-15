@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FeeBay Icon Generator</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: #1b1f24;
+      color: #e8eaed;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    canvas {
+      border: 1px solid #3a3f46;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+    .row { display: flex; gap: 10px; }
+    button {
+      font: inherit;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      background: #0064d2;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #0053b0; }
+    p { font-size: 13px; color: #9aa0aa; max-width: 420px; text-align: center; }
+  </style>
+</head>
+<body>
+  <canvas id="c" width="256" height="256"></canvas>
+  <div class="row">
+    <button id="dlJpg">achievement .jpg</button>
+    <button id="dlPng">icon .png</button>
+    <button id="dlIco">app icon .ico</button>
+  </div>
+  <p>256&times;256 FeeBay logo. Use the <b>.jpg</b> for achievement icons and the
+     <b>.ico</b> as the app icon &mdash; save the .ico into the project's
+     <code>build/</code> folder as <code>icon.ico</code>.</p>
+
+  <script>
+    // FeeBay wordmark — same letter colors used throughout the game.
+    const LETTERS = [
+      { ch: 'F', color: '#e53238' }, // ebayRed-500
+      { ch: 'e', color: '#0064d2' }, // feebay-500
+      { ch: 'e', color: '#f5af02' }, // ebayYellow-500
+      { ch: 'B', color: '#86b817' }, // ebayGreen-500
+      { ch: 'a', color: '#e53238' }, // ebayRed-500
+      { ch: 'y', color: '#0064d2' }, // feebay-500
+    ];
+
+    const SIZE = 256;
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    function draw() {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, SIZE, SIZE);
+
+      const targetWidth = SIZE * 0.84;
+      const font = (px) => `900 ${px}px "Segoe UI", system-ui, Arial, sans-serif`;
+      const measure = (px) => {
+        ctx.font = font(px);
+        return LETTERS.reduce((w, l) => w + ctx.measureText(l.ch).width, 0);
+      };
+      let fontSize = 120;
+      fontSize = Math.floor(fontSize * (targetWidth / measure(fontSize)));
+      const width = measure(fontSize);
+
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.font = font(fontSize);
+      let x = (SIZE - width) / 2;
+      const y = SIZE / 2;
+      for (const l of LETTERS) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(15, 23, 42, 0.18)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = l.color;
+        ctx.fillText(l.ch, x, y);
+        ctx.restore();
+        x += ctx.measureText(l.ch).width;
+      }
+    }
+
+    function saveBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadDataUrl(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      a.click();
+    }
+
+    // Wrap the canvas PNG into a single-image 256x256 .ico (Vista+ PNG-in-ICO).
+    async function buildIco() {
+      const pngBlob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+      const png = new Uint8Array(await pngBlob.arrayBuffer());
+      const header = new ArrayBuffer(22);
+      const dv = new DataView(header);
+      dv.setUint16(0, 0, true);   // reserved
+      dv.setUint16(2, 1, true);   // type: 1 = icon
+      dv.setUint16(4, 1, true);   // image count
+      dv.setUint8(6, 0);          // width  (0 => 256)
+      dv.setUint8(7, 0);          // height (0 => 256)
+      dv.setUint8(8, 0);          // palette color count
+      dv.setUint8(9, 0);          // reserved
+      dv.setUint16(10, 1, true);  // color planes
+      dv.setUint16(12, 32, true); // bits per pixel
+      dv.setUint32(14, png.length, true); // image data size
+      dv.setUint32(18, 22, true); // offset to image data
+      const out = new Uint8Array(22 + png.length);
+      out.set(new Uint8Array(header), 0);
+      out.set(png, 22);
+      return new Blob([out], { type: 'image/x-icon' });
+    }
+
+    draw();
+    document.getElementById('dlJpg').addEventListener('click', () => {
+      downloadDataUrl(canvas.toDataURL('image/jpeg', 0.95), 'feebay-achievement.jpg');
+    });
+    document.getElementById('dlPng').addEventListener('click', () => {
+      downloadDataUrl(canvas.toDataURL('image/png'), 'feebay-icon.png');
+    });
+    document.getElementById('dlIco').addEventListener('click', async () => {
+      saveBlob(await buildIco(), 'icon.ico');
+    });
+  </script>
+</body>
+</html>

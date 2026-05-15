@@ -13,7 +13,8 @@
     "electron:build": "tsc -b && vite build && electron-builder",
     "pack": "npm run build && electron-builder --dir",
     "package": "npm run build && electron-builder --win nsis",
-    "portable": "npm run build && electron-builder --win portable"
+    "portable": "npm run build && electron-builder --win portable",
+    "steam:build": "node scripts/build-steam.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -51,6 +52,8 @@
       "output": "release"
     },
     "win": {
+      "icon": "icon.ico",
+      "executableName": "FeeBay",
       "target": [
         "nsis",
         "portable"

@@ -309,6 +309,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (get().listings.length === 0) {
       get().refreshListings();
     }
+    // Re-push earned achievements to Steam — covers saves made before the Steam
+    // integration and any achievements earned while offline. Steam ignores dupes.
+    const steam = window.feebay?.steam;
+    if (steam?.available) {
+      for (const id of get().achievementsUnlocked) steam.unlockAchievement(id);
+    }
   },
 
   refreshListings(opts) {
@@ -1650,6 +1656,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           'achievement',
         );
       }
+      // Mirror to Steam (no-op when Steam isn't available).
+      window.feebay?.steam?.unlockAchievement(id);
     }
   },
 
