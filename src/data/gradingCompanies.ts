@@ -5,6 +5,8 @@ export type GradingCompanyDef = {
   name: string;
   tagline: string;
   cost: number;
+  /** Two-way shipping fee charged at submission. Added on top of cost. */
+  shippingFee: number;
   turnaroundMs: number;
   /** Final value multiplier applied on top of the grade multiplier. */
   resaleMultiplier: number;
@@ -20,6 +22,7 @@ export const GRADING_COMPANIES: GradingCompanyDef[] = [
     name: 'ZAG Grading',
     tagline: 'Fast and cheap. Slightly less hype on the resale.',
     cost: 25,
+    shippingFee: 6,
     turnaroundMs: 45_000,
     resaleMultiplier: 0.9,
     chaosChance: 0.05,
@@ -31,6 +34,7 @@ export const GRADING_COMPANIES: GradingCompanyDef[] = [
     name: 'PZA',
     tagline: 'Premium. Expensive. Slower. Highest market premium.',
     cost: 80,
+    shippingFee: 14,
     turnaroundMs: 90_000,
     resaleMultiplier: 1.2,
     chaosChance: 0.03,
@@ -42,6 +46,7 @@ export const GRADING_COMPANIES: GradingCompanyDef[] = [
     name: 'Bucket Grading',
     tagline: 'Wildly inconsistent. Occasionally gifts you a gem. Occasionally mislabels.',
     cost: 15,
+    shippingFee: 4,
     turnaroundMs: 30_000,
     resaleMultiplier: 0.85,
     chaosChance: 0.35,

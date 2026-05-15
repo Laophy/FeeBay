@@ -18,7 +18,8 @@ import {
 import { rollGrade } from '../game/gradingEngine';
 import { pruneExpiredTrends, rollMarketEvent } from '../game/marketEvents';
 import { loadGame, saveGame } from '../game/saveSystem';
-import { rand, uid } from '../game/rng';
+import { pick, rand, uid } from '../game/rng';
+import { SELLER_NAMES } from '../data/listingTemplates';
 import { getMarketplace, MARKETPLACES } from '../data/marketplaces';
 import { UPGRADES, UPGRADE_EFFECTS } from '../data/upgrades';
 import { getCardById } from '../data/cards';
@@ -158,6 +159,9 @@ function defaultState(): GameState {
     recentSellsByTag: {},
     lastConventionAt: 0,
     playerListings: [],
+    showcaseItemIds: [],
+    storefrontHistory: [],
+    pendingPayments: [],
     hiredHelpState: {
       apprenticeLastFlipAt: 0,
       buyerAgentLastBuyAt: 0,
@@ -185,7 +189,8 @@ type Actions = {
   buyListing(listingId: string): void;
   sellInventoryItem(itemId: string, marketplace?: MarketplaceSource): void;
   sendToGrading(itemId: string, companyId: GradingCompanyId): void;
-  resolveDueGrading(): void;
+  /** Manually reveal a submission whose timer is up. Rolls the grade, updates inventory/stats, queues a reveal modal entry. */
+  revealGradingSubmission(submissionId: string): void;
   consumeGradeReveal(submissionId: string): void;
   consumeLotReveal(lotId: string): void;
   triggerMarketEvent(): void;
@@ -216,6 +221,7 @@ type Actions = {
   tickConvention(): void;
   tickHiredHelp(): void;
   promoteBusinessLevel(): void;
+  toggleShowcase(itemId: string): void;
   setInventoryFilter(filter: GameState['ui']['inventoryFilter']): void;
   setInventorySortKey(key: GameState['ui']['inventorySortKey']): void;
   setMarketplaceActiveSource(src: GameState['ui']['marketplaceActiveSource']): void;
@@ -416,6 +422,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const item = state.inventory.find((i) => i.id === itemId);
     if (!item || item.status === 'grading' || item.status === 'sold') return;
+    if (state.showcaseItemIds.includes(itemId)) {
+      get().pushNotification('This card is in your showcase. Remove it first.', 'warning');
+      return;
+    }
     const marketplaceId: MarketplaceSource =
       marketplaceOverride ?? (item.status === 'graded' && state.marketplacesUnlocked.includes('SlabHub') ? 'SlabHub' : 'FeeBay');
     if (!state.marketplacesUnlocked.includes(marketplaceId)) {
@@ -499,6 +509,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       get().pushNotification('A bundle needs at least 2 cards.', 'warning');
       return;
     }
+    if (itemIds.some((id) => state.showcaseItemIds.includes(id))) {
+      get().pushNotification('Bundle contains a showcased card. Remove it from showcase first.', 'warning');
+      return;
+    }
     const items = itemIds
       .map((id) => state.inventory.find((i) => i.id === id))
       .filter((i): i is InventoryItem => !!i && i.status === 'raw');
@@ -576,11 +590,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     const item = state.inventory.find((i) => i.id === itemId);
     if (!item || item.status !== 'raw') return;
+    if (state.showcaseItemIds.includes(itemId)) {
+      get().pushNotification('This card is in your showcase. Remove it first.', 'warning');
+      return;
+    }
     const bulkDiscount = state.upgradesPurchased.includes('bulk_grade') ? 0.2 : 0;
     const express = state.upgradesPurchased.includes('express_grading');
-    const cost = Math.max(1, Math.round(company.cost * (1 - bulkDiscount)));
+    const baseCost = Math.max(1, Math.round(company.cost * (1 - bulkDiscount)));
+    const shippingFee = company.shippingFee;
+    const totalCost = baseCost + shippingFee;
     const turnaround = express ? Math.round(company.turnaroundMs * 0.5) : company.turnaroundMs;
-    if (state.cash < cost) {
+    if (state.cash < totalCost) {
       get().pushNotification('Not enough cash to grade.', 'warning');
       return;
     }
@@ -588,13 +608,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       id: uid('grd_'),
       itemId,
       cardName: item.name,
-      cost,
+      cost: totalCost,
+      shippingFee,
       submittedAt: Date.now(),
       resolveAt: Date.now() + turnaround,
       company: company.id,
     };
     set({
-      cash: +(state.cash - cost).toFixed(2),
+      cash: +(state.cash - totalCost).toFixed(2),
       inventory: state.inventory.map((i) =>
         i.id === itemId ? { ...i, status: 'grading', gradingCompany: company.id } : i,
       ),
@@ -602,66 +623,61 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
     SFX.click();
     get().pushNotification(
-      `Sent ${item.name} to ${company.name} ($${cost}${express ? ', express' : ''}).`,
+      `Sent ${item.name} to ${company.name} ($${baseCost} + $${shippingFee} shipping${express ? ', express' : ''}).`,
       'info',
     );
     get().save();
   },
 
-  resolveDueGrading() {
+  revealGradingSubmission(submissionId) {
     const state = get();
-    const now = Date.now();
-    const due = state.gradingSubmissions.filter((s) => s.resolveAt <= now);
-    if (due.length === 0) return;
-    let inventory = [...state.inventory];
-    const reveals = [...state.pendingGradeReveals];
+    const sub = state.gradingSubmissions.find((s) => s.id === submissionId);
+    if (!sub) return;
+    if (Date.now() < sub.resolveAt) return; // not yet ready
+    const item = state.inventory.find((i) => i.id === sub.itemId);
+    if (!item) {
+      // Stale submission; just drop it.
+      set({ gradingSubmissions: state.gradingSubmissions.filter((s) => s.id !== submissionId) });
+      return;
+    }
+    const result = rollGrade(item, sub.company);
+    const updated: InventoryItem = {
+      ...item,
+      status: 'graded',
+      grade: result.grade,
+      gradeLabel: result.label,
+      gradingCompany: result.company,
+    };
+    const inventory = state.inventory.map((i) => (i.id === item.id ? updated : i));
+    const finalValue = calculateCurrentValue(updated, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state));
+    const reveal = {
+      submissionId: sub.id,
+      itemId: item.id,
+      finalValue,
+      grade: result.grade,
+      gradeLabel: result.label,
+      company: result.company,
+    };
     const stats = {
       ...state.stats,
       gradesReceived: { ...state.stats.gradesReceived },
       gradingCompaniesUsed: [...state.stats.gradingCompaniesUsed],
     };
-    let collection = state.collection;
-    for (const sub of due) {
-      const item = inventory.find((i) => i.id === sub.itemId);
-      if (!item) continue;
-      const result = rollGrade(item, sub.company);
-      const updated: InventoryItem = {
-        ...item,
-        status: 'graded',
-        grade: result.grade,
-        gradeLabel: result.label,
-        gradingCompany: result.company,
-      };
-      const finalValue = calculateCurrentValue(updated, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state));
-      inventory = inventory.map((i) => (i.id === item.id ? updated : i));
-      reveals.push({
-        submissionId: sub.id,
-        itemId: item.id,
-        finalValue,
-        grade: result.grade,
-        gradeLabel: result.label,
-        company: result.company,
-      });
-      const key = String(result.grade);
-      stats.gradesReceived[key] = (stats.gradesReceived[key] ?? 0) + 1;
-      if (!stats.gradingCompaniesUsed.includes(result.company)) {
-        stats.gradingCompaniesUsed.push(result.company);
-      }
-      if (result.grade >= 10) stats.gem10sToday = (stats.gem10sToday ?? 0) + 1;
-      collection = recordGradeUpdate(collection, item.cardId, result.grade);
+    const key = String(result.grade);
+    stats.gradesReceived[key] = (stats.gradesReceived[key] ?? 0) + 1;
+    if (!stats.gradingCompaniesUsed.includes(result.company)) {
+      stats.gradingCompaniesUsed.push(result.company);
     }
+    if (result.grade >= 10) stats.gem10sToday = (stats.gem10sToday ?? 0) + 1;
+    const collection = recordGradeUpdate(state.collection, item.cardId, result.grade);
     set({
       inventory,
-      pendingGradeReveals: reveals,
-      gradingSubmissions: state.gradingSubmissions.filter((s) => !due.includes(s)),
+      pendingGradeReveals: [...state.pendingGradeReveals, reveal],
+      gradingSubmissions: state.gradingSubmissions.filter((s) => s.id !== submissionId),
       stats,
       collection,
     });
-    // Trigger achievement evaluation for each newly graded item
-    for (const r of reveals.slice(state.pendingGradeReveals.length)) {
-      const item = inventory.find((i) => i.id === r.itemId);
-      if (item) get().evaluateAndApplyAchievements({ kind: 'graded', grade: r.grade, item });
-    }
+    get().evaluateAndApplyAchievements({ kind: 'graded', grade: result.grade, item: updated });
     get().save();
   },
 
@@ -849,6 +865,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const item = state.inventory.find((i) => i.id === itemId);
     if (!item) return;
+    if (state.showcaseItemIds.includes(itemId)) {
+      get().pushNotification('This card is in your showcase. Remove it first.', 'warning');
+      return;
+    }
     if (item.status !== 'raw' && item.status !== 'graded') {
       get().pushNotification('Cannot list this item right now.', 'warning');
       return;
@@ -919,7 +939,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   tickPlayerListings() {
     const state = get();
-    if (state.playerListings.length === 0) return;
+    if (state.playerListings.length === 0 && state.pendingPayments.length === 0) return;
     const now = Date.now();
     let cashDelta = 0;
     let inventory = state.inventory;
@@ -932,6 +952,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let reputationGain = 0;
     let storefrontSales = state.stats.storefrontSales;
     let anyStorefrontSale = false;
+    const newHistory: typeof state.storefrontHistory = [];
+    const newPending: typeof state.pendingPayments = [];
 
     for (const listing of state.playerListings) {
       const item = inventory.find((i) => i.id === listing.itemId);
@@ -956,35 +978,147 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       const prob = saleProbabilityPerTick(listing.askingPrice, listing.refValue, listing.marketplace);
       if (Math.random() < prob) {
-        // Sold
+        // A buyer has clicked Buy. Three possible outcomes:
+        //   instant pay (60%), waiting for payment (30%), buyer will cancel (10%).
         const mkt = getMarketplace(listing.marketplace);
         const feeDiscount = feeDiscountFor(state);
         const sale = computeSale(listing.askingPrice, mkt, feeDiscount);
         const profit = +(sale.net - item.purchasePrice).toFixed(2);
-        cashDelta += sale.net;
-        totalProfit += profit;
-        totalFees += sale.sellerFee + sale.paymentFee + sale.flatFee;
-        totalSold += 1;
-        bestProfit = Math.max(bestProfit, profit);
-        biggestLoss = Math.min(biggestLoss, profit);
-        if (profit > 0) reputationGain += 1;
-        storefrontSales += 1;
-        anyStorefrontSale = true;
-        inventory = inventory.filter((i) => i.id !== item.id);
-        SFX.chaching();
-        get().pushNotification(
-          `Buyer bought ${item.name} on ${listing.marketplace} for $${sale.net.toFixed(2)} (+$${profit.toFixed(2)}).`,
-          profit >= 0 ? 'success' : 'warning',
-        );
+        const totalFeeAmount = sale.sellerFee + sale.paymentFee + sale.flatFee;
+        const roll = Math.random();
+        const buyerName = pick(SELLER_NAMES);
+        const willInstantPay = roll < 0.6;
+        const willDelayPay = !willInstantPay && roll < 0.9;
+        const willCancel = !willInstantPay && !willDelayPay;
+
+        if (willInstantPay) {
+          // Pay now (current behavior)
+          cashDelta += sale.net;
+          totalProfit += profit;
+          totalFees += totalFeeAmount;
+          totalSold += 1;
+          bestProfit = Math.max(bestProfit, profit);
+          biggestLoss = Math.min(biggestLoss, profit);
+          if (profit > 0) reputationGain += 1;
+          storefrontSales += 1;
+          anyStorefrontSale = true;
+          newHistory.push({
+            id: uid('sfh_'),
+            cardId: item.cardId,
+            cardName: item.name,
+            rarity: item.rarity,
+            hue: item.hue,
+            grade: item.grade,
+            gradingCompany: item.gradingCompany,
+            centeringOffsetX: item.centeringOffsetX,
+            centeringOffsetY: item.centeringOffsetY,
+            marketplace: listing.marketplace,
+            soldAt: now,
+            listPrice: listing.askingPrice,
+            netRevenue: sale.net,
+            profit,
+            status: 'instant',
+            buyerName,
+          });
+          inventory = inventory.filter((i) => i.id !== item.id);
+          SFX.chaching();
+          get().pushNotification(
+            `@${buyerName} bought ${item.name} on ${listing.marketplace} for $${sale.net.toFixed(2)} (+$${profit.toFixed(2)}).`,
+            profit >= 0 ? 'success' : 'warning',
+          );
+        } else {
+          // Pending — buyer either pays after a delay, or cancels.
+          // Delayed pays: 30–120s. Cancellations: 60–180s of waiting before bailing.
+          const delayMs = willCancel
+            ? Math.round(rand(60_000, 180_000))
+            : Math.round(rand(30_000, 120_000));
+          newPending.push({
+            id: uid('pp_'),
+            item,
+            marketplace: listing.marketplace,
+            buyerName,
+            listPrice: listing.askingPrice,
+            netRevenue: sale.net,
+            fees: totalFeeAmount,
+            profit,
+            saleAt: now,
+            resolveAt: now + delayMs,
+            willCancel,
+          });
+          // Card leaves inventory while in transit
+          inventory = inventory.filter((i) => i.id !== item.id);
+          get().pushNotification(
+            `@${buyerName} clicked Buy on ${item.name}. Waiting for payment…`,
+            'info',
+          );
+        }
         continue;
       }
       remaining.push({ ...listing, views: slot });
     }
 
+    // --- Resolve due pending payments ---
+    const stillPending: typeof state.pendingPayments = [];
+    for (const p of state.pendingPayments) {
+      if (now < p.resolveAt) {
+        stillPending.push(p);
+        continue;
+      }
+      if (p.willCancel) {
+        // Buyer ghosted. Return the card to inventory.
+        inventory = [...inventory, p.item];
+        SFX.loss();
+        get().pushNotification(
+          `@${p.buyerName} cancelled the order for ${p.item.name}. Card returned. Wasted ${Math.round(
+            (p.resolveAt - p.saleAt) / 1000,
+          )}s.`,
+          'warning',
+        );
+      } else {
+        // Payment arrives now.
+        cashDelta += p.netRevenue;
+        totalProfit += p.profit;
+        totalFees += p.fees;
+        totalSold += 1;
+        bestProfit = Math.max(bestProfit, p.profit);
+        biggestLoss = Math.min(biggestLoss, p.profit);
+        if (p.profit > 0) reputationGain += 1;
+        storefrontSales += 1;
+        anyStorefrontSale = true;
+        newHistory.push({
+          id: uid('sfh_'),
+          cardId: p.item.cardId,
+          cardName: p.item.name,
+          rarity: p.item.rarity,
+          hue: p.item.hue,
+          grade: p.item.grade,
+          gradingCompany: p.item.gradingCompany,
+          centeringOffsetX: p.item.centeringOffsetX,
+          centeringOffsetY: p.item.centeringOffsetY,
+          marketplace: p.marketplace,
+          soldAt: now,
+          listPrice: p.listPrice,
+          netRevenue: p.netRevenue,
+          profit: p.profit,
+          status: 'delayed',
+          buyerName: p.buyerName,
+        });
+        SFX.chaching();
+        get().pushNotification(
+          `@${p.buyerName} paid for ${p.item.name}. +$${p.netRevenue.toFixed(2)}.`,
+          'success',
+        );
+      }
+    }
+
+    const pendingChanged =
+      newPending.length > 0 || stillPending.length !== state.pendingPayments.length;
+
     if (
       cashDelta !== 0 ||
       remaining.length !== state.playerListings.length ||
-      reputationGain !== 0
+      reputationGain !== 0 ||
+      pendingChanged
     ) {
       set({
         cash: +(state.cash + cashDelta).toFixed(2),
@@ -1000,6 +1134,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           storefrontSales,
         },
         reputation: state.reputation + reputationGain,
+        storefrontHistory:
+          newHistory.length > 0
+            ? [...newHistory.reverse(), ...state.storefrontHistory].slice(0, 30)
+            : state.storefrontHistory,
+        pendingPayments: [...stillPending, ...newPending],
       });
       if (reputationGain > 0) get().tryUnlockMarketplaces();
       if (anyStorefrontSale) {
@@ -1257,6 +1396,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       recentSellsByTag: state.recentSellsByTag,
       lastConventionAt: state.lastConventionAt,
       playerListings: state.playerListings,
+      showcaseItemIds: state.showcaseItemIds,
+      storefrontHistory: state.storefrontHistory,
+      pendingPayments: state.pendingPayments,
       hiredHelpState: state.hiredHelpState,
       ui: state.ui,
     });
@@ -1498,6 +1640,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setInventoryFilter(filter) {
     set((s) => ({ ui: { ...s.ui, inventoryFilter: filter } }));
+  },
+
+  toggleShowcase(itemId) {
+    const state = get();
+    const item = state.inventory.find((i) => i.id === itemId);
+    if (!item) return;
+    const present = state.showcaseItemIds.includes(itemId);
+    if (present) {
+      set({ showcaseItemIds: state.showcaseItemIds.filter((id) => id !== itemId) });
+      get().pushNotification(`${item.name} removed from your showcase.`, 'info');
+    } else {
+      set({ showcaseItemIds: [...state.showcaseItemIds, itemId] });
+      SFX.coin();
+      get().pushNotification(
+        `${item.name} added to your showcase. Locked from sale.`,
+        'success',
+      );
+    }
+    get().save();
   },
   setInventorySortKey(key) {
     set((s) => ({ ui: { ...s.ui, inventorySortKey: key } }));

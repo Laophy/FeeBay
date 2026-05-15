@@ -48,7 +48,7 @@ export function Upgrades() {
                     disabled={!affordable}
                     className={`w-full rounded py-1.5 text-sm font-semibold ${
                       affordable
-                        ? 'bg-feebay-500 hover:bg-feebay-600'
+                        ? 'bg-feebay-500 hover:bg-feebay-600 text-white'
                         : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                     }`}
                   >

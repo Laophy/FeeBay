@@ -14,7 +14,6 @@ import { Collection } from './features/collection/Collection';
 import { Stats } from './features/stats/Stats';
 import { Storefront } from './features/storefront/Storefront';
 import { NotificationStack } from './components/NotificationStack';
-import { GradingRevealModal } from './components/GradingRevealModal';
 import { LotRevealModal } from './components/LotRevealModal';
 import { IntroModal } from './components/IntroModal';
 import { EndOfDayModal } from './components/EndOfDayModal';
@@ -38,7 +37,6 @@ export default function App() {
   const [route, setRoute] = useState<Route>('dashboard');
   const [booting, setBooting] = useState(true);
   const init = useGameStore((s) => s.init);
-  const resolveDueGrading = useGameStore((s) => s.resolveDueGrading);
   const tickTrends = useGameStore((s) => s.tickTrends);
   const triggerMarketEvent = useGameStore((s) => s.triggerMarketEvent);
   const lastMarketEvent = useGameStore((s) => s.lastMarketEvent);
@@ -75,7 +73,6 @@ export default function App() {
 
   useEffect(() => {
     const id = setInterval(() => {
-      resolveDueGrading();
       tickTrends();
       tickAuctions();
       tickListings();
@@ -87,7 +84,6 @@ export default function App() {
     }, 1000);
     return () => clearInterval(id);
   }, [
-    resolveDueGrading,
     tickTrends,
     tickAuctions,
     tickListings,
@@ -149,7 +145,6 @@ export default function App() {
       </div>
       <NotificationStack />
       <LotRevealModal />
-      <GradingRevealModal />
       <EndOfDayModal />
       <IntroModal />
       {booting && <LoadingScreen onDone={() => setBooting(false)} />}

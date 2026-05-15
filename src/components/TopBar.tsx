@@ -22,6 +22,26 @@ const LOGO_LETTERS: { char: string; color: string }[] = [
 type Props = { route: Route; bounceLogo?: boolean };
 
 export function TopBar({ route, bounceLogo }: Props) {
+  const [bouncedIn, setBouncedIn] = useState(false);
+  useEffect(() => {
+    if (!bounceLogo || bouncedIn) return;
+    // total bounce duration = animation (1.3s) + last letter delay (5 * 110ms) + small buffer
+    const t = setTimeout(() => setBouncedIn(true), 1300 + 5 * 110 + 100);
+    return () => clearTimeout(t);
+  }, [bounceLogo, bouncedIn]);
+  const playInitial = bounceLogo && !bouncedIn;
+  const [hopping, setHopping] = useState<Record<number, boolean>>({});
+  const startHop = (i: number) => {
+    setHopping((h) => (h[i] ? h : { ...h, [i]: true }));
+  };
+  const endHop = (i: number) => {
+    setHopping((h) => {
+      if (!h[i]) return h;
+      const next = { ...h };
+      delete next[i];
+      return next;
+    });
+  };
   const cash = useGameStore((s) => s.cash);
   const reputation = useGameStore((s) => s.reputation);
   const inventory = useGameStore((s) => s.inventory);
@@ -47,18 +67,27 @@ export function TopBar({ route, bounceLogo }: Props) {
         {/* Logo — eBay-style multi-color letters */}
         <div className="flex items-baseline shrink-0 select-none">
           <span className="text-2xl xl:text-3xl font-black tracking-tight leading-none">
-            {LOGO_LETTERS.map((l, i) => (
-              <span
-                key={i}
-                className={`inline-block ${l.color} ${bounceLogo ? 'nav-bounce' : ''}`}
-                style={{
-                  animationDelay: bounceLogo ? `${i * 110}ms` : undefined,
-                  transformOrigin: '50% 100%',
-                }}
-              >
-                {l.char}
-              </span>
-            ))}
+            {LOGO_LETTERS.map((l, i) => {
+              const hopActive = !!hopping[i];
+              return (
+                <span
+                  key={i}
+                  className={`nav-letter inline-block cursor-pointer ${l.color} ${
+                    playInitial ? 'nav-bounce' : ''
+                  } ${hopActive ? 'nav-letter-hop' : ''}`}
+                  style={{
+                    animationDelay: playInitial ? `${i * 110}ms` : undefined,
+                    transformOrigin: '50% 100%',
+                  }}
+                  onMouseEnter={() => !playInitial && startHop(i)}
+                  onAnimationEnd={(e) => {
+                    if (e.animationName === 'letterHop') endHop(i);
+                  }}
+                >
+                  {l.char}
+                </span>
+              );
+            })}
           </span>
           <span className="hidden 2xl:inline ml-2 text-xs text-ink-500 font-medium tracking-wide">
             simulator
@@ -75,6 +104,17 @@ export function TopBar({ route, bounceLogo }: Props) {
           }
           .nav-bounce {
             animation: navBounce 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 1 both;
+            will-change: transform;
+          }
+          @keyframes letterHop {
+            0%   { transform: translateY(0)     scale(1, 1); }
+            30%  { transform: translateY(-12px) scale(0.88, 1.18); }
+            55%  { transform: translateY(0)     scale(1.14, 0.86); }
+            75%  { transform: translateY(-4px)  scale(0.97, 1.05); }
+            100% { transform: translateY(0)     scale(1, 1); }
+          }
+          .nav-letter-hop {
+            animation: letterHop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 1 both;
             will-change: transform;
           }
         `}</style>
@@ -108,27 +148,147 @@ export function TopBar({ route, bounceLogo }: Props) {
   );
 }
 
+const FAKE_RESULT_LINES: { icon: 'search' | 'sparkle' | 'bolt' | 'shield' | 'box' | 'wallet'; text: (q: string) => string }[] = [
+  { icon: 'search', text: (q) => `No matches for "${q}". (Search isn't actually wired up.)` },
+  { icon: 'sparkle', text: () => `Did you mean: clicking the Marketplace tab like a normal person?` },
+  { icon: 'bolt', text: () => `FeeBay search is currently powered by a parrot. He says nothing.` },
+  { icon: 'wallet', text: () => `Found 1 result. It's a $0.30 fake fee for searching. Pay it.` },
+  { icon: 'shield', text: () => `404: Search engine ghosted us. Have you tried turning it off and on?` },
+  { icon: 'sparkle', text: (q) => `${q}? In this economy? Bold of you to ask.` },
+  { icon: 'box', text: () => `Suggested: just browse. The dev was too lazy to wire this up.` },
+  { icon: 'search', text: () => `Our database is the empty array. Nothing inside. Sorry.` },
+  { icon: 'bolt', text: (q) => `"${q}" sold on PackTok for $9,001. (lying)` },
+  { icon: 'sparkle', text: () => `Beep boop. The search index is currently napping. Try later — wait, no, it'll still be napping.` },
+];
+
+function pickFakeResults(q: string): typeof FAKE_RESULT_LINES {
+  // Deterministic by query so the same string gives the same jokes.
+  let h = 0;
+  for (let i = 0; i < q.length; i++) h = (h * 31 + q.charCodeAt(i)) | 0;
+  const seed = Math.abs(h);
+  const shuffled = [...FAKE_RESULT_LINES];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = (seed >> (i % 16)) % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, 4);
+}
+
 function SearchBar() {
   const setActiveSource = useGameStore((s) => s.setMarketplaceActiveSource);
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const showDropdown = focused && query.trim().length > 0;
+  const results = showDropdown ? pickFakeResults(query.trim()) : [];
+
   return (
-    <div className="flex items-stretch h-10 rounded-md border-2 border-ink-900 overflow-hidden shadow-sm">
-      <span className="px-3 flex items-center text-ink-500 bg-white">
-        <Icon name="search" size={16} />
-      </span>
-      <input
-        type="text"
-        placeholder="Search FeeBay — cards, sellers, sets..."
-        className="flex-1 bg-white text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none px-1"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') setActiveSource('all');
-        }}
-      />
-      <button
-        onClick={() => setActiveSource('all')}
-        className="px-6 bg-feebay-500 hover:bg-feebay-600 text-white text-sm font-bold tracking-wide"
-      >
-        Search
-      </button>
+    <div className="relative" ref={wrapRef}>
+      <div className="flex items-stretch h-10 rounded-md border-2 border-ink-900 overflow-hidden shadow-sm bg-white">
+        <span className="px-3 flex items-center text-ink-500 bg-white">
+          <Icon name="search" size={16} />
+        </span>
+        <input
+          type="text"
+          placeholder="Search FeeBay — cards, sellers, sets..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setActiveSource('all');
+              setQuery('');
+              setFocused(false);
+            } else if (e.key === 'Escape') {
+              setFocused(false);
+            }
+          }}
+          className="flex-1 bg-white text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none px-1"
+        />
+        <button
+          onClick={() => {
+            setActiveSource('all');
+            setQuery('');
+            setFocused(false);
+          }}
+          className="px-6 bg-feebay-500 hover:bg-feebay-600 text-white text-sm font-bold tracking-wide"
+        >
+          Search
+        </button>
+      </div>
+
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-[150] origin-top search-drop">
+          <div className="rounded-md border border-line bg-white shadow-cardHover overflow-hidden">
+            <div className="px-3 py-2 border-b border-lineSoft flex items-center gap-2 bg-paper">
+              <Icon name="search" size={12} className="text-ink-400" />
+              <span className="text-[10px] uppercase tracking-widest text-ink-500 font-bold">
+                Search results
+              </span>
+              <span className="ml-auto text-[10px] text-ink-400 italic">
+                (this search is fake — don't tell anyone)
+              </span>
+            </div>
+            <ul>
+              {results.map((r, i) => (
+                <li
+                  key={i}
+                  onClick={() => setFocused(false)}
+                  className="flex items-start gap-2.5 px-3 py-2.5 text-sm text-ink-800 hover:bg-feebay-50 cursor-pointer border-b border-lineSoft last:border-b-0 search-drop-row"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  <span className="w-7 h-7 rounded-md bg-ink-100 text-ink-500 flex items-center justify-center shrink-0">
+                    <Icon name={r.icon} size={13} />
+                  </span>
+                  <span className="leading-snug">{r.text(query.trim())}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="px-3 py-2 border-t border-line bg-paper flex items-center justify-between">
+              <span className="text-[11px] text-ink-500 italic">
+                0 actual results in 0.001s
+              </span>
+              <button
+                onClick={() => {
+                  setQuery('');
+                  setFocused(false);
+                }}
+                className="text-[11px] text-feebay-600 hover:text-feebay-700 font-semibold"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes searchDrop {
+              0%   { opacity: 0; transform: translateY(-6px) scaleY(0.96); }
+              100% { opacity: 1; transform: translateY(0) scaleY(1); }
+            }
+            @keyframes rowSlide {
+              0%   { opacity: 0; transform: translateY(-4px); }
+              100% { opacity: 1; transform: translateY(0); }
+            }
+            .search-drop {
+              animation: searchDrop 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .search-drop-row {
+              animation: rowSlide 0.22s ease-out backwards;
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

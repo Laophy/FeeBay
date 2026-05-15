@@ -11,17 +11,19 @@ type NavEntry = {
   lock?: (s: ReturnType<typeof useGameStore.getState>) => string | null;
 };
 
-type NavGroup = { id: string; title: string; entries: NavEntry[] };
+type NavGroup = { id: string; title: string; color: string; entries: NavEntry[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     id: 'home',
     title: 'Home',
+    color: 'text-feebay-500',
     entries: [{ id: 'dashboard', label: 'Dashboard', icon: 'dashboard' }],
   },
   {
     id: 'browse',
     title: 'Browse',
+    color: 'text-ebayYellow-600',
     entries: [
       { id: 'marketplace', label: 'Marketplace', icon: 'cart' },
       {
@@ -39,6 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     id: 'store',
     title: 'My Store',
+    color: 'text-ebayGreen-600',
     entries: [
       { id: 'inventory', label: 'Inventory', icon: 'inventory' },
       {
@@ -68,6 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     id: 'progress',
     title: 'Progress',
+    color: 'text-ebayRed-500',
     entries: [
       { id: 'stats', label: 'Stats', icon: 'chart-up' },
       { id: 'achievements', label: 'Achievements', icon: 'trophy' },
@@ -76,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     id: 'shop',
     title: 'Shop',
+    color: 'text-ebayYellow-700',
     entries: [{ id: 'upgrades', label: 'Upgrades', icon: 'upgrades' }],
   },
 ];
@@ -139,7 +144,9 @@ export function Sidebar({ route, setRoute }: Props) {
         {visibleGroups.map((g) =>
           g.entries.length === 0 ? null : (
             <div key={g.id}>
-              <div className="px-3 mb-1 text-[10px] uppercase tracking-[0.18em] text-ink-500 font-bold">
+              <div
+                className={`px-3 mb-1 text-[10px] uppercase tracking-[0.18em] font-bold ${g.color}`}
+              >
                 {g.title}
               </div>
               <div className="space-y-0.5">

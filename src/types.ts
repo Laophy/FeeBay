@@ -119,7 +119,10 @@ export type GradingSubmission = {
   id: string;
   itemId: string;
   cardName: string;
+  /** Total charged at submission (base grading cost + shipping). */
   cost: number;
+  /** Shipping portion of the cost. */
+  shippingFee?: number;
   submittedAt: number;
   resolveAt: number;
   company: GradingCompanyId;
@@ -286,6 +289,12 @@ export type GameState = {
   recentSellsByTag: Record<string, { count: number; lastAt: number }>;
   lastConventionAt: number;
   playerListings: PlayerListing[];
+  /** Inventory item ids the player has favorited / put in their showcase. Locked from sale. */
+  showcaseItemIds: string[];
+  /** History of items that sold off the player's storefront (newest first, capped). */
+  storefrontHistory: StorefrontSale[];
+  /** Pending storefront sales waiting on buyer payment or cancellation. */
+  pendingPayments: PendingPayment[];
   /** Per-helper last-tick timestamps so we throttle their actions. */
   hiredHelpState: {
     apprenticeLastFlipAt: number;
@@ -294,7 +303,7 @@ export type GameState = {
   };
   /** Session-only UI state that survives screen navigation but isn't persisted. */
   ui: {
-    inventoryFilter: 'all' | 'raw' | 'grading' | 'graded' | 'listed';
+    inventoryFilter: 'all' | 'raw' | 'grading' | 'graded' | 'listed' | 'showcased';
     inventorySortKey: 'value' | 'profit' | 'rarity' | 'condition' | 'recent';
     marketplaceActiveSource: 'all' | MarketplaceSource;
   };
@@ -309,6 +318,42 @@ export type ConventionState = {
   boostMultiplier: number;
   /** the trend tags this convention pumps */
   pumpedTags: string[];
+};
+
+export type PendingPayment = {
+  id: string;
+  /** Full snapshot of the item, so we can rebuild it on cancel. */
+  item: InventoryItem;
+  marketplace: MarketplaceSource;
+  buyerName: string;
+  listPrice: number;
+  netRevenue: number;
+  fees: number;
+  profit: number;
+  saleAt: number;
+  resolveAt: number;
+  /** True = buyer never pays / cancels; false = buyer pays after delay. */
+  willCancel: boolean;
+};
+
+export type StorefrontSale = {
+  id: string;
+  cardId: string;
+  cardName: string;
+  rarity: CardRarity;
+  hue: number;
+  grade?: number;
+  gradingCompany?: GradingCompanyId;
+  centeringOffsetX: number;
+  centeringOffsetY: number;
+  marketplace: MarketplaceSource;
+  soldAt: number;
+  listPrice: number;
+  netRevenue: number;
+  profit: number;
+  /** Whether the buyer paid right away or after a delay. */
+  status: 'instant' | 'delayed';
+  buyerName?: string;
 };
 
 export type PlayerListing = {

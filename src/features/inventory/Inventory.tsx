@@ -21,6 +21,8 @@ export function Inventory() {
   const sell = useGameStore((s) => s.sellInventoryItem);
   const sellBundle = useGameStore((s) => s.sellBundle);
   const grade = useGameStore((s) => s.sendToGrading);
+  const toggleShowcase = useGameStore((s) => s.toggleShowcase);
+  const showcaseIds = useGameStore((s) => s.showcaseItemIds);
   const slots = useGameStore((s) => s.inventorySlots)();
   const unlocked = useGameStore((s) => s.marketplacesUnlocked);
   const upgrades = useGameStore((s) => s.upgradesPurchased);
@@ -37,8 +39,15 @@ export function Inventory() {
   const [listingItem, setListingItem] = useState<InventoryItem | null>(null);
 
   const sorted = useMemo(() => {
+    const showcaseSet = new Set(showcaseIds);
     const items = inventory
-      .filter((i) => (filter === 'all' ? true : i.status === filter))
+      .filter((i) => {
+        if (filter === 'showcased') return showcaseSet.has(i.id);
+        // Showcased items only appear in the 'showcased' filter — never in all/raw/grading/graded.
+        if (showcaseSet.has(i.id)) return false;
+        if (filter === 'all') return true;
+        return i.status === filter;
+      })
       .map((i) => ({
         item: i,
         value: calculateCurrentValue(i, trends, noise, convention),
@@ -59,7 +68,7 @@ export function Inventory() {
       }
     });
     return items;
-  }, [inventory, trends, sortKey, filter]);
+  }, [inventory, trends, sortKey, filter, noise, convention, showcaseIds]);
 
   const selectedItems = useMemo(
     () => inventory.filter((i) => selectedIds.has(i.id)),
@@ -116,17 +125,29 @@ export function Inventory() {
           </p>
         </div>
         <div className="flex gap-2 text-xs flex-wrap">
-          {(['all', 'raw', 'grading', 'graded'] as const).map((f) => (
+          {(['all', 'raw', 'grading', 'graded', 'showcased'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md border ${
+              className={`px-3 py-1.5 rounded-md border flex items-center gap-1 ${
                 filter === f
-                  ? 'border-feebay-500 bg-feebay-500 text-white font-semibold'
+                  ? f === 'showcased'
+                    ? 'border-ebayYellow-500 bg-ebayYellow-500 text-ink-900 font-bold'
+                    : 'border-feebay-500 bg-feebay-500 text-white font-semibold'
                   : 'border-line text-ink-700 hover:border-ink-400 bg-white'
               }`}
             >
+              {f === 'showcased' && <Icon name="crown" size={11} />}
               {f}
+              {f === 'showcased' && showcaseIds.length > 0 && (
+                <span
+                  className={`text-[10px] px-1 rounded ${
+                    filter === f ? 'bg-ink-900/15 text-ink-900' : 'bg-ebayYellow-500/20 text-ebayYellow-700 font-bold'
+                  }`}
+                >
+                  {showcaseIds.length}
+                </span>
+              )}
             </button>
           ))}
           <span className="border-l border-line mx-1" />
@@ -245,6 +266,8 @@ export function Inventory() {
               onSell={(mkt) => sell(item.id, mkt)}
               onGrade={(c) => grade(item.id, c)}
               onList={() => setListingItem(item)}
+              onToggleShowcase={() => toggleShowcase(item.id)}
+              showcased={showcaseIds.includes(item.id)}
               bundleMode={bundleMode}
               selected={selectedIds.has(item.id)}
               onToggleSelect={() => toggleSelect(item.id)}
@@ -274,6 +297,8 @@ function ItemCard({
   onSell,
   onGrade,
   onList,
+  onToggleShowcase,
+  showcased,
   bundleMode,
   selected,
   onToggleSelect,
@@ -288,6 +313,8 @@ function ItemCard({
   onSell: (mkt?: MarketplaceSource) => void;
   onGrade: (companyId: GradingCompanyId) => void;
   onList: () => void;
+  onToggleShowcase: () => void;
+  showcased: boolean;
   bundleMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
@@ -300,22 +327,42 @@ function ItemCard({
       ? unlocked.filter((m) => m === 'SlabHub' || m === 'FeeBay')
       : unlocked.filter((m) => m !== 'SlabHub');
 
-  const bundleEligible = bundleMode && item.status === 'raw';
+  const bundleEligible = bundleMode && item.status === 'raw' && !showcased;
   const containerCls = bundleEligible
     ? selected
       ? 'border-ebayYellow-500 ring-2 ring-ebayYellow-500/40 cursor-pointer'
       : 'border-line hover:border-ebayYellow-500 cursor-pointer'
     : bundleMode
     ? 'border-line opacity-50'
+    : showcased
+    ? 'border-ebayYellow-500 ring-1 ring-ebayYellow-500/40'
     : 'border-line';
 
   return (
     <div
       onClick={bundleEligible ? onToggleSelect : bundleMode ? undefined : onOpenDetail}
-      className={`rounded-lg border bg-white shadow-card p-3 flex flex-col gap-3 transition ${
+      className={`relative rounded-lg border bg-white shadow-card p-3 flex flex-col gap-3 transition ${
         bundleMode ? containerCls : `${containerCls} cursor-pointer hover:border-feebay-600/60`
       }`}
     >
+      {/* Top-right showcase icon button */}
+      {!bundleMode && (item.status === 'raw' || item.status === 'graded' || showcased) && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleShowcase();
+          }}
+          title={showcased ? 'Remove from showcase' : 'Add to showcase (locks from sale)'}
+          aria-label={showcased ? 'Remove from showcase' : 'Add to showcase'}
+          className={`absolute top-2 right-2 w-7 h-7 rounded-md flex items-center justify-center transition shadow-sm z-10 ${
+            showcased
+              ? 'bg-ebayYellow-500 text-ink-900 hover:bg-ebayYellow-600'
+              : 'bg-white border border-line text-ink-500 hover:text-ebayYellow-700 hover:border-ebayYellow-500'
+          }`}
+        >
+          <Icon name="crown" size={14} />
+        </button>
+      )}
       <div className="flex items-start gap-3">
         <CardArt
           name={item.name}
@@ -353,6 +400,11 @@ function ItemCard({
           {item.status === 'listed' && (
             <div className="mt-1 inline-block text-[10px] uppercase tracking-widest bg-ebayYellow-500/20 text-ebayYellow-700 px-1.5 py-0.5 rounded">
               On your storefront
+            </div>
+          )}
+          {showcased && (
+            <div className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-widest bg-ebayYellow-500/20 text-ebayYellow-700 px-1.5 py-0.5 rounded font-bold">
+              <Icon name="crown" size={11} /> In showcase
             </div>
           )}
           {item.status === 'graded' && item.grade !== undefined && (
@@ -401,58 +453,66 @@ function ItemCard({
 
       {!bundleMode && (
         <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-          {item.status === 'raw' && (
+          {showcased ? (
+            <span className="text-xs text-ebayYellow-700 italic">
+              In showcase — actions locked. Click the crown to remove.
+            </span>
+          ) : (
             <>
-              {sellableTo.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => onSell(m)}
-                  className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
-                >
-                  Sell on {m}
-                </button>
-              ))}
-              <button
-                onClick={onList}
-                className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"
-              >
-                List @ price
-              </button>
-              {availableCompanies.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onGrade(c)}
-                  className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
-                >
-                  Grade @ {c}
-                </button>
-              ))}
+              {item.status === 'raw' && (
+                <>
+                  {sellableTo.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => onSell(m)}
+                      className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
+                    >
+                      Sell on {m}
+                    </button>
+                  ))}
+                  <button
+                    onClick={onList}
+                    className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"
+                  >
+                    List @ price
+                  </button>
+                  {availableCompanies.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => onGrade(c)}
+                      className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
+                    >
+                      Grade @ {c}
+                    </button>
+                  ))}
+                </>
+              )}
+              {item.status === 'graded' && (
+                <>
+                  {sellableTo.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => onSell(m)}
+                      className="text-xs px-2 py-1.5 rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white"
+                    >
+                      Sell slab on {m}
+                    </button>
+                  ))}
+                  <button
+                    onClick={onList}
+                    className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"
+                  >
+                    List @ price
+                  </button>
+                </>
+              )}
+              {item.status === 'grading' && (
+                <span className="text-xs text-ink-500">Waiting on grade...</span>
+              )}
+              {item.status === 'listed' && (
+                <span className="text-xs text-ink-500">Active on storefront — see Storefront tab.</span>
+              )}
             </>
-          )}
-          {item.status === 'graded' && (
-            <>
-              {sellableTo.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => onSell(m)}
-                  className="text-xs px-2 py-1.5 rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white"
-                >
-                  Sell slab on {m}
-                </button>
-              ))}
-              <button
-                onClick={onList}
-                className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"
-              >
-                List @ price
-              </button>
-            </>
-          )}
-          {item.status === 'grading' && (
-            <span className="text-xs text-ink-500">Waiting on grade...</span>
-          )}
-          {item.status === 'listed' && (
-            <span className="text-xs text-ink-500">Active on storefront — see Storefront tab.</span>
           )}
         </div>
       )}
