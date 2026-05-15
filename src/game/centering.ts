@@ -116,6 +116,28 @@ export function centeringBorders(offsetX: number, offsetY: number): {
   };
 }
 
+/**
+ * Centering for an already-graded slab. A high grade implies the graders
+ * liked the centering, so a Gem 10 should never look badly off-center.
+ */
+export function rollCenteringForGrade(grade: number): {
+  centeringOffsetX: number;
+  centeringOffsetY: number;
+} {
+  let spreadMax: number;
+  if (grade >= 10) spreadMax = 1;
+  else if (grade >= 9) spreadMax = 2;
+  else if (grade >= 8) spreadMax = 3;
+  else if (grade >= 7) spreadMax = 4;
+  else spreadMax = 6;
+  const signX = chance(0.5) ? -1 : 1;
+  const signY = chance(0.5) ? -1 : 1;
+  return {
+    centeringOffsetX: randInt(0, spreadMax) * signX,
+    centeringOffsetY: randInt(0, spreadMax) * signY,
+  };
+}
+
 /** Roll function with no quality bias — for random lot cards or fallback uses. */
 export function rollCenteringNeutral(): { centeringOffsetX: number; centeringOffsetY: number } {
   const signX = rand(0, 1) < 0.5 ? -1 : 1;

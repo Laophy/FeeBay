@@ -60,3 +60,54 @@ body {
 .dark-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.45);
 }
+
+/* ---------- Card foil animations (shared, defined once) ---------- */
+@keyframes holoShine {
+  0% { background-position: -50% 0%; }
+  100% { background-position: 150% 0%; }
+}
+@keyframes slabShine {
+  0% { transform: translateX(-80%); }
+  100% { transform: translateX(180%); }
+}
+
+/* Lets the browser skip layout/paint for off-screen content (big card grids). */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 520px;
+}
+
+/* Showcase marquee — endless horizontal cycle of display cards. */
+@keyframes showcaseScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.showcase-track {
+  display: flex;
+  width: max-content;
+  animation: showcaseScroll var(--showcase-dur, 40s) linear infinite;
+  will-change: transform;
+}
+/* Hovering a showcase card bounces + shakes it; the wheel keeps turning. */
+.showcase-card {
+  transition: transform 0.2s ease;
+}
+.showcase-card:hover {
+  animation: codexGrab 0.42s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+/* Collection codex card hover — springs up with a little grab-shake. */
+@keyframes codexGrab {
+  0%   { transform: translateY(0)     scale(1)    rotate(0deg); }
+  28%  { transform: translateY(-13px) scale(1.16) rotate(-5deg); }
+  46%  { transform: translateY(-8px)  scale(1.15) rotate(4deg); }
+  64%  { transform: translateY(-11px) scale(1.15) rotate(-2.5deg); }
+  82%  { transform: translateY(-9px)  scale(1.15) rotate(1.5deg); }
+  100% { transform: translateY(-10px) scale(1.15) rotate(0deg); }
+}
+.codex-card {
+  transition: transform 0.2s ease;
+}
+.group:hover > .codex-card {
+  animation: codexGrab 0.42s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}

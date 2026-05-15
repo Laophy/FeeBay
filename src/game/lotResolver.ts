@@ -113,8 +113,19 @@ export function tierForPrice(askingPrice: number): LotTier {
   return 'whale';
 }
 
+/** Holo / reverse-holo / 1st-edition prints are scarcer inside lots too. */
+function variantLotFactor(c: CardDef): number {
+  let f = c.variant === 'normal' ? 1 : c.variant === 'reverse_holo' ? 0.38 : 0.14;
+  if (c.firstEdition) f *= 0.35;
+  return f;
+}
+
+function cardLotWeight(c: CardDef, tier: LotTier): number {
+  return (RARITY_WEIGHTS[tier][c.rarity] ?? 1) * variantLotFactor(c);
+}
+
 function pickCardForTier(tier: LotTier): CardDef {
-  const weights = CARDS.map((c) => RARITY_WEIGHTS[tier][c.rarity] ?? 1);
+  const weights = CARDS.map((c) => cardLotWeight(c, tier));
   return weightedPick(CARDS, weights);
 }
 
@@ -133,7 +144,7 @@ export function expectedPullValue(tier: LotTier): number {
   let total = 0;
   let weightTotal = 0;
   for (const card of CARDS) {
-    const w = RARITY_WEIGHTS[tier][card.rarity] ?? 1;
+    const w = cardLotWeight(card, tier);
     // average condition score ~70, average condition mult ~0.75
     const avg = card.baseValue * rarityMult(card.rarity) * 0.75 * 0.95;
     total += avg * w;
@@ -246,7 +257,7 @@ const RARE_OR_BETTER = new Set<CardRarity>([
 
 function pickStorageUnitCard(tier: LotTier): CardDef {
   const w = STORAGE_RARITY_WEIGHTS[tier];
-  const weights = CARDS.map((c) => w[c.rarity] ?? 1);
+  const weights = CARDS.map((c) => (w[c.rarity] ?? 1) * variantLotFactor(c));
   return weightedPick(CARDS, weights);
 }
 

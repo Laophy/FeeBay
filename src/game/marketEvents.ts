@@ -15,6 +15,7 @@ const EVENT_POOL: EventTemplate[] = [
   { tag: 'water', label: 'Water decks crushed at regionals', direction: 'down', multRange: [0.7, 0.9], durationMs: 60_000 },
   { tag: 'goblin', label: 'Goblin Mania: PackTok influencer shouts out Golden Goblin', direction: 'up', multRange: [1.4, 2.0], durationMs: 90_000 },
   { tag: 'first-edition', label: 'First Edition nostalgia bubble is inflating', direction: 'up', multRange: [1.3, 1.8], durationMs: 120_000 },
+  { tag: 'first-edition', label: 'First Edition FRENZY: vintage stamped prints are skyrocketing', direction: 'up', multRange: [1.9, 2.7], durationMs: 110_000 },
   { tag: 'error', label: 'Error print boom: collectors hunting misprints', direction: 'up', multRange: [1.5, 2.2], durationMs: 90_000 },
   { tag: 'influencer', label: 'Influencer is dumping the bag, prices tanking', direction: 'down', multRange: [0.55, 0.8], durationMs: 75_000 },
   { tag: 'neon', label: 'Neon cards going viral', direction: 'up', multRange: [1.3, 1.9], durationMs: 80_000 },

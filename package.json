@@ -1,6 +1,6 @@
 {
   "name": "feebay-simulator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "FeeBay Simulator — a parody marketplace card flipping game.",
   "main": "dist-electron/main.js",

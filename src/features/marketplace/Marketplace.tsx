@@ -5,7 +5,7 @@ import { MARKETPLACES, getMarketplace } from '../../data/marketplaces';
 import { getCardById } from '../../data/cards';
 import { CardArt } from '../../components/CardArt';
 import { Icon } from '../../components/Icon';
-import { centeringLabel, centeringLean } from '../../game/centering';
+import { centeringLabel, centeringLean, centeringScore } from '../../game/centering';
 import { isNegotiableListing } from '../../game/negotiation';
 
 export function Marketplace() {
@@ -532,6 +532,8 @@ function ListingDetailModal({
   const mkt = getMarketplace(listing.source);
   const isMystery = listing.lotType === 'mystery_lot' || listing.lotType === 'binder';
   const isStorage = listing.lotType === 'storage_unit';
+  const isSingleCard = !isMystery && !isStorage;
+  const [zoomed, setZoomed] = useState(false);
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4"
@@ -547,16 +549,25 @@ function ListingDetailModal({
           ) : isMystery ? (
             <MysteryArt count={listing.lotSize ?? 3} />
           ) : (
-            <CardArt
-              name={card.name}
-              rarity={listing.rarity}
-              hue={card.hue}
-              cardId={listing.cardId}
-              grade={listing.grade}
-              gradingCompany={listing.gradingCompany}
-              centeringOffsetX={listing.centeringOffsetX}
-              centeringOffsetY={listing.centeringOffsetY}
-            />
+            <div className="relative shrink-0">
+              <CardArt
+                name={card.name}
+                rarity={listing.rarity}
+                hue={card.hue}
+                cardId={listing.cardId}
+                grade={listing.grade}
+                gradingCompany={listing.gradingCompany}
+                centeringOffsetX={listing.centeringOffsetX}
+                centeringOffsetY={listing.centeringOffsetY}
+              />
+              <button
+                onClick={() => setZoomed(true)}
+                className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-feebay-500 hover:bg-feebay-600 text-white flex items-center justify-center shadow-md border-2 border-white transition z-10"
+                title="Zoom in to inspect quality & centering"
+              >
+                <Icon name="search" size={15} />
+              </button>
+            </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="text-[11px] text-ink-500 uppercase tracking-wide font-semibold">
@@ -631,6 +642,80 @@ function ListingDetailModal({
             Buy It Now · ${listing.askingPrice}
           </button>
         </div>
+      </div>
+
+      {zoomed && isSingleCard && (
+        <CardZoomOverlay listing={listing} card={card} onClose={() => setZoomed(false)} />
+      )}
+    </div>
+  );
+}
+
+/** Full-screen magnified view of a single card for inspecting quality & centering. */
+function CardZoomOverlay({
+  listing,
+  card,
+  onClose,
+}: {
+  listing: MarketplaceListing;
+  card: ReturnType<typeof getCardById>;
+  onClose: () => void;
+}) {
+  const scale = 3.6;
+  const baseW = 112;
+  const baseH = 160;
+  const score = centeringScore(listing.centeringOffsetX, listing.centeringOffsetY);
+  const lean = centeringLean(listing.centeringOffsetX, listing.centeringOffsetY);
+  return (
+    <div
+      className="fixed inset-0 z-[210] flex flex-col items-center justify-center gap-5 bg-ink-900/80 backdrop-blur-sm p-6"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+    >
+      <div style={{ width: baseW * scale, height: baseH * scale }} className="relative shrink-0">
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+          <CardArt
+            name={card.name}
+            rarity={listing.rarity}
+            hue={card.hue}
+            cardId={listing.cardId}
+            grade={listing.grade}
+            gradingCompany={listing.gradingCompany}
+            centeringOffsetX={listing.centeringOffsetX}
+            centeringOffsetY={listing.centeringOffsetY}
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-3 rounded-lg bg-white/95 border border-line px-4 py-2 shadow-lg">
+        <div className="text-xs">
+          <div className="text-[9px] uppercase tracking-widest text-ink-400 font-bold">
+            Centering
+          </div>
+          <div
+            className={`font-bold ${
+              score >= 85
+                ? 'text-ebayGreen-600'
+                : score >= 60
+                ? 'text-ebayYellow-700'
+                : 'text-ebayRed-500'
+            }`}
+          >
+            {score}/100 · {centeringLabel(listing.centeringOffsetX, listing.centeringOffsetY)}
+            {lean ? `, ${lean}` : ''}
+          </div>
+        </div>
+        <span className="w-px h-7 bg-line" />
+        <div className="text-xs">
+          <div className="text-[9px] uppercase tracking-widest text-ink-400 font-bold">
+            Condition
+          </div>
+          <div className="font-bold text-ink-800">{listing.rawCondition}</div>
+        </div>
+      </div>
+      <div className="text-[11px] text-white/70 uppercase tracking-widest font-bold">
+        Click anywhere to close
       </div>
     </div>
   );

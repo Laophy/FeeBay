@@ -1,8 +1,16 @@
-import type { CardDef } from '../types';
+import type { CardDef, CardVariant } from '../types';
 
 export const TCG_BRAND = 'Mythic Monsters';
 
-export const CARDS: CardDef[] = [
+/** A creature seed — the shared identity before variant/edition expansion. */
+type CreatureSeed = Omit<CardDef, 'variant' | 'baseId' | 'firstEdition'>;
+
+/**
+ * The creature roster. Each entry is expanded into normal / reverse-holo / holo
+ * prints by the generator below. Base Set creatures are additionally duplicated
+ * into a pricier "1st Edition" set.
+ */
+const CREATURE_ROSTER: CreatureSeed[] = [
   {
     id: 'emberfang',
     name: 'Emberfang Dragon',
@@ -82,7 +90,7 @@ export const CARDS: CardDef[] = [
     id: 'golden-goblin',
     name: 'Golden Goblin',
     set: 'Treasure Trove',
-    rarity: 'First Edition',
+    rarity: 'Holo Rare',
     character: 'Goblin',
     baseValue: 90,
     basePremiumValue: 850,
@@ -90,7 +98,7 @@ export const CARDS: CardDef[] = [
     supply: 25,
     volatility: 80,
     gradePotential: 70,
-    trendTags: ['goblin', 'first-edition', 'hype'],
+    trendTags: ['goblin', 'hype'],
     hue: 45,
   },
   {
@@ -409,8 +417,6 @@ export const CARDS: CardDef[] = [
     hue: 340,
   },
 
-  // --- gp0 series expansion ---
-
   // Base Set additions (commons + uncommons)
   {
     id: 'hearthkit',
@@ -615,7 +621,7 @@ export const CARDS: CardDef[] = [
     id: 'arctic-fennec',
     name: 'Arctic Fennec',
     set: 'Glacial Springs',
-    rarity: 'First Edition',
+    rarity: 'Holo Rare',
     character: 'Fox',
     baseValue: 95,
     basePremiumValue: 880,
@@ -623,7 +629,7 @@ export const CARDS: CardDef[] = [
     supply: 22,
     volatility: 48,
     gradePotential: 72,
-    trendTags: ['ice', 'fox', 'first-edition'],
+    trendTags: ['ice', 'fox'],
     hue: 210,
   },
   {
@@ -803,8 +809,120 @@ export const CARDS: CardDef[] = [
   },
 ];
 
+// --- Variant generation ---------------------------------------------------
+
+const VARIANTS: CardVariant[] = ['normal', 'reverse_holo', 'holo'];
+
+/** Value multiplier applied to baseValue/basePremiumValue per variant. */
+const VARIANT_VALUE_MULT: Record<CardVariant, number> = {
+  normal: 0.3,
+  reverse_holo: 0.55,
+  holo: 1,
+};
+
+/** Non-holo prints are more plentiful; holos are scarcer. */
+const VARIANT_SUPPLY_BONUS: Record<CardVariant, number> = {
+  normal: 26,
+  reverse_holo: 12,
+  holo: 0,
+};
+
+/** Holo prints swing harder on the market. */
+const VARIANT_VOL_MULT: Record<CardVariant, number> = {
+  normal: 0.7,
+  reverse_holo: 0.85,
+  holo: 1,
+};
+
+const VARIANT_NAME_SUFFIX: Record<CardVariant, string> = {
+  normal: '',
+  reverse_holo: ' (RH)',
+  holo: ' (Holo)',
+};
+
+/** Id suffix per variant. Holo keeps the bare creature id for save compatibility. */
+const VARIANT_ID_SUFFIX: Record<CardVariant, string> = {
+  normal: '--base',
+  reverse_holo: '--rh',
+  holo: '',
+};
+
+/** Per-set economy tweaks. Lunar Echoes is a scarce, pricey prototype set. */
+const SET_MODIFIER: Record<string, { value: number; supply: number }> = {
+  'Lunar Echoes': { value: 1.45, supply: -16 },
+};
+
+const FIRST_EDITION_VALUE_MULT = 1.7;
+const FIRST_EDITION_SUPPLY_PENALTY = 12;
+
+function clampSupply(n: number): number {
+  return Math.max(2, Math.min(99, Math.round(n)));
+}
+
+function expandCreature(seed: CreatureSeed, firstEdition: boolean): CardDef[] {
+  const setMod = SET_MODIFIER[seed.set] ?? { value: 1, supply: 0 };
+  const editionValueMult = firstEdition ? FIRST_EDITION_VALUE_MULT : 1;
+  const editionSupplyPenalty = firstEdition ? FIRST_EDITION_SUPPLY_PENALTY : 0;
+  const setName = firstEdition ? `${seed.set} 1st Edition` : seed.set;
+  const idBase = firstEdition ? `${seed.id}--1e` : seed.id;
+  const trendTags = firstEdition
+    ? [...seed.trendTags, 'first-edition']
+    : seed.trendTags;
+
+  return VARIANTS.map((variant) => {
+    const valueMult = VARIANT_VALUE_MULT[variant] * setMod.value * editionValueMult;
+    const id =
+      variant === 'holo' ? idBase : `${idBase}${VARIANT_ID_SUFFIX[variant]}`;
+    return {
+      id,
+      baseId: seed.id,
+      name: `${seed.name}${firstEdition ? ' [1st Ed]' : ''}${VARIANT_NAME_SUFFIX[variant]}`,
+      set: setName,
+      rarity: seed.rarity,
+      character: seed.character,
+      variant,
+      firstEdition: firstEdition || undefined,
+      baseValue: Math.max(1, Math.round(seed.baseValue * valueMult)),
+      basePremiumValue: Math.max(2, Math.round(seed.basePremiumValue * valueMult)),
+      popularity: seed.popularity,
+      supply: clampSupply(
+        seed.supply + VARIANT_SUPPLY_BONUS[variant] + setMod.supply - editionSupplyPenalty,
+      ),
+      volatility: Math.round(seed.volatility * VARIANT_VOL_MULT[variant]),
+      gradePotential: seed.gradePotential,
+      trendTags,
+      hue: seed.hue,
+    };
+  });
+}
+
+function buildCards(): CardDef[] {
+  const out: CardDef[] = [];
+  for (const seed of CREATURE_ROSTER) {
+    out.push(...expandCreature(seed, false));
+  }
+  // Base Set gets a pricier 1st Edition print run.
+  for (const seed of CREATURE_ROSTER) {
+    if (seed.set === 'Base Set') {
+      out.push(...expandCreature(seed, true));
+    }
+  }
+  return out;
+}
+
+export const CARDS: CardDef[] = buildCards();
+
+const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
+  CARDS.map((c) => [c.id, c]),
+);
+
 export function getCardById(id: string): CardDef {
-  const card = CARDS.find((c) => c.id === id);
+  const card = CARD_BY_ID[id];
   if (!card) throw new Error(`Unknown card: ${id}`);
   return card;
+}
+
+/** Strip variant / edition suffixes back to the bare creature id. */
+export function creatureIdOf(cardId: string): string {
+  return cardId.split('--')[0];
 }

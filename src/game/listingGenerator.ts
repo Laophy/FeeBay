@@ -16,6 +16,7 @@ import {
   HYPED_DESCRIPTIONS,
   KNOWLEDGEABLE_DESCRIPTIONS,
   SELLER_NAMES,
+  SLAB_DESCRIPTIONS,
   TITLE_PREFIXES,
   TITLE_SUFFIXES,
 } from '../data/listingTemplates';
@@ -25,7 +26,7 @@ import {
   trendMultiplier,
 } from './economyEngine';
 import { chance, pick, rand, randInt, uid, weightedPick } from './rng';
-import { centeringPriceMultiplier, rollCentering } from './centering';
+import { centeringPriceMultiplier, rollCentering, rollCenteringForGrade } from './centering';
 import { expectedPullValue, tierForPrice } from './lotResolver';
 
 const RAW_CONDITIONS: RawCondition[] = [
@@ -37,6 +38,13 @@ const RAW_CONDITIONS: RawCondition[] = [
   'Minty',
   'Gem Candidate',
 ];
+
+/** How often a card variant shows up in the wild — holos and 1st editions are scarce. */
+function pullWeight(c: CardDef): number {
+  let w = c.variant === 'normal' ? 12 : c.variant === 'reverse_holo' ? 5 : 2;
+  if (c.firstEdition) w *= 0.4;
+  return w;
+}
 
 function rollCondition(quality: ListingQuality): {
   raw: RawCondition;
@@ -89,6 +97,14 @@ function makeTitle(card: CardDef, raw: RawCondition, quality: ListingQuality): s
   if (quality === 'fake') body = `${card.name} Holo (authentic!)`;
   if (raw === 'Damaged' && chance(0.4)) body = `${body} (small flaw)`;
   return `${prefix}${body}${suffix}`.trim();
+}
+
+/** Description for a slabbed listing — its own bank, no raw-condition hints. */
+function makeSlabDescription(quality: ListingQuality): string {
+  // Sketchy slabs get the scammy hype lines; everything else gets the slab bank.
+  if (quality === 'fake') return pick(HYPED_DESCRIPTIONS);
+  if (quality === 'overpriced' && chance(0.5)) return pick(HYPED_DESCRIPTIONS);
+  return pick(SLAB_DESCRIPTIONS);
 }
 
 function makeDescription(quality: ListingQuality, raw: RawCondition): string {
@@ -306,14 +322,20 @@ function priceFor(quality: ListingQuality, trueValue: number): number {
 }
 
 export function generateVaultDealerListing(trends: MarketTrend[]): MarketplaceListing {
+  // VaultDealer curates the prestige finishes — never the plain prints.
   const ultraCards = CARDS.filter(
-    (c) => c.rarity === 'Mythic Rare' || c.rarity === 'Prototype Card',
+    (c) =>
+      (c.rarity === 'Mythic Rare' || c.rarity === 'Prototype Card') &&
+      c.variant !== 'normal',
   );
-  const card = pick(ultraCards);
+  const card = weightedPick(
+    ultraCards,
+    ultraCards.map((c) => (c.variant === 'holo' ? 5 : 2)),
+  );
   // Always slabbed, always grade 9+, always PZA or ZAG (Bucket isn't trusted at this tier)
   const grade = weightedPick([9, 9.5, 10], [2, 4, 3]);
   const company = weightedPick<GradingCompanyId>(['PZA', 'ZAG'], [8, 2]);
-  const { centeringOffsetX, centeringOffsetY } = rollCentering('grading_candidate');
+  const { centeringOffsetX, centeringOffsetY } = rollCenteringForGrade(grade);
   const gradeMult = GRADE_MULTIPLIER[grade] ?? 1;
   const companyMult = company === 'PZA' ? 1.2 : 0.9;
   const trueValue = Math.round(
@@ -377,9 +399,12 @@ export function generateListings(
       if (reputation < 20 && c.rarity === 'Prototype Card') return false;
       return true;
     });
-    const card = pick(eligibleCards);
+    const card = weightedPick(
+      eligibleCards,
+      eligibleCards.map(pullWeight),
+    );
     const { raw, score } = rollCondition(quality);
-    const { centeringOffsetX, centeringOffsetY } = rollCentering(quality);
+    let { centeringOffsetX, centeringOffsetY } = rollCentering(quality);
     const centeringMult = centeringPriceMultiplier(centeringOffsetX, centeringOffsetY);
     const trueValue = trueValueFor(card, raw, score, trends, centeringMult);
     const askingPrice = priceFor(quality, trueValue);
@@ -419,6 +444,10 @@ export function generateListings(
       const roll = rollSlabGrade(quality);
       grade = roll.grade;
       gradingCompany = roll.company;
+      // A slab's centering must agree with its grade — no off-center Gem 10s.
+      const slabCentering = rollCenteringForGrade(grade);
+      centeringOffsetX = slabCentering.centeringOffsetX;
+      centeringOffsetY = slabCentering.centeringOffsetY;
       const gradeMult = GRADE_MULTIPLIER[grade] ?? 1;
       const companyMult =
         gradingCompany === 'PZA' ? 1.2 : gradingCompany === 'Bucket' ? 0.85 : 0.9;
@@ -467,7 +496,7 @@ export function generateListings(
       sellerName: pick(SELLER_NAMES),
       description:
         lotType === 'slab'
-          ? `Slabbed by ${gradingCompany}. Grade ${grade}. ${makeDescription(quality, raw)}`
+          ? makeSlabDescription(quality)
           : makeDescription(quality, raw),
       askingPrice: listingAsk,
       trueMarketValue: listingTrueValue,

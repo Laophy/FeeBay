@@ -120,5 +120,7 @@ export const CREATURE_IMAGES: Record<string, string> = {
 
 export function getCreatureImage(cardId: string | undefined): string | undefined {
   if (!cardId) return undefined;
-  return CREATURE_IMAGES[cardId];
+  // Variant / edition cards share the base creature's artwork.
+  const baseId = cardId.split('--')[0];
+  return CREATURE_IMAGES[cardId] ?? CREATURE_IMAGES[baseId];
 }

@@ -32,6 +32,9 @@ export type LotType = 'single' | 'binder' | 'sealed' | 'slab' | 'mystery_lot' | 
 
 export type GradingCompanyId = 'ZAG' | 'PZA' | 'Bucket';
 
+/** Print variant of a card. Each creature is printed in all three. */
+export type CardVariant = 'normal' | 'reverse_holo' | 'holo';
+
 export type CardDef = {
   id: string;
   name: string;
@@ -46,6 +49,12 @@ export type CardDef = {
   gradePotential: number;
   trendTags: string[];
   hue: number;
+  /** Print finish — drives holographic visuals and a value tier. */
+  variant: CardVariant;
+  /** The creature family id this card belongs to (shared across variants/editions). */
+  baseId: string;
+  /** True for the 1st Edition print run of a set. */
+  firstEdition?: boolean;
 };
 
 export type MarketplaceListing = {

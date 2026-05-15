@@ -52,9 +52,13 @@ const AUCTION_RARITIES: CardRarity[] = [
 
 export function generateAuctions(now: number, trends: MarketTrend[], count = 4): AuctionListing[] {
   const candidates = CARDS.filter((c) => AUCTION_RARITIES.includes(c.rarity));
+  // The auction house favours prestige finishes — holos and reverse holos.
+  const candidateWeights = candidates.map((c) =>
+    c.variant === 'holo' ? 5 : c.variant === 'reverse_holo' ? 3 : 1.2,
+  );
   const out: AuctionListing[] = [];
   for (let i = 0; i < count; i++) {
-    const card = pick(candidates);
+    const card = weightedPick(candidates, candidateWeights);
     const { raw, score } = rollCond();
     const { centeringOffsetX, centeringOffsetY } = rollCenteringNeutral();
     const centMult = centeringPriceMultiplier(centeringOffsetX, centeringOffsetY);
