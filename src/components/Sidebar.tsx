@@ -247,6 +247,7 @@ export function Sidebar({ route, setRoute }: Props) {
         <button
           onClick={() => {
             SFX.click();
+            state.unlockAchievements(['discord_click']);
             window.open('https://discord.gg/8FPP5wqRea', '_blank');
           }}
           className="discord-btn w-full flex items-center justify-center gap-2 rounded px-2.5 py-1.5 text-xs font-bold text-white bg-[#5865F2] hover:bg-[#4752c4] transition"
@@ -269,6 +270,7 @@ export function Sidebar({ route, setRoute }: Props) {
         <button
           onClick={() => {
             SFX.click();
+            state.unlockAchievements(['coffee_click']);
             window.open('https://buymeacoffee.com/laophy', '_blank');
           }}
           className="coffee-btn mt-2 w-full flex items-center justify-center gap-2 rounded px-2.5 py-1.5 text-xs font-bold text-ink-900 bg-[#FFDD00] hover:bg-[#f0ce00] transition"

@@ -277,6 +277,7 @@ function ListingCard({
   const isLot = listing.lotType === 'mystery_lot' || listing.lotType === 'binder';
   const isStorage = listing.lotType === 'storage_unit';
   const isSlab = listing.lotType === 'slab';
+  const isSlabBag = listing.lotType === 'slab_bag';
   return (
     <div
       className={`rounded-xl border bg-white flex flex-col overflow-hidden shadow-card hover:shadow-cardHover transition ${
@@ -288,10 +289,10 @@ function ListingCard({
         className={`relative flex items-center justify-center px-4 pt-5 pb-3 ${
           isStorage
             ? 'bg-gradient-to-b from-feebay-50 to-white'
+            : isSlabBag
+            ? 'bg-gradient-to-b from-cyan-500/10 to-white'
             : isLot
             ? 'bg-gradient-to-b from-ebayYellow-500/10 to-white'
-            : isSlab
-            ? 'bg-gradient-to-b from-ink-100 to-white'
             : 'bg-gradient-to-b from-ink-100 to-white'
         }`}
       >
@@ -315,6 +316,8 @@ function ListingCard({
         <div className="transform transition hover:scale-[1.04]">
           {isStorage ? (
             <BigStorageUnitArt />
+          ) : isSlabBag ? (
+            <BigSlabBagArt />
           ) : isLot ? (
             <BigMysteryArt count={listing.lotSize ?? 3} />
           ) : (
@@ -342,7 +345,7 @@ function ListingCard({
             @{listing.sellerName}
             <span className="text-ink-300"> • </span>
             <span className="text-ink-700">{listing.rarity}</span>
-            {!isLot && !isStorage && !isSlab && (
+            {!isLot && !isStorage && !isSlab && !isSlabBag && (
               <>
                 <span className="text-ink-300"> • </span>
                 <span className="text-ink-500">{listing.rawCondition}</span>
@@ -389,7 +392,7 @@ function ListingCard({
           ) : (
             <span className="text-ink-400">Fake risk: ???</span>
           )}
-          {!isLot && !isStorage && !isSlab && showCenteringDetail && (
+          {!isLot && !isStorage && !isSlab && !isSlabBag && showCenteringDetail && (
             <span
               className={
                 Math.abs(listing.centeringOffsetX) + Math.abs(listing.centeringOffsetY) <= 3
@@ -512,6 +515,45 @@ function BigStorageUnitArt() {
   );
 }
 
+function BigSlabBagArt() {
+  return (
+    <div className="relative h-40 w-28">
+      <div className="absolute inset-0 rounded-md border-2 border-cyan-300/70 bg-gradient-to-br from-cyan-600 via-teal-700 to-slate-900 shadow-xl shadow-cyan-500/30 flex flex-col items-center justify-center text-white overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 2px, transparent 2px 7px)',
+          }}
+        />
+        {/* a slab peeking out of the bag */}
+        <div className="relative w-12 rounded-sm bg-white/90 border border-white/70 shadow-md flex flex-col items-center pt-1.5 pb-1.5 gap-1">
+          <div className="w-9 h-2 rounded-[1px] bg-cyan-700" />
+          <div className="w-8 h-7 rounded-[1px] bg-gradient-to-br from-cyan-400 to-teal-600" />
+        </div>
+        <div className="relative text-[11px] uppercase tracking-widest mt-2 font-semibold drop-shadow">
+          Slab Bag
+        </div>
+        <div className="relative text-[9px] uppercase tracking-widest mt-1 text-cyan-200">
+          1 graded card
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SlabBagArt() {
+  return (
+    <div className="relative h-24 w-16 shrink-0">
+      <div className="absolute inset-0 rounded-md border-2 border-cyan-300/70 bg-gradient-to-br from-cyan-600 via-teal-700 to-slate-900 shadow-lg shadow-cyan-500/40 flex flex-col items-center justify-center text-white">
+        <Icon name="package" size={26} />
+        <div className="text-[9px] uppercase tracking-widest mt-1">Slab</div>
+        <div className="text-[9px] uppercase tracking-widest">Bag</div>
+      </div>
+    </div>
+  );
+}
+
 function ListingDetailModal({
   listing,
   onClose,
@@ -533,7 +575,8 @@ function ListingDetailModal({
   const mkt = getMarketplace(listing.source);
   const isMystery = listing.lotType === 'mystery_lot' || listing.lotType === 'binder';
   const isStorage = listing.lotType === 'storage_unit';
-  const isSingleCard = !isMystery && !isStorage;
+  const isSlabBag = listing.lotType === 'slab_bag';
+  const isSingleCard = !isMystery && !isStorage && !isSlabBag;
   const [zoomed, setZoomed] = useState(false);
   return (
     <div
@@ -547,6 +590,8 @@ function ListingDetailModal({
         <div className="flex items-start gap-4">
           {isStorage ? (
             <StorageUnitArt />
+          ) : isSlabBag ? (
+            <SlabBagArt />
           ) : isMystery ? (
             <MysteryArt count={listing.lotSize ?? 3} />
           ) : (
@@ -596,7 +641,7 @@ function ListingDetailModal({
               showFakeRisk && listing.fakeRisk > 0.4 ? 'text-ebayRed-500' : 'text-ink-900'
             }
           />
-          {listing.lotType !== 'mystery_lot' && listing.lotType !== 'binder' && listing.lotType !== 'storage_unit' && (
+          {listing.lotType !== 'mystery_lot' && listing.lotType !== 'binder' && listing.lotType !== 'storage_unit' && listing.lotType !== 'slab_bag' && (
             <Pill
               label="Centering"
               value={
@@ -620,7 +665,7 @@ function ListingDetailModal({
         </div>
         <div className="text-xs text-ink-500 mt-3 italic">{mkt.tagline}</div>
 
-        {isNegotiableListing(listing) && !isMystery && !isStorage && (
+        {isNegotiableListing(listing) && !isMystery && !isStorage && !isSlabBag && (
           <NegotiationBlock listing={listing} />
         )}
 

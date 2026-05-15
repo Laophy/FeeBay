@@ -1,14 +1,19 @@
 import type {
   CardDef,
   CardRarity,
+  GradingCompanyId,
   InventoryItem,
   MarketplaceListing,
   RawCondition,
 } from '../types';
 import { CARDS } from '../data/cards';
 import { chance, pick, rand, randInt, uid, weightedPick } from './rng';
-import { rollCenteringNeutral, rollRainbowCentering } from './centering';
-import { conditionMult, rarityMult } from './economyEngine';
+import {
+  rollCenteringForGrade,
+  rollCenteringNeutral,
+  rollRainbowCentering,
+} from './centering';
+import { GRADE_MULTIPLIER, conditionMult, rarityMult } from './economyEngine';
 
 const RAW: RawCondition[] = [
   'Damaged',
@@ -331,4 +336,95 @@ export function resolveStorageUnit(
   }
 
   return { items, totalRawValueEstimate };
+}
+
+/* ---- Slab bags — a single graded card grab bag ---- */
+
+export type SlabBagTier = 'budget' | 'standard' | 'premium' | 'whale';
+
+/** Slab-bag price tiers. Kept in sync with generateSlabBagListing's ask ranges. */
+export function slabBagTierForPrice(askingPrice: number): SlabBagTier {
+  if (askingPrice < 120) return 'budget';
+  if (askingPrice < 420) return 'standard';
+  if (askingPrice < 1100) return 'premium';
+  return 'whale';
+}
+
+const SLAB_BAG_CARD_TIER: Record<SlabBagTier, LotTier> = {
+  budget: 'mid',
+  standard: 'premium',
+  premium: 'whale',
+  whale: 'whale',
+};
+
+const SLAB_BAG_GRADE_POOL: Record<SlabBagTier, number[]> = {
+  budget: [6, 7, 7, 8, 8, 9],
+  standard: [7, 8, 8, 9, 9, 9.5],
+  premium: [8, 9, 9, 9.5, 9.5, 10],
+  whale: [9, 9.5, 9.5, 10, 10, 10],
+};
+
+/** Average legit slab value for a tier — used to price slab-bag listings. */
+export function expectedSlabBagValue(tier: SlabBagTier): number {
+  const pulls = SLAB_BAG_GRADE_POOL[tier];
+  const avgGradeMult =
+    pulls.reduce((s, g) => s + (GRADE_MULTIPLIER[g] ?? 1), 0) / pulls.length;
+  // expectedPullValue folds in ~average condition; strip the 0.75 condition
+  // factor back out since graded cards are pristine.
+  const cardEv = expectedPullValue(SLAB_BAG_CARD_TIER[tier]) / 0.75;
+  return Math.round(cardEv * avgGradeMult * 0.95);
+}
+
+/**
+ * Resolve the single graded card hidden inside a slab bag. Scam bags hide a
+ * counterfeit slab — the case flexes a high grade but the card is worthless.
+ */
+export function resolveSlabBag(
+  listing: MarketplaceListing,
+  acquiredFrom: MarketplaceListing['source'],
+): { item: InventoryItem; isScam: boolean } {
+  const isScam = chance(listing.scamRisk);
+  const tier = slabBagTierForPrice(listing.askingPrice);
+
+  const card = isScam
+    ? pickCardForTier('cheap')
+    : pickCardForTier(SLAB_BAG_CARD_TIER[tier]);
+  const grade = isScam
+    ? pick([9, 9.5, 10, 10]) // scammers always flex a high "grade"
+    : pick(SLAB_BAG_GRADE_POOL[tier]);
+  const company = weightedPick<GradingCompanyId>(['PZA', 'ZAG', 'Bucket'], [5, 6, 4]);
+  const { centeringOffsetX, centeringOffsetY } = rollCenteringForGrade(grade);
+
+  const gradeMult = GRADE_MULTIPLIER[grade] ?? 1;
+  const companyMult = company === 'PZA' ? 1.2 : company === 'Bucket' ? 0.85 : 0.95;
+  const legitValue = Math.max(
+    8,
+    Math.round(
+      card.baseValue * rarityMult(card.rarity) * gradeMult * companyMult * rand(0.9, 1.2),
+    ),
+  );
+
+  const item: InventoryItem = {
+    id: uid('inv_'),
+    cardId: card.id,
+    name: card.name,
+    set: card.set,
+    rarity: card.rarity,
+    rawCondition: 'Gem Candidate',
+    actualConditionScore: 95,
+    centeringOffsetX,
+    centeringOffsetY,
+    purchasePrice: listing.askingPrice,
+    // Scam slabs are near-worthless once the counterfeit case is spotted.
+    baseValue: isScam ? randInt(1, 12) : legitValue,
+    status: 'graded',
+    grade,
+    gradeLabel: grade === 10 ? `${company} GEM 10` : `${company} ${grade}`,
+    gradingCompany: company,
+    acquiredFrom,
+    acquiredAt: Date.now(),
+    isFake: isScam,
+    hue: card.hue,
+  };
+  return { item, isScam };
 }

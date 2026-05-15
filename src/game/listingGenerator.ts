@@ -32,7 +32,12 @@ import {
   rollCenteringForGrade,
   rollRainbowCentering,
 } from './centering';
-import { expectedPullValue, tierForPrice } from './lotResolver';
+import {
+  expectedPullValue,
+  expectedSlabBagValue,
+  tierForPrice,
+  type SlabBagTier,
+} from './lotResolver';
 
 const RAW_CONDITIONS: RawCondition[] = [
   'Damaged',
@@ -266,6 +271,70 @@ export function generateStorageUnitListing(
   };
 }
 
+/* ---- Slab bags — a graded-card grab bag ---- */
+
+const SLAB_BAG_TIERS: { tier: SlabBagTier; askMin: number; askMax: number; label: string }[] = [
+  { tier: 'budget', askMin: 45, askMax: 110, label: 'Budget' },
+  { tier: 'standard', askMin: 150, askMax: 380, label: 'Standard' },
+  { tier: 'premium', askMin: 480, askMax: 980, label: 'Premium' },
+  { tier: 'whale', askMin: 1300, askMax: 2700, label: 'Whale' },
+];
+
+const SLAB_BAG_TITLES = [
+  '{label} SLAB BAG — one random graded card inside!',
+  'Mystery {label} slab grab bag — graded card guaranteed',
+  '{label} graded card bag — could be a GEM, could be a dud',
+  'GRADED MYSTERY BAG ({label} tier) — rip it and find out',
+];
+
+const SLAB_BAG_DESCRIPTIONS_LEGIT = [
+  'One sealed graded slab per bag. Live-pulled, no resealing. Probably.',
+  'Random graded card inside. Some bags carry a 10. Not telling you which.',
+  'Graded mystery bag. What you see is a bag. What you get is a slab.',
+];
+
+const SLAB_BAG_DESCRIPTIONS_SHADY = [
+  'GRADED bag trust me bro. Cases 100% real. Do not look too close.',
+  'Slab bag, graded by a real company. (The company is my cousin.)',
+  'Mystery slab. The grade on the case is REAL. The card behind it is a surprise.',
+];
+
+/** A graded-card grab bag. Resolves to one slab — sometimes a counterfeit. */
+export function generateSlabBagListing(source: MarketplaceSource): MarketplaceListing {
+  const t = pick(SLAB_BAG_TIERS);
+  const askingPrice = randInt(t.askMin, t.askMax);
+  // Shady bags are far likelier to hide a counterfeit slab. JaredsList runs more of them.
+  const shady = chance(source === 'JaredsList' ? 0.55 : 0.28);
+  const scamRisk = shady ? rand(0.42, 0.72) : rand(0.05, 0.16);
+  const trueValue = expectedSlabBagValue(t.tier);
+  return {
+    id: uid('lst_'),
+    source,
+    title: pick(SLAB_BAG_TITLES).replace('{label}', t.label),
+    sellerName: pick(SELLER_NAMES),
+    description: pick(shady ? SLAB_BAG_DESCRIPTIONS_SHADY : SLAB_BAG_DESCRIPTIONS_LEGIT),
+    askingPrice,
+    trueMarketValue: trueValue,
+    estimatedValueMin: Math.max(1, Math.round(askingPrice * 0.2)),
+    estimatedValueMax: Math.round(Math.max(trueValue, askingPrice) * 2.2),
+    conditionHint: 'Sealed bag — the slab inside is graded, the card is a mystery.',
+    actualConditionScore: 92,
+    centeringOffsetX: 0,
+    centeringOffsetY: 0,
+    rawCondition: 'Near Mint',
+    rarity: 'Rare',
+    cardId: CARDS[0].id, // placeholder — art uses the bag tile
+    lotType: 'slab_bag',
+    lotSize: undefined,
+    scamRisk,
+    fakeRisk: shady ? rand(0.3, 0.6) : rand(0.03, 0.12),
+    isFake: false,
+    timeRemainingSeconds: randInt(180, 720),
+    createdAt: Date.now(),
+    qualityType: 'fair',
+  };
+}
+
 function rollSource(
   unlocked: MarketplaceSource[],
   quality: ListingQuality,
@@ -403,6 +472,15 @@ export function generateListings(
     out.push(generateStorageUnitListing('JaredsList', reputation));
   } else if (reputation >= 40 && unlocked.includes('Headbook Marketplace') && chance(0.18)) {
     out.push(generateStorageUnitListing('Headbook Marketplace', reputation));
+  }
+
+  // Slab bags — graded-card grab bags. Usually one in the feed, sometimes two.
+  {
+    const preferred = (['SlabHub', 'JaredsList', 'PackTok Shop', 'FeeBay'] as MarketplaceSource[])
+      .filter((m) => unlocked.includes(m));
+    const slabBagPool = preferred.length ? preferred : (['FeeBay'] as MarketplaceSource[]);
+    if (chance(0.6)) out.push(generateSlabBagListing(pick(slabBagPool)));
+    if (chance(0.22)) out.push(generateSlabBagListing(pick(slabBagPool)));
   }
 
   for (let i = out.length; i < count; i++) {

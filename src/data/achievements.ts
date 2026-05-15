@@ -51,4 +51,23 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'all_sets', name: 'Set the Set', description: 'Complete every card set.', icon: 'trophy', cashReward: 25000, tier: 'mythic' },
   { id: 'national_reseller', name: 'National Reseller', description: 'Promote to Business Level 5.', icon: 'crown', cashReward: 25000, tier: 'mythic' },
   { id: 'card_empire_level', name: 'Card Empire (Level)', description: 'Promote to the final Business Level: Card Empire.', icon: 'crown', cashReward: 100000, tier: 'mythic' },
+
+  // --- v2 additions: UI / meta, fake-card sales, and slab bags ---
+  // UI / meta (unlocked by clicking around the app)
+  { id: 'discord_click', name: 'Drop the Discord', description: 'Click the Join Our Discord button.', icon: 'discord', cashReward: 50, tier: 'bronze' },
+  { id: 'coffee_click', name: 'Caffeine Sponsor', description: 'Click the Buy Me a Coffee button.', icon: 'coffee', cashReward: 50, tier: 'bronze' },
+  { id: 'searched', name: 'Search Party', description: 'Type something into the FeeBay search bar.', icon: 'search', cashReward: 30, tier: 'bronze' },
+  { id: 'logo_hover', name: 'Logo Botherer', description: 'Hover the FeeBay logo and make it dance.', icon: 'sparkle', cashReward: 25, tier: 'bronze' },
+  { id: 'game_reset', name: 'Clean Slate', description: 'Wipe your save and start a fresh empire.', icon: 'reset', cashReward: 50, tier: 'bronze' },
+
+  // Slab bags — a graded-card grab bag from the marketplace
+  { id: 'first_slab_bag', name: 'Bag Secured', description: 'Open your first slab bag.', icon: 'package', cashReward: 80, tier: 'bronze' },
+  { id: 'slab_bag_10', name: 'Bag Chaser', description: 'Open 10 slab bags.', icon: 'package', cashReward: 350, tier: 'silver' },
+  { id: 'scam_bag', name: 'Bagged and Tagged', description: 'Get scammed by a counterfeit slab bag.', icon: 'shield', cashReward: 150, tier: 'silver' },
+  { id: 'slab_bag_jackpot', name: 'Jackpot Bag', description: 'Pull a Gem 10 slab out of a slab bag.', icon: 'medal', cashReward: 800, tier: 'gold' },
+
+  // Selling fakes off your own storefront — the shady side of the business
+  { id: 'fake_sale_1', name: 'Caveat Emptor', description: 'Sell a fake card off your storefront.', icon: 'shield', cashReward: 150, tier: 'silver' },
+  { id: 'fake_sale_5', name: 'Forgery Ring', description: 'Sell 5 fake cards off your storefront.', icon: 'shield', cashReward: 400, tier: 'silver' },
+  { id: 'fake_sale_100', name: 'Counterfeit Kingpin', description: 'Sell 100 fake cards off your storefront.', icon: 'shield', cashReward: 5000, tier: 'gold' },
 ];

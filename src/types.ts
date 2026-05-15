@@ -28,7 +28,14 @@ export type RawCondition =
   | 'Minty'
   | 'Gem Candidate';
 
-export type LotType = 'single' | 'binder' | 'sealed' | 'slab' | 'mystery_lot' | 'storage_unit';
+export type LotType =
+  | 'single'
+  | 'binder'
+  | 'sealed'
+  | 'slab'
+  | 'mystery_lot'
+  | 'storage_unit'
+  | 'slab_bag';
 
 export type GradingCompanyId = 'ZAG' | 'PZA' | 'Bucket';
 
@@ -183,6 +190,10 @@ export type PlayerStats = {
   storefrontRevenue: number;
   /** Whether the player has triggered at least one supply crash. */
   crashesCaused: number;
+  /** Lifetime count of fake cards sold off the player's storefront. */
+  fakeCardsSold: number;
+  /** Lifetime count of slab bags opened. */
+  slabBagsOpened: number;
 };
 
 export type CollectionEntry = {
@@ -246,7 +257,7 @@ export type LotReveal = {
   pricePaid: number;
   itemIds: string[];
   estimatedValue: number;
-  lotKind: 'mystery' | 'binder' | 'storage_unit';
+  lotKind: 'mystery' | 'binder' | 'storage_unit' | 'slab_bag';
 };
 
 export type AuctionListing = {

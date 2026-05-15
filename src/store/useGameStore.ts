@@ -26,7 +26,7 @@ import { SELLER_NAMES } from '../data/listingTemplates';
 import { getMarketplace, MARKETPLACES } from '../data/marketplaces';
 import { UPGRADES, UPGRADE_EFFECTS } from '../data/upgrades';
 import { getCardById } from '../data/cards';
-import { resolveMysteryLot, resolveStorageUnit } from '../game/lotResolver';
+import { resolveMysteryLot, resolveSlabBag, resolveStorageUnit } from '../game/lotResolver';
 import { collectionSize, recordAcquisitions, recordGradeUpdate } from '../game/collection';
 import { initialMarketNoise, stepMarketNoise } from '../game/marketNoise';
 import { rollConvention } from '../game/conventions';
@@ -134,6 +134,8 @@ function emptyStats(): PlayerStats {
     storefrontSales: 0,
     storefrontRevenue: 0,
     crashesCaused: 0,
+    fakeCardsSold: 0,
+    slabBagsOpened: 0,
   };
 }
 
@@ -428,6 +430,62 @@ export const useGameStore = create<GameStore>((set, get) => ({
         isStorageUnit,
       });
       get().evaluateAndApplyAchievements({ kind: 'bought', isFake: items.some((i) => i.isFake) });
+      get().save();
+      return;
+    }
+
+    if (listing.lotType === 'slab_bag') {
+      if (occupiedSlots(state) >= slots) {
+        get().pushNotification('Inventory full. Sell or buy more storage.', 'warning');
+        return;
+      }
+      const { item, isScam } = resolveSlabBag(listing, listing.source);
+      const { collection, newCardIds } = recordAcquisitions(state.collection, [item]);
+      const duringConvention = !!state.convention && state.convention.endsAt > Date.now();
+      set({
+        cash: +(state.cash - listing.askingPrice).toFixed(2),
+        inventory: [...state.inventory, item],
+        listings: state.listings.filter((l) => l.id !== listingId),
+        collection,
+        pendingLotReveals: [
+          ...state.pendingLotReveals,
+          {
+            id: uid('lot_'),
+            source: listing.source,
+            pricePaid: listing.askingPrice,
+            itemIds: [item.id],
+            estimatedValue: item.baseValue,
+            lotKind: 'slab_bag',
+          },
+        ],
+        stats: {
+          ...state.stats,
+          totalBought: state.stats.totalBought + 1,
+          slabBagsOpened: (state.stats.slabBagsOpened ?? 0) + 1,
+          highestSinglePurchase: Math.max(state.stats.highestSinglePurchase, listing.askingPrice),
+          conventionBuys: state.stats.conventionBuys + (duringConvention ? 1 : 0),
+        },
+      });
+      SFX.buy();
+      if (isScam) {
+        get().pushNotification(
+          `That ${listing.source} slab bag was a SCAM — the case is counterfeit and the slab is worthless.`,
+          'warning',
+        );
+      } else {
+        get().pushNotification(
+          `Opened a slab bag from ${listing.source} ($${listing.askingPrice}) — ${item.gradeLabel} ${item.name} inside.`,
+          'success',
+        );
+      }
+      if (newCardIds.length > 0) {
+        get().pushNotification(`New card added to collection: ${item.name}.`, 'success');
+      }
+      get().evaluateAndApplyAchievements({
+        kind: 'slab_bag_opened',
+        grade: item.grade ?? 0,
+        isScam,
+      });
       get().save();
       return;
     }
@@ -1196,6 +1254,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let reputationGain = 0;
     let storefrontSales = state.stats.storefrontSales;
     let storefrontRevenue = state.stats.storefrontRevenue ?? 0;
+    let fakeCardsSold = state.stats.fakeCardsSold ?? 0;
     let anyStorefrontSale = false;
     const newHistory: typeof state.storefrontHistory = [];
     const newPending: typeof state.pendingPayments = [];
@@ -1248,6 +1307,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (profit > 0) reputationGain += 1;
           storefrontSales += 1;
           storefrontRevenue += sale.net;
+          if (item.isFake) fakeCardsSold += 1;
           anyStorefrontSale = true;
           newHistory.push({
             id: uid('sfh_'),
@@ -1355,6 +1415,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (p.profit > 0) reputationGain += 1;
         storefrontSales += 1;
         storefrontRevenue += p.netRevenue;
+        if (p.item.isFake) fakeCardsSold += 1;
         anyStorefrontSale = true;
         newHistory.push({
           id: uid('sfh_'),
@@ -1406,6 +1467,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           biggestLoss,
           storefrontSales,
           storefrontRevenue: +storefrontRevenue.toFixed(2),
+          fakeCardsSold,
         },
         reputation: state.reputation + reputationGain,
         storefrontHistory:
@@ -1630,6 +1692,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     localStorage.removeItem('feebay-simulator-save-v9');
     set({ ...defaultState() });
     get().refreshListings({ force: true });
+    // Starting over is itself an achievement — granted into the fresh save.
+    get().unlockAchievements(['game_reset']);
   },
 
   save() {
@@ -1727,6 +1791,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Mirror to Steam (no-op when Steam isn't available).
       window.feebay?.steam?.unlockAchievement(id);
     }
+    // Persist immediately so UI-triggered unlocks survive a reload on their own.
+    get().save();
   },
 
   claimAchievement(id) {

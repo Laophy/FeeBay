@@ -21,6 +21,7 @@ export type AchievementContext =
   | { kind: 'storefront_sale' }
   | { kind: 'negotiation_accepted' }
   | { kind: 'crash_caused' }
+  | { kind: 'slab_bag_opened'; grade: number; isScam: boolean }
   | { kind: 'tick' };
 
 /**
@@ -66,6 +67,11 @@ export function evaluateAchievements(
   if (s.conventionBuys >= 1) mark('first_convention');
   if (s.storefrontSales >= 1) mark('first_storefront_sale');
   if (s.crashesCaused >= 1) mark('crash_course');
+  if ((s.fakeCardsSold ?? 0) >= 1) mark('fake_sale_1');
+  if ((s.fakeCardsSold ?? 0) >= 5) mark('fake_sale_5');
+  if ((s.fakeCardsSold ?? 0) >= 100) mark('fake_sale_100');
+  if ((s.slabBagsOpened ?? 0) >= 1) mark('first_slab_bag');
+  if ((s.slabBagsOpened ?? 0) >= 10) mark('slab_bag_10');
   if (s.gradingCompaniesUsed.length === 3) mark('grading_diversifier');
   if (s.gem10sToday >= 3) mark('triple_gem');
   if ((s.gradesReceived['10'] ?? 0) >= 1) mark('gem_mint_goblin');
@@ -152,6 +158,10 @@ export function evaluateAchievements(
     if (ctx.profitPct <= -50) mark('bag_holder');
   }
   if (ctx.kind === 'bought' && ctx.isFake) mark('rugged');
+  if (ctx.kind === 'slab_bag_opened') {
+    if (ctx.isScam) mark('scam_bag');
+    if (!ctx.isScam && ctx.grade >= 10) mark('slab_bag_jackpot');
+  }
   if (ctx.kind === 'lot_opened' && ctx.rarities.some((r) => RARE_OR_BETTER.includes(r))) {
     mark('closet_treasure');
   }

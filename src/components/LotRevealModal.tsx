@@ -129,7 +129,9 @@ export function LotRevealModal() {
 
   // Layout sizing
   const cols =
-    cardCount <= 4
+    cardCount <= 1
+      ? 1
+      : cardCount <= 4
       ? 4
       : cardCount <= 6
       ? 3
@@ -147,6 +149,8 @@ export function LotRevealModal() {
     ? 'Storage Unit'
     : lot.lotKind === 'binder'
     ? 'Binder Lot'
+    : lot.lotKind === 'slab_bag'
+    ? 'Slab Bag'
     : 'Mystery Lot';
 
   return (
@@ -285,14 +289,16 @@ export function LotRevealModal() {
 
 function PackStage({ lot, kindLabel }: { lot: LotReveal; kindLabel: string }) {
   const isStorage = lot.lotKind === 'storage_unit';
+  const isSlabBag = lot.lotKind === 'slab_bag';
+  const packClass = isStorage
+    ? 'h-56 w-44 border-feebay-700 bg-gradient-to-br from-feebay-500 via-feebay-600 to-feebay-800'
+    : isSlabBag
+    ? 'h-56 w-40 border-cyan-300 bg-gradient-to-br from-cyan-600 via-teal-700 to-slate-900'
+    : 'h-56 w-40 border-ebayRed-700 bg-gradient-to-br from-ebayRed-500 via-ebayRed-600 to-ebayRed-700';
   return (
     <div className="flex flex-col items-center gap-4">
       <div
-        className={`relative pack-bob pack-glow rounded-2xl border-4 flex flex-col items-center justify-center overflow-hidden ${
-          isStorage
-            ? 'h-56 w-44 border-feebay-700 bg-gradient-to-br from-feebay-500 via-feebay-600 to-feebay-800 text-white'
-            : 'h-56 w-40 border-ebayRed-700 bg-gradient-to-br from-ebayRed-500 via-ebayRed-600 to-ebayRed-700 text-white'
-        }`}
+        className={`relative pack-bob pack-glow rounded-2xl border-4 flex flex-col items-center justify-center overflow-hidden text-white ${packClass}`}
       >
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"
@@ -391,6 +397,8 @@ function FlipSlot({
             rarity={item.rarity}
             hue={item.hue}
             cardId={item.cardId}
+            grade={item.grade}
+            gradingCompany={item.gradingCompany}
             centeringOffsetX={item.centeringOffsetX}
             centeringOffsetY={item.centeringOffsetY}
             small={size !== 'lg'}

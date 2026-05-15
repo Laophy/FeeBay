@@ -51,6 +51,7 @@ export function TopBar({ route, bounceLogo }: Props) {
   const upgradesPurchased = useGameStore((s) => s.upgradesPurchased);
   const storefrontBalance = useGameStore((s) => s.storefrontBalance);
   const resetGame = useGameStore((s) => s.resetGame);
+  const unlockAchievements = useGameStore((s) => s.unlockAchievements);
 
   const inventoryValue = inventory.reduce(
     (sum, i) =>
@@ -80,7 +81,11 @@ export function TopBar({ route, bounceLogo }: Props) {
                     animationDelay: playInitial ? `${i * 110}ms` : undefined,
                     transformOrigin: '50% 100%',
                   }}
-                  onMouseEnter={() => !playInitial && startHop(i)}
+                  onMouseEnter={() => {
+                    if (playInitial) return;
+                    startHop(i);
+                    unlockAchievements(['logo_hover']);
+                  }}
                   onAnimationEnd={(e) => {
                     if (e.animationName === 'letterHop') endHop(i);
                   }}
@@ -177,6 +182,7 @@ function pickFakeResults(q: string): typeof FAKE_RESULT_LINES {
 
 function SearchBar() {
   const setActiveSource = useGameStore((s) => s.setMarketplaceActiveSource);
+  const unlockAchievements = useGameStore((s) => s.unlockAchievements);
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -205,7 +211,11 @@ function SearchBar() {
           type="text"
           placeholder="Search FeeBay — cards, sellers, sets..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setQuery(v);
+            if (v.trim().length > 0) unlockAchievements(['searched']);
+          }}
           onFocus={() => setFocused(true)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
