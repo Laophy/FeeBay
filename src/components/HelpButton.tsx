@@ -45,7 +45,7 @@ const HELP: Record<Route, { title: string; body: (string | JSX.Element)[] }> = {
     title: 'Grading',
     body: [
       'Three companies, different tradeoffs:',
-      <ul key="g" className="list-disc pl-5 text-slate-300 text-sm space-y-1">
+      <ul key="g" className="list-disc pl-5 text-ink-700 text-sm space-y-1">
         <li>
           <span className="font-semibold">ZAG</span> — cheap, fast, 0.9× resale.
         </li>
@@ -116,30 +116,30 @@ export function HelpButton({ route }: { route: Route }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-slate-700 hover:border-slate-500 text-slate-300"
+        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-line hover:border-ink-400 text-ink-700"
         title="What is this screen?"
       >
         <Icon name="eye" size={14} /> Help
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-[min(560px,95vw)] max-h-[85vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl animate-popIn"
+            className="w-[min(560px,95vw)] max-h-[85vh] overflow-y-auto rounded-xl border border-line bg-white p-5 shadow-2xl animate-popIn"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-xs uppercase tracking-widest text-feebay-300">How this works</div>
+            <div className="text-xs uppercase tracking-widest text-feebay-600">How this works</div>
             <h2 className="mt-1 text-xl font-bold">{entry.title}</h2>
-            <div className="mt-3 space-y-2 text-sm text-slate-200">
+            <div className="mt-3 space-y-2 text-sm text-ink-800">
               {entry.body.map((b, i) =>
                 typeof b === 'string' ? <p key={i}>{b}</p> : <div key={i}>{b}</div>,
               )}
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="mt-5 w-full rounded bg-feebay-600 hover:bg-feebay-500 py-2 text-sm font-semibold"
+              className="mt-5 w-full rounded bg-feebay-500 hover:bg-feebay-600 text-white py-2 text-sm font-semibold"
             >
               Got it
             </button>

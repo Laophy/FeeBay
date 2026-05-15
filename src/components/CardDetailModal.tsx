@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore } from '../store/useGameStore';
 import { getCardById } from '../data/cards';
 import { CardArt } from './CardArt';
@@ -59,10 +60,13 @@ export function CardDetailModal(props: Props) {
       ? unlocked.filter((m) => m === 'SlabHub' || m === 'FeeBay')
       : unlocked.filter((m) => m !== 'SlabHub');
 
-  return (
-    <div className="fixed inset-0 z-[58] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={props.onClose}>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4"
+      onClick={props.onClose}
+    >
       <div
-        className="w-[min(720px,95vw)] max-h-[90vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl animate-popIn"
+        className="w-[720px] max-w-full max-h-[calc(100vh-80px)] overflow-y-auto rounded-xl border border-line bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-5">
@@ -79,7 +83,7 @@ export function CardDetailModal(props: Props) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-slate-400">
+                <div className="text-[10px] uppercase tracking-widest text-ink-500">
                   {card.character} • {card.set}
                 </div>
                 <h2 className="text-xl font-bold">{card.name}</h2>
@@ -88,8 +92,8 @@ export function CardDetailModal(props: Props) {
                 onClick={() => toggleWatch(card.id)}
                 className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border ${
                   isWatched
-                    ? 'border-amber-500/60 bg-amber-900/30 text-amber-200'
-                    : 'border-slate-700 hover:border-slate-500 text-slate-300'
+                    ? 'border-ebayYellow-500 bg-ebayYellow-500/10 text-ebayYellow-700'
+                    : 'border-line hover:border-ink-400 text-ink-700'
                 }`}
               >
                 <Icon name={isWatched ? 'check' : 'eye'} size={14} />
@@ -97,16 +101,16 @@ export function CardDetailModal(props: Props) {
               </button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <Pill label="Rarity" value={card.rarity} accent="text-amber-300" />
+              <Pill label="Rarity" value={card.rarity} accent="text-ebayYellow-700" />
               <Pill
                 label="Market"
                 value={`${driftPct >= 0 ? '+' : ''}${driftPct.toFixed(1)}%`}
                 accent={
                   Math.abs(driftPct) < 0.5
-                    ? 'text-slate-200'
+                    ? 'text-ink-800'
                     : driftPct > 0
-                    ? 'text-emerald-300'
-                    : 'text-rose-300'
+                    ? 'text-ebayGreen-600'
+                    : 'text-ebayRed-500'
                 }
               />
               <Pill label="Base value" value={`$${card.baseValue}`} />
@@ -122,19 +126,19 @@ export function CardDetailModal(props: Props) {
           </div>
         </div>
 
-        <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-          <div className="text-xs uppercase tracking-widest text-slate-400 mb-2">
+        <div className="mt-5 rounded-lg border border-line bg-ink-100 p-3">
+          <div className="text-xs uppercase tracking-widest text-ink-500 mb-2">
             Market drift (live)
           </div>
           <Sparkline data={history} width={640} height={70} />
         </div>
 
         {activeTrends.length > 0 && (
-          <div className="mt-4 rounded border border-purple-500/40 bg-purple-900/15 p-3">
-            <div className="text-xs uppercase tracking-widest text-purple-300 mb-2">
+          <div className="mt-4 rounded border border-feebay-500/50 bg-feebay-50 p-3">
+            <div className="text-xs uppercase tracking-widest text-feebay-600 mb-2">
               Active trends affecting this card
             </div>
-            <ul className="space-y-1 text-sm text-purple-200">
+            <ul className="space-y-1 text-sm text-feebay-700">
               {activeTrends.map((t, i) => (
                 <li key={i} className="flex items-center justify-between gap-2">
                   <span>{t.label}</span>
@@ -146,8 +150,8 @@ export function CardDetailModal(props: Props) {
         )}
 
         {item && (
-          <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-3">
-            <div className="text-xs uppercase tracking-widest text-slate-400 mb-2">
+          <div className="mt-4 rounded-lg border border-line bg-white shadow-card p-3">
+            <div className="text-xs uppercase tracking-widest text-ink-500 mb-2">
               Your copy
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
@@ -168,13 +172,13 @@ export function CardDetailModal(props: Props) {
               <Pill
                 label="Current value"
                 value={`$${currentItemValue}`}
-                accent="text-feebay-300"
+                accent="text-feebay-600"
               />
               {item.grade !== undefined && (
                 <Pill
                   label="Grade"
                   value={item.gradeLabel ?? `${item.grade}`}
-                  accent={item.grade >= 9 ? 'text-amber-300' : 'text-slate-200'}
+                  accent={item.grade >= 9 ? 'text-ebayYellow-700' : 'text-ink-800'}
                 />
               )}
               <Pill label="Acquired from" value={item.acquiredFrom} />
@@ -189,7 +193,7 @@ export function CardDetailModal(props: Props) {
                       sell(item.id, m);
                       props.onClose();
                     }}
-                    className="text-xs px-2 py-1.5 rounded bg-feebay-600 hover:bg-feebay-500"
+                    className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
                   >
                     Sell on {m}
                   </button>
@@ -201,7 +205,7 @@ export function CardDetailModal(props: Props) {
                       grade(item.id, c.id);
                       props.onClose();
                     }}
-                    className="text-xs px-2 py-1.5 rounded bg-purple-700 hover:bg-purple-600"
+                    className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
                   >
                     Grade @ {c.id}
                   </button>
@@ -217,7 +221,7 @@ export function CardDetailModal(props: Props) {
                       sell(item.id, m);
                       props.onClose();
                     }}
-                    className="text-xs px-2 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500"
+                    className="text-xs px-2 py-1.5 rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white"
                   >
                     Sell slab on {m}
                   </button>
@@ -225,14 +229,14 @@ export function CardDetailModal(props: Props) {
               </div>
             )}
             {item.status === 'grading' && (
-              <div className="mt-3 text-xs text-slate-400">Waiting on grade result...</div>
+              <div className="mt-3 text-xs text-ink-500">Waiting on grade result...</div>
             )}
           </div>
         )}
 
         {collectionEntry && (
-          <div className="mt-4 rounded border border-slate-800 bg-slate-900/40 p-3">
-            <div className="text-xs uppercase tracking-widest text-slate-400 mb-2">
+          <div className="mt-4 rounded border border-line bg-white shadow-card p-3">
+            <div className="text-xs uppercase tracking-widest text-ink-500 mb-2">
               Collection history
             </div>
             <div className="grid grid-cols-3 gap-2 text-xs">
@@ -240,7 +244,7 @@ export function CardDetailModal(props: Props) {
               <Pill
                 label="Best grade"
                 value={collectionEntry.bestGrade !== undefined ? `${collectionEntry.bestGrade}` : '—'}
-                accent="text-amber-300"
+                accent="text-ebayYellow-700"
               />
               <Pill
                 label="First acquired"
@@ -252,27 +256,28 @@ export function CardDetailModal(props: Props) {
 
         <button
           onClick={props.onClose}
-          className="mt-5 w-full rounded border border-slate-700 hover:border-slate-500 py-2 text-sm"
+          className="mt-5 w-full rounded border border-line hover:border-ink-400 py-2 text-sm"
         >
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 function Pill({
   label,
   value,
-  accent = 'text-slate-100',
+  accent = 'text-ink-900',
 }: {
   label: string;
   value: string;
   accent?: string;
 }) {
   return (
-    <div className="rounded bg-slate-800/70 px-2 py-1.5">
-      <div className="text-[9px] uppercase tracking-widest text-slate-500">{label}</div>
+    <div className="rounded bg-ink-100 px-2 py-1.5">
+      <div className="text-[9px] uppercase tracking-widest text-ink-400">{label}</div>
       <div className={`text-xs font-semibold ${accent}`}>{value}</div>
     </div>
   );

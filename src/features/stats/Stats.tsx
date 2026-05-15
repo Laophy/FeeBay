@@ -53,7 +53,7 @@ export function Stats() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold">Stats &amp; Milestones</h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-ink-500 text-sm">
           Lifetime totals, reputation progress, and where the next milestones live.
         </p>
       </div>
@@ -61,18 +61,18 @@ export function Stats() {
       <div className="rounded-lg border border-amber-500/30 bg-gradient-to-br from-amber-900/15 to-slate-900/40 p-4">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-amber-300">
+            <div className="text-[10px] uppercase tracking-widest text-ebayYellow-700">
               Business level {current.level}
             </div>
-            <div className="text-2xl font-bold text-amber-100">{current.name}</div>
-            <div className="text-xs text-slate-400 mt-1">{current.tagline}</div>
+            <div className="text-2xl font-bold text-ebayYellow-700">{current.name}</div>
+            <div className="text-xs text-ink-500 mt-1">{current.tagline}</div>
           </div>
           {nextLevel ? (
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-widest text-slate-400">
+              <div className="text-[10px] uppercase tracking-widest text-ink-500">
                 Next: {nextLevel.name}
               </div>
-              <div className="text-xs text-slate-300 mt-0.5">
+              <div className="text-xs text-ink-700 mt-0.5">
                 ${nextLevel.promotionCost.toLocaleString()} promotion · need ${' '}
                 {nextLevel.netWorthRequirement.toLocaleString()} net worth · {nextLevel.reputationRequirement} rep
               </div>
@@ -81,15 +81,15 @@ export function Stats() {
                 disabled={!canPromote}
                 className={`mt-2 rounded px-4 py-2 text-sm font-semibold ${
                   canPromote
-                    ? 'bg-amber-600 hover:bg-amber-500 text-white animate-pulse'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    ? 'bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 text-white animate-pulse'
+                    : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                 }`}
               >
                 {canPromote ? `Promote to ${nextLevel.name}` : 'Locked'}
               </button>
             </div>
           ) : (
-            <div className="text-amber-300 text-xs uppercase tracking-widest font-bold">
+            <div className="text-ebayYellow-700 text-xs uppercase tracking-widest font-bold">
               Max level reached
             </div>
           )}
@@ -103,21 +103,21 @@ export function Stats() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+      <div className="rounded-lg border border-line bg-white shadow-card p-4">
         <div className="text-sm font-semibold mb-2">Reputation</div>
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+        <div className="flex items-center justify-between text-xs text-ink-500 mb-2">
           <span>{reputation} rep</span>
           {nextLockedMkt ? (
             <span>
               Next unlock:{' '}
-              <span className="text-feebay-300 font-semibold">{nextLockedMkt.id}</span> at{' '}
+              <span className="text-feebay-600 font-semibold">{nextLockedMkt.id}</span> at{' '}
               {nextLockedMkt.unlockReputation} rep ({nextLockedDelta} to go)
             </span>
           ) : (
-            <span className="text-emerald-300">All marketplaces unlocked.</span>
+            <span className="text-ebayGreen-600">All marketplaces unlocked.</span>
           )}
         </div>
-        <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+        <div className="h-2 w-full rounded-full bg-ink-100 overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-feebay-500 to-emerald-400"
             style={{ width: `${repPct}%` }}
@@ -132,24 +132,24 @@ export function Stats() {
                 key={m.id}
                 className={`rounded border px-3 py-2 flex items-center gap-3 ${
                   own
-                    ? 'border-emerald-700/50 bg-emerald-900/15'
+                    ? 'border-ebayGreen-500/60 bg-ebayGreen-500/10'
                     : reputation >= m.unlockReputation
                     ? 'border-feebay-700/50 bg-feebay-900/15'
-                    : 'border-slate-800 bg-slate-900/40 opacity-80'
+                    : 'border-line bg-white shadow-card opacity-80'
                 }`}
               >
                 <Icon
                   name={own ? 'check' : 'lock'}
                   size={16}
-                  className={own ? 'text-emerald-300' : 'text-slate-500'}
+                  className={own ? 'text-ebayGreen-600' : 'text-ink-400'}
                 />
                 <div className="flex-1">
                   <div className="text-sm font-semibold">{m.id}</div>
-                  <div className="text-[11px] text-slate-400">{m.tagline}</div>
+                  <div className="text-[11px] text-ink-500">{m.tagline}</div>
                 </div>
                 <div
                   className={`text-[10px] uppercase tracking-widest font-bold ${
-                    own ? 'text-emerald-300' : 'text-slate-400'
+                    own ? 'text-ebayGreen-600' : 'text-ink-500'
                   }`}
                 >
                   {own ? 'Owned' : `${m.unlockReputation} rep`}
@@ -160,29 +160,29 @@ export function Stats() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+      <div className="rounded-lg border border-line bg-white shadow-card p-4">
         <div className="text-sm font-semibold mb-3">Net worth over time</div>
         <Sparkline data={samples} width={820} height={140} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+        <div className="rounded-lg border border-line bg-white shadow-card p-4">
           <div className="text-sm font-semibold mb-3">Trading totals</div>
-          <Row label="Cash on hand" value={fmt(cash)} accent="text-emerald-300" />
+          <Row label="Cash on hand" value={fmt(cash)} accent="text-ebayGreen-600" />
           <Row label="Items bought (lifetime)" value={`${stats.totalBought}`} />
           <Row label="Items sold (lifetime)" value={`${stats.totalSold}`} />
           <Row
             label="Lifetime profit"
             value={fmt(stats.totalProfit)}
-            accent={stats.totalProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'}
+            accent={stats.totalProfit >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'}
           />
-          <Row label="Fees paid" value={fmt(stats.totalFeesPaid)} accent="text-rose-300" />
-          <Row label="Best single sale" value={fmt(stats.bestSaleProfit)} accent="text-emerald-300" />
-          <Row label="Biggest loss" value={fmt(stats.biggestLoss)} accent="text-rose-300" />
+          <Row label="Fees paid" value={fmt(stats.totalFeesPaid)} accent="text-ebayRed-500" />
+          <Row label="Best single sale" value={fmt(stats.bestSaleProfit)} accent="text-ebayGreen-600" />
+          <Row label="Biggest loss" value={fmt(stats.biggestLoss)} accent="text-ebayRed-500" />
           <Row label="Highest purchase" value={fmt(stats.highestSinglePurchase)} />
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+        <div className="rounded-lg border border-line bg-white shadow-card p-4">
           <div className="text-sm font-semibold mb-3">Activity</div>
           <Row label="Current day" value={`${day}`} />
           <Row label="Mystery lots opened" value={`${stats.mysteryLotsOpened}`} />
@@ -196,7 +196,7 @@ export function Stats() {
       </div>
 
       {Object.keys(stats.gradesReceived).length > 0 && (
-        <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+        <div className="rounded-lg border border-line bg-white shadow-card p-4">
           <div className="text-sm font-semibold mb-3">Grade distribution</div>
           <div className="flex gap-3 flex-wrap">
             {Object.entries(stats.gradesReceived)
@@ -206,13 +206,13 @@ export function Stats() {
                   key={g}
                   className={`rounded px-3 py-2 text-sm border ${
                     g === '10'
-                      ? 'border-amber-500/60 bg-amber-900/30 text-amber-200'
+                      ? 'border-amber-500/60 bg-amber-900/30 text-ebayYellow-700'
                       : g === '9.5' || g === '9'
-                      ? 'border-emerald-700/50 bg-emerald-900/15 text-emerald-200'
-                      : 'border-slate-700 bg-slate-800/60'
+                      ? 'border-ebayGreen-500/60 bg-ebayGreen-500/10 text-ebayGreen-700'
+                      : 'border-line bg-ink-100'
                   }`}
                 >
-                  <div className="text-xs uppercase tracking-widest text-slate-400">
+                  <div className="text-xs uppercase tracking-widest text-ink-500">
                     Grade {g}
                   </div>
                   <div className="font-semibold">×{count}</div>
@@ -228,15 +228,15 @@ export function Stats() {
 function Row({
   label,
   value,
-  accent = 'text-slate-100',
+  accent = 'text-ink-900',
 }: {
   label: string;
   value: string;
   accent?: string;
 }) {
   return (
-    <div className="flex items-center justify-between text-sm border-b border-slate-800 last:border-0 py-1.5">
-      <span className="text-slate-400">{label}</span>
+    <div className="flex items-center justify-between text-sm border-b border-line last:border-0 py-1.5">
+      <span className="text-ink-500">{label}</span>
       <span className={`font-semibold ${accent}`}>{value}</span>
     </div>
   );
@@ -248,9 +248,9 @@ function fmt(n: number): string {
 
 function PerkStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded bg-slate-800/60 px-2 py-1.5">
-      <div className="text-[9px] uppercase tracking-widest text-slate-500">{label}</div>
-      <div className="text-amber-200 font-semibold">{value}</div>
+    <div className="rounded bg-ink-100 px-2 py-1.5">
+      <div className="text-[9px] uppercase tracking-widest text-ink-400">{label}</div>
+      <div className="text-ebayYellow-700 font-semibold">{value}</div>
     </div>
   );
 }

@@ -76,76 +76,105 @@ export function Marketplace() {
   }, [lockedDealIds, filtered]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Marketplace</h1>
-          <p className="text-slate-400 text-sm">
-            Browse parody platforms. Spot the steals. Avoid the scams. Pay the fees later.
-          </p>
-        </div>
-        <button
-          disabled={!canRefresh}
-          onClick={() => refresh()}
-          className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold ${
-            canRefresh
-              ? 'bg-feebay-600 hover:bg-feebay-500 text-white'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-          }`}
-        >
-          <Icon name="refresh" size={16} />
-          {canRefresh ? 'Refresh feed' : `${Math.ceil(cooldownRemaining / 1000)}s`}
-        </button>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        <Tab active={activeSource === 'all'} onClick={() => setActiveSource('all')}>
-          All ({listings.length})
-        </Tab>
-        {MARKETPLACES.map((m) => {
-          const isUnlocked = unlocked.includes(m.id);
-          const count = listings.filter((l) => l.source === m.id).length;
-          return (
-            <Tab
-              key={m.id}
-              active={activeSource === m.id}
-              disabled={!isUnlocked}
-              onClick={() => isUnlocked && setActiveSource(m.id)}
-            >
-              <span className="flex items-center gap-1.5">
-                {m.id}
-                {isUnlocked ? (
-                  <span>({count})</span>
-                ) : (
-                  <Icon name="lock" size={12} className="text-slate-500" />
-                )}
-              </span>
-            </Tab>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-700 p-10 text-center text-slate-400">
-          No listings here. Try refreshing or another tab.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((l) => (
-            <ListingCard
-              key={l.id}
-              listing={l}
-              showRange={showRange}
-              showFakeRisk={showFakeRisk}
-              showCenteringDetail={showCenteringDetail}
-              highlighted={highlightedDealIds.has(l.id)}
-              canAfford={cash >= l.askingPrice}
-              onBuy={() => buy(l.id)}
-              onInspect={() => setSelected(l)}
+    <div className="flex gap-5">
+      {/* Left filter rail */}
+      <aside className="w-56 shrink-0 space-y-3">
+        <div className="rounded-xl border border-line bg-white shadow-card p-3 space-y-3">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-500 font-bold">
+            Marketplaces
+          </div>
+          <div className="space-y-1">
+            <RailItem
+              active={activeSource === 'all'}
+              onClick={() => setActiveSource('all')}
+              count={listings.length}
+              label="All marketplaces"
             />
-          ))}
+            {MARKETPLACES.map((m) => {
+              const isUnlocked = unlocked.includes(m.id);
+              const count = listings.filter((l) => l.source === m.id).length;
+              return (
+                <RailItem
+                  key={m.id}
+                  active={activeSource === m.id}
+                  disabled={!isUnlocked}
+                  onClick={() => isUnlocked && setActiveSource(m.id)}
+                  count={isUnlocked ? count : undefined}
+                  label={m.id}
+                  locked={!isUnlocked}
+                />
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        <div className="rounded-xl border border-line bg-white shadow-card p-3 space-y-2 text-xs">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-500 font-bold">
+            Active perks
+          </div>
+          <PerkRow label="Estimated value range" on={showRange} />
+          <PerkRow label="Fake risk %" on={showFakeRisk} />
+          <PerkRow label="Centering detail" on={showCenteringDetail} />
+          <PerkRow label="Deal Bot picks" on={hasDealBot} />
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div className="flex-1 min-w-0 space-y-4">
+        <div className="flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-ink-900">
+              {activeSource === 'all' ? 'All listings' : activeSource}
+            </h1>
+            <p className="text-ink-500 text-sm">
+              {filtered.length} active listing{filtered.length === 1 ? '' : 's'}
+              {highlightedDealIds.size > 0 && (
+                <>
+                  <span className="text-ink-400 mx-2">•</span>
+                  <span className="text-ebayYellow-600 font-bold">
+                    {highlightedDealIds.size} Deal Bot pick
+                    {highlightedDealIds.size === 1 ? '' : 's'}
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+          <button
+            disabled={!canRefresh}
+            onClick={() => refresh()}
+            className={`flex items-center gap-2 rounded-md px-4 h-10 text-sm font-bold ${
+              canRefresh
+                ? 'bg-feebay-500 hover:bg-feebay-600 text-white shadow-md shadow-feebay-700/20'
+                : 'bg-ink-100 text-ink-400 cursor-not-allowed'
+            }`}
+          >
+            <Icon name="refresh" size={16} />
+            {canRefresh ? 'Refresh feed' : `Cooldown ${Math.ceil(cooldownRemaining / 1000)}s`}
+          </button>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line p-10 text-center text-ink-500 bg-white">
+            No listings here. Try refreshing or another marketplace.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((l) => (
+              <ListingCard
+                key={l.id}
+                listing={l}
+                showRange={showRange}
+                showFakeRisk={showFakeRisk}
+                showCenteringDetail={showCenteringDetail}
+                highlighted={highlightedDealIds.has(l.id)}
+                canAfford={cash >= l.askingPrice}
+                onBuy={() => buy(l.id)}
+                onInspect={() => setSelected(l)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {selected && (
         <ListingDetailModal
@@ -165,31 +194,61 @@ export function Marketplace() {
   );
 }
 
-function Tab({
+function RailItem({
   active,
   disabled,
   onClick,
-  children,
+  count,
+  label,
+  locked,
 }: {
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  count?: number;
+  label: string;
+  locked?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-3 py-1.5 rounded-md text-xs border transition ${
+      className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition ${
         disabled
-          ? 'border-slate-800 text-slate-600 cursor-not-allowed'
+          ? 'text-ink-400 cursor-not-allowed'
           : active
-          ? 'border-feebay-500 bg-feebay-700/40 text-feebay-100'
-          : 'border-slate-700 text-slate-300 hover:border-slate-500'
+          ? 'bg-feebay-50 text-feebay-700 font-semibold'
+          : 'text-ink-700 hover:bg-ink-100'
       }`}
     >
-      {children}
+      <span className="flex-1 text-left truncate">{label}</span>
+      {locked ? (
+        <Icon name="lock" size={11} className="text-ink-400" />
+      ) : count !== undefined ? (
+        <span
+          className={`text-[10px] px-1.5 rounded font-bold ${
+            active ? 'bg-feebay-500 text-white' : 'bg-ink-100 text-ink-600'
+          }`}
+        >
+          {count}
+        </span>
+      ) : null}
     </button>
+  );
+}
+
+function PerkRow({ label, on }: { label: string; on: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-ink-700">{label}</span>
+      <span
+        className={`text-[10px] uppercase tracking-widest font-bold ${
+          on ? 'text-ebayGreen-600' : 'text-ink-400'
+        }`}
+      >
+        {on ? 'On' : 'Off'}
+      </span>
+    </div>
   );
 }
 
@@ -219,35 +278,35 @@ function ListingCard({
   const isSlab = listing.lotType === 'slab';
   return (
     <div
-      className={`rounded-lg border bg-slate-900/60 flex flex-col overflow-hidden ${
-        highlighted ? 'border-amber-400 shadow-lg shadow-amber-400/30' : 'border-slate-800'
+      className={`rounded-xl border bg-white flex flex-col overflow-hidden shadow-card hover:shadow-cardHover transition ${
+        highlighted ? 'border-ebayYellow-500 ring-1 ring-ebayYellow-500/50' : 'border-line'
       }`}
     >
       {/* Hero art area — card is the focal point */}
       <div
         className={`relative flex items-center justify-center px-4 pt-5 pb-3 ${
           isStorage
-            ? 'bg-gradient-to-b from-purple-950/40 to-slate-900/0'
+            ? 'bg-gradient-to-b from-feebay-50 to-white'
             : isLot
-            ? 'bg-gradient-to-b from-amber-900/30 to-slate-900/0'
+            ? 'bg-gradient-to-b from-ebayYellow-500/10 to-white'
             : isSlab
-            ? 'bg-gradient-to-b from-slate-800/60 to-slate-900/0'
-            : 'bg-gradient-to-b from-slate-800/40 to-slate-900/0'
+            ? 'bg-gradient-to-b from-ink-100 to-white'
+            : 'bg-gradient-to-b from-ink-100 to-white'
         }`}
       >
         {/* Source chip floating top-left */}
         <span
-          className={`absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] text-white font-semibold ${accent}`}
+          className={`absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] text-white font-bold ${accent}`}
         >
           {listing.source}
         </span>
         {/* Lot/slab/source tag floating top-right */}
-        <span className="absolute top-2 right-2 text-[10px] text-slate-400 uppercase tracking-wider">
+        <span className="absolute top-2 right-2 text-[10px] text-ink-500 uppercase tracking-wider font-semibold">
           {listing.lotType.replace('_', ' ')}
           {isLot && listing.lotSize ? ` • ${listing.lotSize}` : ''}
         </span>
         {highlighted && (
-          <div className="absolute top-9 left-2 text-[10px] uppercase tracking-widest text-amber-300 font-semibold flex items-center gap-1">
+          <div className="absolute top-9 left-2 text-[10px] uppercase tracking-widest text-ebayYellow-700 font-bold flex items-center gap-1 bg-ebayYellow-500/20 px-1.5 py-0.5 rounded">
             <Icon name="sparkle" size={11} /> Deal Bot pick
           </div>
         )}
@@ -273,33 +332,43 @@ function ListingCard({
       </div>
 
       {/* Info pane */}
-      <div className="px-3 pb-3 pt-1 flex flex-col gap-2">
+      <div className="px-3 pb-3 pt-2 flex flex-col gap-2 border-t border-lineSoft">
         <div>
-          <div className="font-semibold text-sm leading-tight truncate">{listing.title}</div>
-          <div className="text-[11px] text-slate-400 truncate">
+          <div className="font-bold text-sm leading-tight truncate text-feebay-700 hover:underline cursor-pointer" onClick={onInspect}>
+            {listing.title}
+          </div>
+          <div className="text-[11px] text-ink-500 truncate">
             @{listing.sellerName}
-            <span className="text-slate-600"> • </span>
-            <span className="text-slate-300">{listing.rarity}</span>
+            <span className="text-ink-300"> • </span>
+            <span className="text-ink-700">{listing.rarity}</span>
             {!isLot && !isStorage && !isSlab && (
               <>
-                <span className="text-slate-600"> • </span>
-                <span className="text-slate-400">{listing.rawCondition}</span>
+                <span className="text-ink-300"> • </span>
+                <span className="text-ink-500">{listing.rawCondition}</span>
               </>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <Pill label="Asking" value={`$${listing.askingPrice}`} accent="text-emerald-300" />
-          {showRange ? (
-            <Pill
-              label="Est. value"
-              value={`$${listing.estimatedValueMin}–$${listing.estimatedValueMax}`}
-              accent="text-feebay-300"
-            />
-          ) : (
-            <Pill label="Est. value" value="???" accent="text-slate-500" />
-          )}
+        <div>
+          <div className="text-2xl font-black text-ink-900 leading-none">
+            ${listing.askingPrice}
+          </div>
+          <div className="text-[11px] text-ink-500 mt-1">
+            est value{' '}
+            {showRange ? (
+              <span className="font-bold text-ebayGreen-700">
+                ${listing.estimatedValueMin}–${listing.estimatedValueMax}
+              </span>
+            ) : (
+              <span
+                className="font-semibold text-ink-400"
+                title="Buy Basic Search Filters to reveal est value range"
+              >
+                ???
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Risk + timer micro-row */}
@@ -308,25 +377,25 @@ function ListingCard({
             <span
               className={
                 listing.fakeRisk > 0.4
-                  ? 'text-rose-400'
+                  ? 'text-ebayRed-500 font-semibold'
                   : listing.fakeRisk > 0.15
-                  ? 'text-amber-300'
-                  : 'text-emerald-300'
+                  ? 'text-ebayYellow-700 font-semibold'
+                  : 'text-ebayGreen-600 font-semibold'
               }
             >
               Fake risk: {(listing.fakeRisk * 100).toFixed(0)}%
             </span>
           ) : (
-            <span className="text-slate-500">Fake risk: ???</span>
+            <span className="text-ink-400">Fake risk: ???</span>
           )}
           {!isLot && !isStorage && !isSlab && showCenteringDetail && (
             <span
               className={
                 Math.abs(listing.centeringOffsetX) + Math.abs(listing.centeringOffsetY) <= 3
-                  ? 'text-emerald-400'
+                  ? 'text-ebayGreen-600'
                   : Math.abs(listing.centeringOffsetX) + Math.abs(listing.centeringOffsetY) <= 7
-                  ? 'text-amber-300'
-                  : 'text-rose-300'
+                  ? 'text-ebayYellow-700'
+                  : 'text-ebayRed-500'
               }
             >
               {centeringLabel(listing.centeringOffsetX, listing.centeringOffsetY)}
@@ -335,23 +404,23 @@ function ListingCard({
                 : ''}
             </span>
           )}
-          <span className="text-slate-500">{Math.max(0, listing.timeRemainingSeconds)}s</span>
+          <span className="text-ink-400">{Math.max(0, listing.timeRemainingSeconds)}s</span>
         </div>
 
         <div className="flex gap-2 mt-1">
           <button
             onClick={onInspect}
-            className="flex-1 rounded border border-slate-700 hover:border-slate-500 py-1.5 text-xs"
+            className="flex-1 rounded-md border border-ink-300 hover:border-ink-500 py-1.5 text-xs font-semibold text-ink-700"
           >
             Inspect
           </button>
           <button
             onClick={onBuy}
             disabled={!canAfford}
-            className={`flex-[1.5] rounded py-1.5 text-xs font-semibold ${
+            className={`flex-[1.5] rounded-md py-1.5 text-xs font-bold ${
               canAfford
-                ? 'bg-feebay-600 hover:bg-feebay-500 text-white'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                ? 'bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 shadow-sm'
+                : 'bg-ink-100 text-ink-400 cursor-not-allowed'
             }`}
           >
             Buy ${listing.askingPrice}
@@ -364,9 +433,9 @@ function ListingCard({
 
 function Pill({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded bg-slate-800/70 px-2 py-1">
-      <div className="text-[9px] uppercase tracking-widest text-slate-500">{label}</div>
-      <div className={`text-xs font-semibold ${accent}`}>{value}</div>
+    <div className="rounded bg-ink-100 px-2 py-1">
+      <div className="text-[9px] uppercase tracking-widest text-ink-500 font-bold">{label}</div>
+      <div className={`text-xs font-bold ${accent}`}>{value}</div>
     </div>
   );
 }
@@ -464,9 +533,12 @@ function ListingDetailModal({
   const isMystery = listing.lotType === 'mystery_lot' || listing.lotType === 'binder';
   const isStorage = listing.lotType === 'storage_unit';
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
       <div
-        className="w-[480px] max-w-full rounded-xl border border-slate-700 bg-slate-900 p-5"
+        className="w-[520px] max-w-full rounded-xl border border-line bg-white p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -487,27 +559,29 @@ function ListingDetailModal({
             />
           )}
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-slate-400">{mkt.id} • {listing.lotType.replace('_', ' ')}</div>
-            <div className="text-lg font-semibold mt-1">{listing.title}</div>
-            <div className="text-xs text-slate-400">Seller: @{listing.sellerName}</div>
-            <div className="text-sm text-slate-200 mt-2">{listing.description}</div>
+            <div className="text-[11px] text-ink-500 uppercase tracking-wide font-semibold">
+              {mkt.id} • {listing.lotType.replace('_', ' ')}
+            </div>
+            <div className="text-lg font-bold mt-1 text-ink-900">{listing.title}</div>
+            <div className="text-xs text-ink-500">Seller: @{listing.sellerName}</div>
+            <div className="text-sm text-ink-700 mt-2">{listing.description}</div>
+            <div className="text-2xl font-black text-ink-900 mt-3">${listing.askingPrice}</div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
-          <Pill label="Asking" value={`$${listing.askingPrice}`} accent="text-emerald-300" />
           <Pill
             label="Est. value"
             value={showRange ? `$${listing.estimatedValueMin}–$${listing.estimatedValueMax}` : '???'}
-            accent="text-feebay-300"
+            accent="text-feebay-600"
           />
-          <Pill label="Condition" value={listing.rawCondition} accent="text-slate-200" />
-          <Pill label="Hint" value={listing.conditionHint} accent="text-slate-300" />
-          <Pill label="Rarity" value={listing.rarity} accent="text-amber-300" />
+          <Pill label="Condition" value={listing.rawCondition} accent="text-ink-900" />
+          <Pill label="Hint" value={listing.conditionHint} accent="text-ink-700" />
+          <Pill label="Rarity" value={listing.rarity} accent="text-ebayYellow-700" />
           <Pill
             label="Fake risk"
             value={showFakeRisk ? `${(listing.fakeRisk * 100).toFixed(0)}%` : '???'}
             accent={
-              showFakeRisk && listing.fakeRisk > 0.4 ? 'text-rose-300' : 'text-slate-200'
+              showFakeRisk && listing.fakeRisk > 0.4 ? 'text-ebayRed-500' : 'text-ink-900'
             }
           />
           {listing.lotType !== 'mystery_lot' && listing.lotType !== 'binder' && listing.lotType !== 'storage_unit' && (
@@ -524,15 +598,15 @@ function ListingDetailModal({
               }
               accent={
                 Math.abs(listing.centeringOffsetX) + Math.abs(listing.centeringOffsetY) <= 3
-                  ? 'text-emerald-300'
+                  ? 'text-ebayGreen-600'
                   : Math.abs(listing.centeringOffsetX) + Math.abs(listing.centeringOffsetY) <= 7
-                  ? 'text-amber-300'
-                  : 'text-rose-300'
+                  ? 'text-ebayYellow-700'
+                  : 'text-ebayRed-500'
               }
             />
           )}
         </div>
-        <div className="text-xs text-slate-500 mt-3">{mkt.tagline}</div>
+        <div className="text-xs text-ink-500 mt-3 italic">{mkt.tagline}</div>
 
         {isNegotiableListing(listing) && !isMystery && !isStorage && (
           <NegotiationBlock listing={listing} />
@@ -541,20 +615,20 @@ function ListingDetailModal({
         <div className="flex gap-2 mt-4">
           <button
             onClick={onClose}
-            className="flex-1 rounded border border-slate-700 hover:border-slate-500 py-2 text-sm"
+            className="flex-1 rounded-md border border-line hover:border-ink-400 py-2.5 text-sm font-semibold text-ink-700"
           >
             Pass
           </button>
           <button
             onClick={onBuy}
             disabled={!canAfford}
-            className={`flex-1 rounded py-2 text-sm font-semibold ${
+            className={`flex-[1.5] rounded-md py-2.5 text-sm font-bold ${
               canAfford
-                ? 'bg-feebay-600 hover:bg-feebay-500 text-white'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                ? 'bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 shadow-md shadow-ebayYellow-700/20'
+                : 'bg-ink-100 text-ink-400 cursor-not-allowed'
             }`}
           >
-            Buy for ${listing.askingPrice}
+            Buy It Now · ${listing.askingPrice}
           </button>
         </div>
       </div>
@@ -581,8 +655,8 @@ function NegotiationBlock({ listing }: { listing: MarketplaceListing }) {
   }
 
   return (
-    <div className="mt-3 rounded border border-amber-500/40 bg-amber-900/15 p-3 space-y-2">
-      <div className="text-xs uppercase tracking-widest text-amber-300 font-semibold">
+    <div className="mt-3 rounded-md border border-ebayYellow-500/40 bg-ebayYellow-500/10 p-3 space-y-2">
+      <div className="text-[10px] uppercase tracking-widest text-ebayYellow-700 font-bold">
         Make an offer
       </div>
       <input
@@ -591,16 +665,16 @@ function NegotiationBlock({ listing }: { listing: MarketplaceListing }) {
         max={Math.max(1, listing.askingPrice)}
         value={offer}
         onChange={(e) => setOffer(Number(e.target.value))}
-        className="w-full accent-amber-400"
+        className="w-full accent-ebayYellow-500"
       />
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-300">
-          Offer: <span className="font-semibold text-amber-200">${offer}</span>
-          <span className="text-slate-500"> / ${listing.askingPrice} ask</span>
+        <span className="text-ink-700">
+          Offer: <span className="font-bold text-ink-900">${offer}</span>
+          <span className="text-ink-400"> / ${listing.askingPrice} ask</span>
         </span>
         <button
           onClick={send}
-          className="rounded bg-amber-600 hover:bg-amber-500 px-3 py-1 text-xs font-semibold"
+          className="rounded-md bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 px-3 py-1 text-xs font-bold"
         >
           Send offer
         </button>
@@ -612,13 +686,13 @@ function NegotiationBlock({ listing }: { listing: MarketplaceListing }) {
               key={i}
               className={
                 h.kind === 'accept'
-                  ? 'text-emerald-200'
+                  ? 'text-ebayGreen-700'
                   : h.kind === 'counter'
-                  ? 'text-amber-200'
-                  : 'text-rose-200'
+                  ? 'text-ebayYellow-700'
+                  : 'text-ebayRed-600'
               }
             >
-              <span className="uppercase font-semibold mr-1">{h.kind}</span>
+              <span className="uppercase font-bold mr-1">{h.kind}</span>
               {h.flavor} {h.price ? `($${h.price})` : ''}
             </li>
           ))}

@@ -1,51 +1,106 @@
 import { useEffect, useRef, useState } from 'react';
 import { dayPhase, useGameStore } from '../store/useGameStore';
 import { calculateCurrentValue } from '../game/economyEngine';
+import { vaultStableFor } from '../store/useGameStore';
 import { HelpButton } from './HelpButton';
+import { Icon } from './Icon';
 import type { Route } from '../App';
 
 function fmt(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-export function TopBar({ route }: { route: Route }) {
+type Props = { route: Route };
+
+export function TopBar({ route }: Props) {
   const cash = useGameStore((s) => s.cash);
   const reputation = useGameStore((s) => s.reputation);
-  const businessLevel = useGameStore((s) => s.businessLevel);
   const inventory = useGameStore((s) => s.inventory);
   const trends = useGameStore((s) => s.marketTrends);
   const noise = useGameStore((s) => s.marketNoise);
   const convention = useGameStore((s) => s.convention);
+  const upgradesPurchased = useGameStore((s) => s.upgradesPurchased);
   const resetGame = useGameStore((s) => s.resetGame);
 
   const inventoryValue = inventory.reduce(
     (sum, i) =>
-      sum + (i.status === 'grading' ? i.purchasePrice : calculateCurrentValue(i, trends, noise, convention)),
+      sum +
+      (i.status === 'grading'
+        ? i.purchasePrice
+        : calculateCurrentValue(i, trends, noise, convention, vaultStableFor({ upgradesPurchased }))),
     0,
   );
   const netWorth = cash + inventoryValue;
 
   return (
-    <header className="flex items-center gap-6 border-b border-slate-800 bg-slate-900/70 px-6 py-3 backdrop-blur">
-      <CashStat cash={cash} />
-      <Stat label="Inventory" value={fmt(inventoryValue)} accent="text-feebay-300" />
-      <Stat label="Net Worth" value={fmt(netWorth)} accent="text-amber-300" />
-      <Stat label="Reputation" value={`${reputation}`} accent="text-pink-300" />
-      <Stat label="Biz Lvl" value={`${businessLevel}`} accent="text-slate-200" />
-      <DayClock />
-      <ConventionBadge />
-      <TrendBadges />
-      <div className="flex-1" />
-      <HelpButton route={route} />
-      <button
-        onClick={() => {
-          if (window.confirm('Reset progress and start over?')) resetGame();
-        }}
-        className="text-xs text-slate-400 border border-slate-700 hover:border-slate-500 hover:text-slate-200 rounded px-3 py-1.5"
-      >
-        Reset
-      </button>
+    <header className="bg-white border-b border-line">
+      <div className="flex items-center gap-3 min-h-16 px-4 py-2 flex-wrap">
+        {/* Logo — eBay-style multi-color letters */}
+        <div className="flex items-baseline shrink-0 select-none">
+          <span className="text-2xl xl:text-3xl font-black tracking-tight leading-none">
+            <span className="text-ebayRed-500">F</span>
+            <span className="text-feebay-500">e</span>
+            <span className="text-ebayYellow-500">e</span>
+            <span className="text-ebayGreen-500">B</span>
+            <span className="text-ebayRed-500">a</span>
+            <span className="text-feebay-500">y</span>
+          </span>
+          <span className="hidden 2xl:inline ml-2 text-xs text-ink-500 font-medium tracking-wide">
+            simulator
+          </span>
+        </div>
+
+        {/* Search — flex-1 with hard min-width so it can shrink but stays usable */}
+        <div className="order-3 lg:order-2 basis-full lg:basis-auto lg:flex-1 lg:max-w-3xl min-w-0">
+          <SearchBar />
+        </div>
+
+        {/* Action cluster — wraps below logo when very narrow */}
+        <div className="order-2 lg:order-3 flex items-center gap-2 ml-auto flex-wrap shrink-0">
+          <CashStat cash={cash} />
+          <ChipStat label="Net" value={fmt(netWorth)} accent="text-ebayGreen-600" hide="md" />
+          <ChipStat label="Rep" value={`${reputation}`} accent="text-feebay-600" hide="xl" />
+          <DayClock />
+          <ConventionBadge />
+          <span className="hidden md:block w-px h-7 bg-line mx-1" />
+          <HelpButton route={route} />
+          <button
+            onClick={() => {
+              if (window.confirm('Reset progress and start over?')) resetGame();
+            }}
+            className="px-2 h-9 rounded text-ink-500 hover:text-ink-900 hover:bg-ink-100 flex items-center gap-1"
+            title="Reset save"
+          >
+            <Icon name="reset" size={14} />
+          </button>
+        </div>
+      </div>
     </header>
+  );
+}
+
+function SearchBar() {
+  const setActiveSource = useGameStore((s) => s.setMarketplaceActiveSource);
+  return (
+    <div className="flex items-stretch h-10 rounded-md border-2 border-ink-900 overflow-hidden shadow-sm">
+      <span className="px-3 flex items-center text-ink-500 bg-white">
+        <Icon name="search" size={16} />
+      </span>
+      <input
+        type="text"
+        placeholder="Search FeeBay — cards, sellers, sets..."
+        className="flex-1 bg-white text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none px-1"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') setActiveSource('all');
+        }}
+      />
+      <button
+        onClick={() => setActiveSource('all')}
+        className="px-6 bg-feebay-500 hover:bg-feebay-600 text-white text-sm font-bold tracking-wide"
+      >
+        Search
+      </button>
+    </div>
   );
 }
 
@@ -61,16 +116,15 @@ function CashStat({ cash }: { cash: number }) {
     const t = setTimeout(() => setPop((p) => (p && p.id === id ? null : p)), 1500);
     return () => clearTimeout(t);
   }, [cash]);
-
   return (
-    <div className="relative flex flex-col">
-      <span className="text-[10px] uppercase tracking-widest text-slate-500">Cash</span>
-      <span className="text-sm font-semibold text-emerald-400">{fmt(cash)}</span>
+    <div className="relative flex items-center gap-2 px-3 h-9 rounded-md bg-ebayGreen-500/10 border border-ebayGreen-500/40">
+      <Icon name="cash" size={14} className="text-ebayGreen-600" />
+      <span className="text-sm font-bold text-ebayGreen-700">{fmt(cash)}</span>
       {pop && (
         <span
           key={pop.id}
-          className={`pointer-events-none absolute -top-3 left-12 text-xs font-bold animate-cashPop ${
-            pop.delta >= 0 ? 'text-emerald-300' : 'text-rose-300'
+          className={`pointer-events-none absolute -top-1 left-8 text-xs font-bold animate-cashPop ${
+            pop.delta >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'
           }`}
         >
           {pop.delta >= 0 ? '+' : ''}
@@ -90,11 +144,29 @@ function CashStat({ cash }: { cash: number }) {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent: string }) {
+function ChipStat({
+  label,
+  value,
+  accent,
+  hide = 'md',
+}: {
+  label: string;
+  value: string;
+  accent: string;
+  hide?: 'md' | 'lg' | 'xl' | '2xl';
+}) {
+  const hideCls: Record<string, string> = {
+    md: 'hidden md:flex',
+    lg: 'hidden lg:flex',
+    xl: 'hidden xl:flex',
+    '2xl': 'hidden 2xl:flex',
+  };
   return (
-    <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-widest text-slate-500">{label}</span>
-      <span className={`text-sm font-semibold ${accent}`}>{value}</span>
+    <div
+      className={`${hideCls[hide]} items-center gap-1.5 px-2.5 h-9 rounded-md bg-ink-100 border border-line`}
+    >
+      <span className="text-[9px] uppercase tracking-widest text-ink-500 font-semibold">{label}</span>
+      <span className={`text-sm font-bold ${accent}`}>{value}</span>
     </div>
   );
 }
@@ -107,19 +179,19 @@ function DayClock() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  const phase = dayPhase({ dayStartedAt } as any, now);
+  const phase = dayPhase({ dayStartedAt } as never, now);
   const label = phase.phase[0].toUpperCase() + phase.phase.slice(1);
   const accentByPhase: Record<string, string> = {
-    morning: 'text-feebay-200',
-    afternoon: 'text-amber-200',
-    evening: 'text-orange-300',
-    night: 'text-indigo-300',
+    morning: 'text-feebay-600',
+    afternoon: 'text-ebayYellow-600',
+    evening: 'text-ebayRed-500',
+    night: 'text-feebay-700',
   };
   return (
-    <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-widest text-slate-500">Day</span>
-      <span className={`text-sm font-semibold ${accentByPhase[phase.phase]}`}>
-        {day} • {label}
+    <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 h-9 rounded-md bg-ink-100 border border-line">
+      <span className="text-[9px] uppercase tracking-widest text-ink-500 font-semibold">Day</span>
+      <span className={`text-sm font-bold ${accentByPhase[phase.phase]}`}>
+        {day} · {label}
       </span>
     </div>
   );
@@ -138,34 +210,13 @@ function ConventionBadge() {
   const mins = Math.floor(remaining / 60_000);
   const secs = Math.floor((remaining % 60_000) / 1000);
   return (
-    <div className="flex items-center gap-2 px-3 py-1 rounded border border-amber-500/60 bg-amber-900/30 text-amber-200 animate-pulse">
-      <span className="text-[10px] uppercase tracking-widest text-amber-300">Event</span>
-      <span className="text-sm font-semibold">{convention.name}</span>
-      <span className="text-[10px] text-amber-300/80 font-mono">
+    <div className="hidden xl:flex items-center gap-1.5 px-2.5 h-9 rounded-md border-2 border-ebayYellow-500 bg-ebayYellow-500/15 text-ebayYellow-700 animate-pulse">
+      <Icon name="sparkle" size={12} />
+      <span className="text-[10px] uppercase tracking-widest font-bold">Event</span>
+      <span className="text-sm font-bold">{convention.name}</span>
+      <span className="text-[10px] font-mono">
         {mins}:{secs.toString().padStart(2, '0')}
       </span>
-    </div>
-  );
-}
-
-function TrendBadges() {
-  const trends = useGameStore((s) => s.marketTrends);
-  if (trends.length === 0) return null;
-  return (
-    <div className="hidden lg:flex items-center gap-1 ml-3">
-      {trends.slice(0, 4).map((t, i) => (
-        <span
-          key={i}
-          className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-            t.direction === 'up'
-              ? 'border-emerald-500/40 bg-emerald-900/30 text-emerald-200'
-              : 'border-rose-500/40 bg-rose-900/30 text-rose-200'
-          }`}
-          title={t.label}
-        >
-          {t.direction === 'up' ? '▲' : '▼'} {t.tag}
-        </span>
-      ))}
     </div>
   );
 }

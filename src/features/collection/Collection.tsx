@@ -17,23 +17,23 @@ export function Collection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold">Collection Codex</h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-ink-500 text-sm">
           Every fictional card you've ever held, grouped by set. Track set completion and your best grade per card.
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+      <div className="rounded-lg border border-line bg-white shadow-card p-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-slate-500">Overall</div>
-            <div className="text-2xl font-bold text-amber-300">
+            <div className="text-[10px] uppercase tracking-widest text-ink-400">Overall</div>
+            <div className="text-2xl font-bold text-ebayYellow-700">
               {owned} / {totalUnique}{' '}
-              <span className="text-sm text-slate-400">({percent}%)</span>
+              <span className="text-sm text-ink-500">({percent}%)</span>
             </div>
           </div>
-          <div className="text-xs text-slate-400">Unique cards owned (lifetime)</div>
+          <div className="text-xs text-ink-500">Unique cards owned (lifetime)</div>
         </div>
-        <div className="mt-3 h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+        <div className="mt-3 h-2 w-full rounded-full bg-ink-100 overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-amber-500 to-feebay-400"
             style={{ width: `${percent}%` }}
@@ -48,16 +48,16 @@ export function Collection() {
           return (
             <div
               key={setName}
-              className="rounded-lg border border-slate-800 bg-slate-900/60 p-4"
+              className="rounded-lg border border-line bg-white shadow-card p-4"
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold">{setName}</div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-ink-500">
                     {setOwned} / {cards.length} • {setPct}%
                   </div>
                 </div>
-                <div className="w-32 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div className="w-32 h-1.5 rounded-full bg-ink-100 overflow-hidden">
                   <div
                     className="h-full bg-feebay-500"
                     style={{ width: `${setPct}%` }}
@@ -78,21 +78,21 @@ export function Collection() {
                       title={ownedCard ? `${c.name} • ${entry.totalOwned} owned` : `${c.name} — not yet owned`}
                     >
                       <CardArt name={c.name} rarity={c.rarity} hue={c.hue} cardId={c.id} small />
-                      <div className="text-[10px] text-center text-slate-300 w-20 truncate">
+                      <div className="text-[10px] text-center text-ink-700 w-20 truncate">
                         {c.name}
                       </div>
                       <div className="flex items-center gap-1 text-[9px]">
                         {ownedCard ? (
                           <>
-                            <span className="text-emerald-300">×{entry.totalOwned}</span>
+                            <span className="text-ebayGreen-600">×{entry.totalOwned}</span>
                             {entry.bestGrade !== undefined && (
                               <span
                                 className={`px-1 rounded ${
                                   entry.bestGrade >= 10
-                                    ? 'bg-amber-300 text-slate-900'
+                                    ? 'bg-amber-300 text-ink-900'
                                     : entry.bestGrade >= 9
-                                    ? 'bg-emerald-300 text-slate-900'
-                                    : 'bg-slate-700 text-slate-200'
+                                    ? 'bg-emerald-300 text-ink-900'
+                                    : 'bg-ink-100 text-ink-800'
                                 }`}
                               >
                                 {entry.bestGrade}
@@ -100,7 +100,7 @@ export function Collection() {
                             )}
                           </>
                         ) : (
-                          <span className="text-slate-500">Not owned</span>
+                          <span className="text-ink-400">Not owned</span>
                         )}
                       </div>
                     </div>

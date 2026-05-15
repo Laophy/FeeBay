@@ -88,7 +88,7 @@ export const MARKETPLACES: MarketplaceDef[] = [
     flatFee: 5,
     unlockReputation: 150,
     vibe: 'vault',
-    accent: 'bg-slate-900',
+    accent: 'bg-ink-900',
   },
 ];
 

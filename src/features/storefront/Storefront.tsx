@@ -20,13 +20,13 @@ export function Storefront() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold">Your Storefront</h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-ink-500 text-sm">
           Cards you've listed at your chosen prices. Buyers nibble probabilistically — list close to value for steady sales, list above for jackpot odds.
         </p>
       </div>
 
       {listings.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded border border-dashed border-line p-10 text-center text-ink-500">
           You have no active listings. Open an Inventory card and click &quot;List for sale&quot; to put it on the storefront.
         </div>
       ) : (
@@ -43,7 +43,7 @@ export function Storefront() {
             const probPerMin = Math.min(0.99, 1 - Math.pow(1 - probPerTick, 6));
             const ratio = l.askingPrice / l.refValue;
             return (
-              <div key={l.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 flex flex-col gap-3">
+              <div key={l.id} className="rounded-lg border border-line bg-white shadow-card p-3 flex flex-col gap-3">
                 <div className="flex items-start gap-3">
                   <CardArt
                     name={card.name}
@@ -58,23 +58,23 @@ export function Storefront() {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate">{card.name}</div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-ink-500">
                       {item.rarity} • {item.rawCondition} • on {l.marketplace}
                     </div>
                     <div className="mt-2 text-xs flex items-center gap-2">
-                      <span className="text-slate-400">Price</span>
-                      <span className="text-emerald-300 font-semibold">${l.askingPrice}</span>
-                      <span className="text-slate-500">vs ref ${l.refValue}</span>
+                      <span className="text-ink-500">Price</span>
+                      <span className="text-ebayGreen-600 font-semibold">${l.askingPrice}</span>
+                      <span className="text-ink-400">vs ref ${l.refValue}</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
+                    <div className="text-[11px] text-ink-500 mt-0.5">
                       ratio {ratio.toFixed(2)}× • est{' '}
                       <span
                         className={
                           probPerMin > 0.4
-                            ? 'text-emerald-300'
+                            ? 'text-ebayGreen-600'
                             : probPerMin > 0.1
-                            ? 'text-amber-300'
-                            : 'text-rose-300'
+                            ? 'text-ebayYellow-700'
+                            : 'text-ebayRed-500'
                         }
                       >
                         {(probPerMin * 100).toFixed(0)}%/min chance
@@ -83,17 +83,17 @@ export function Storefront() {
                   </div>
                 </div>
 
-                <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-ink-100 overflow-hidden">
                   <div
                     className="h-full bg-amber-500/70"
                     style={{ width: `${elapsedPct}%` }}
                   />
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <div className="flex items-center justify-between text-[11px] text-ink-500">
                   <span>{Math.ceil(timeLeftMs / 1000)}s remaining</span>
                   <button
                     onClick={() => delist(l.id)}
-                    className="rounded border border-slate-700 hover:border-rose-500 hover:text-rose-300 px-2 py-1 text-[11px]"
+                    className="rounded border border-line hover:border-rose-500 hover:text-ebayRed-500 px-2 py-1 text-[11px]"
                   >
                     Delist
                   </button>
@@ -104,10 +104,10 @@ export function Storefront() {
         </div>
       )}
 
-      <div className="rounded border border-slate-800 bg-slate-900/40 text-xs text-slate-400 p-3 flex items-start gap-2">
-        <Icon name="tag" size={14} className="mt-0.5 shrink-0 text-slate-500" />
+      <div className="rounded border border-line bg-white shadow-card text-xs text-ink-500 p-3 flex items-start gap-2">
+        <Icon name="tag" size={14} className="mt-0.5 shrink-0 text-ink-400" />
         <span>
-          Listing at your <span className="text-slate-200">reference value</span> gives roughly a 15% sale chance per minute.
+          Listing at your <span className="text-ink-800">reference value</span> gives roughly a 15% sale chance per minute.
           List under value for fast flips, over value for jackpot prices but more risk of expiring.
           Listings expire after 8 minutes and return to your inventory.
         </span>

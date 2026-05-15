@@ -18,6 +18,7 @@ import { GradingRevealModal } from './components/GradingRevealModal';
 import { LotRevealModal } from './components/LotRevealModal';
 import { IntroModal } from './components/IntroModal';
 import { EndOfDayModal } from './components/EndOfDayModal';
+import { TitleBar } from './components/TitleBar';
 
 export type Route =
   | 'dashboard'
@@ -123,11 +124,13 @@ export default function App() {
   }, [refreshListings, lastListingRefresh, listingsCount]);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
-      <Sidebar route={route} setRoute={setRoute} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar route={route} />
-        <main className="flex-1 overflow-y-auto p-6">
+    <div className="flex h-screen w-screen overflow-hidden bg-paper text-ink-900 select-none flex-col">
+      <TitleBar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar route={route} setRoute={setRoute} />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <TopBar route={route} />
+          <main className="flex-1 overflow-y-auto p-6 bg-paper">
           {route === 'dashboard' && <Dashboard onNavigate={setRoute} />}
           {route === 'marketplace' && <Marketplace />}
           {route === 'inventory' && <Inventory />}
@@ -140,6 +143,7 @@ export default function App() {
           {route === 'stats' && <Stats />}
           {route === 'achievements' && <Achievements />}
         </main>
+        </div>
       </div>
       <NotificationStack />
       <LotRevealModal />

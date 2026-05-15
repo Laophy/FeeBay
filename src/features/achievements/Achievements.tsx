@@ -14,25 +14,25 @@ const TIER_STYLES: Record<
   { ring: string; bg: string; text: string; iconBg: string; tag: string }
 > = {
   bronze: {
-    ring: 'border-amber-700/50',
-    bg: 'bg-amber-900/15',
-    text: 'text-amber-200',
-    iconBg: 'bg-amber-900/40 text-amber-300',
-    tag: 'bg-amber-900/40 text-amber-300 border-amber-700/50',
+    ring: 'border-ebayYellow-700/50',
+    bg: 'bg-ebayYellow-500/10',
+    text: 'text-ebayYellow-700',
+    iconBg: 'bg-ebayYellow-500/15 text-ebayYellow-700',
+    tag: 'bg-ebayYellow-500/15 text-ebayYellow-700 border-ebayYellow-700/50',
   },
   silver: {
-    ring: 'border-slate-400/40',
+    ring: 'border-ink-300',
     bg: 'bg-slate-700/15',
-    text: 'text-slate-200',
-    iconBg: 'bg-slate-700/40 text-slate-200',
-    tag: 'bg-slate-700/40 text-slate-100 border-slate-500/50',
+    text: 'text-ink-800',
+    iconBg: 'bg-slate-700/40 text-ink-800',
+    tag: 'bg-ink-100 text-ink-700 border-line',
   },
   gold: {
-    ring: 'border-amber-400/60',
-    bg: 'bg-amber-900/25',
-    text: 'text-amber-100',
-    iconBg: 'bg-amber-700/50 text-amber-200',
-    tag: 'bg-amber-700/40 text-amber-200 border-amber-400/60',
+    ring: 'border-ebayYellow-500/60',
+    bg: 'bg-ebayYellow-500/10',
+    text: 'text-ebayYellow-700',
+    iconBg: 'bg-amber-700/50 text-ebayYellow-700',
+    tag: 'bg-amber-700/40 text-ebayYellow-700 border-ebayYellow-500/60',
   },
   mythic: {
     ring: 'border-pink-500/60',
@@ -66,11 +66,11 @@ export function Achievements() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Achievements</h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-ink-500 text-sm">
             {unlocked.length} / {ACHIEVEMENTS.length} unlocked
             {unclaimedIds.length > 0 && (
               <>
-                {' '}• <span className="text-emerald-300 font-semibold">${unclaimedReward.toFixed(2)} unclaimed</span>
+                {' '}• <span className="text-ebayGreen-600 font-semibold">${unclaimedReward.toFixed(2)} unclaimed</span>
               </>
             )}
           </p>
@@ -78,7 +78,7 @@ export function Achievements() {
         {unclaimedIds.length > 0 && (
           <button
             onClick={claimAll}
-            className="rounded bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold flex items-center gap-2"
+            className="rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white px-4 py-2 text-sm font-semibold flex items-center gap-2"
           >
             <Icon name="cash" size={16} />
             Claim all (${unclaimedReward.toFixed(2)})
@@ -96,7 +96,7 @@ export function Achievements() {
               <div className={`text-sm uppercase tracking-widest font-bold ${TIER_STYLES[tier].text}`}>
                 {TIER_LABEL[tier]}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-ink-400">
                 {tierOwned} / {tierAchievements.length}
               </div>
             </div>
@@ -111,13 +111,13 @@ export function Achievements() {
                     className={`rounded-lg border p-4 flex flex-col gap-2 ${
                       isUnlocked
                         ? `${t.ring} ${t.bg}`
-                        : 'border-slate-800 bg-slate-900/50 opacity-70'
+                        : 'border-line bg-white shadow-card opacity-70'
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div
                         className={`shrink-0 rounded-md p-2 ${
-                          isUnlocked ? t.iconBg : 'bg-slate-800 text-slate-500'
+                          isUnlocked ? t.iconBg : 'bg-ink-100 text-ink-400'
                         }`}
                       >
                         <Icon name={isUnlocked ? (a.icon as IconName) : 'lock'} size={24} />
@@ -125,12 +125,12 @@ export function Achievements() {
                       <div className="flex-1 min-w-0">
                         <div
                           className={`font-semibold ${
-                            isUnlocked ? t.text : 'text-slate-300'
+                            isUnlocked ? t.text : 'text-ink-700'
                           }`}
                         >
                           {a.name}
                         </div>
-                        <div className="text-xs text-slate-400 mt-0.5">{a.description}</div>
+                        <div className="text-xs text-ink-500 mt-0.5">{a.description}</div>
                       </div>
                       <span
                         className={`shrink-0 text-[10px] uppercase tracking-widest font-bold border rounded px-1.5 py-0.5 ${t.tag}`}
@@ -139,22 +139,22 @@ export function Achievements() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-ink-500">
                         Reward:{' '}
-                        <span className="text-emerald-300 font-semibold">${a.cashReward}</span>
+                        <span className="text-ebayGreen-600 font-semibold">${a.cashReward}</span>
                       </div>
                       {!isUnlocked ? (
-                        <span className="text-[10px] uppercase tracking-widest text-slate-500">
+                        <span className="text-[10px] uppercase tracking-widest text-ink-400">
                           Locked
                         </span>
                       ) : isClaimed ? (
-                        <span className="text-[10px] uppercase tracking-widest text-slate-500 flex items-center gap-1">
+                        <span className="text-[10px] uppercase tracking-widest text-ink-400 flex items-center gap-1">
                           <Icon name="check" size={12} /> Claimed
                         </span>
                       ) : (
                         <button
                           onClick={() => claim(a.id)}
-                          className="rounded bg-emerald-600 hover:bg-emerald-500 px-3 py-1 text-xs font-semibold animate-pulse"
+                          className="rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white px-3 py-1 text-xs font-semibold animate-pulse"
                         >
                           Claim ${a.cashReward}
                         </button>

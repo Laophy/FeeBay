@@ -32,7 +32,7 @@ export function Auctions() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">BidGoblin</h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-ink-500 text-sm">
             Timed auctions. Bid wars. Snipe at the last second. The goblin watches.
           </p>
         </div>
@@ -40,8 +40,8 @@ export function Auctions() {
           onClick={refresh}
           className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold ${
             canRefresh
-              ? 'bg-feebay-600 hover:bg-feebay-500 text-white'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              ? 'bg-feebay-500 hover:bg-feebay-600 text-white'
+              : 'bg-ink-100 text-ink-400 cursor-not-allowed'
           }`}
           disabled={!canRefresh}
         >
@@ -55,13 +55,13 @@ export function Auctions() {
       </div>
 
       {!canBid && (
-        <div className="rounded border border-amber-700/40 bg-amber-900/20 text-amber-200 text-xs p-3">
+        <div className="rounded border border-ebayYellow-700/50 bg-ebayYellow-500/10 text-ebayYellow-700 text-xs p-3">
           Locked. Buy the <span className="font-semibold">BidGoblin Paddle</span> upgrade to access auctions.
         </div>
       )}
 
       {auctions.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded border border-dashed border-line p-10 text-center text-ink-500">
           {canBid ? 'No auctions live. Click the button above.' : ''}
         </div>
       ) : (
@@ -113,11 +113,11 @@ function AuctionCard({
       className={`rounded-lg border p-3 flex flex-col gap-3 ${
         auction.resolved
           ? auction.wonByPlayer
-            ? 'border-emerald-700/50 bg-emerald-900/20'
-            : 'border-slate-800 bg-slate-900/40 opacity-70'
+            ? 'border-ebayGreen-500/60 bg-ebayGreen-500/10'
+            : 'border-line bg-white shadow-card opacity-70'
           : closing
-          ? 'border-rose-500/60 bg-slate-900/60 animate-pulse'
-          : 'border-slate-800 bg-slate-900/60'
+          ? 'border-ebayRed-500 bg-white shadow-card animate-pulse'
+          : 'border-line bg-white shadow-card'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -131,24 +131,24 @@ function AuctionCard({
           small
         />
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] uppercase tracking-widest text-purple-300">BidGoblin</div>
+          <div className="text-[10px] uppercase tracking-widest text-feebay-600">BidGoblin</div>
           <div className="font-semibold text-sm truncate">{card.name}</div>
-          <div className="text-xs text-slate-400">{auction.rarity} • {auction.rawCondition}</div>
+          <div className="text-xs text-ink-500">{auction.rarity} • {auction.rawCondition}</div>
           {showFakeRisk && (
-            <div className="text-[10px] text-slate-500 mt-1">
-              Auth scan: {auction.isFake ? <span className="text-rose-300">SUSPECT</span> : <span className="text-emerald-300">clean</span>}
+            <div className="text-[10px] text-ink-400 mt-1">
+              Auth scan: {auction.isFake ? <span className="text-ebayRed-500">SUSPECT</span> : <span className="text-ebayGreen-600">clean</span>}
             </div>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <Pill label="Current bid" value={`$${auction.currentBid}`} accent={auction.isMine ? 'text-emerald-300' : 'text-slate-200'} />
-        <Pill label="Est. value" value={`$${auction.trueMarketValue}`} accent="text-feebay-300" />
+        <Pill label="Current bid" value={`$${auction.currentBid}`} accent={auction.isMine ? 'text-ebayGreen-600' : 'text-ink-800'} />
+        <Pill label="Est. value" value={`$${auction.trueMarketValue}`} accent="text-feebay-600" />
         <Pill
           label="Ends in"
           value={auction.resolved ? '—' : `${remainingS}s`}
-          accent={closing ? 'text-rose-300' : 'text-slate-200'}
+          accent={closing ? 'text-ebayRed-500' : 'text-ink-800'}
         />
         <Pill
           label="Status"
@@ -164,11 +164,11 @@ function AuctionCard({
           accent={
             auction.resolved
               ? auction.wonByPlayer
-                ? 'text-emerald-300'
-                : 'text-slate-400'
+                ? 'text-ebayGreen-600'
+                : 'text-ink-500'
               : auction.isMine
-              ? 'text-emerald-300'
-              : 'text-amber-300'
+              ? 'text-ebayGreen-600'
+              : 'text-ebayYellow-700'
           }
         />
       </div>
@@ -181,8 +181,8 @@ function AuctionCard({
               disabled={cash < nextBid}
               className={`flex-1 rounded py-1.5 text-xs font-semibold ${
                 cash >= nextBid
-                  ? 'bg-feebay-600 hover:bg-feebay-500'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  ? 'bg-feebay-500 hover:bg-feebay-600'
+                  : 'bg-ink-100 text-ink-400 cursor-not-allowed'
               }`}
             >
               Bid ${nextBid}
@@ -193,8 +193,8 @@ function AuctionCard({
                 disabled={cash < auction.buyoutPrice}
                 className={`flex-1 rounded py-1.5 text-xs font-semibold ${
                   cash >= auction.buyoutPrice
-                    ? 'bg-amber-600 hover:bg-amber-500'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    ? 'bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900'
+                    : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                 }`}
               >
                 Buyout ${auction.buyoutPrice}
@@ -203,17 +203,17 @@ function AuctionCard({
           </div>
           {canSnipe && (
             <div className="flex gap-2 items-center text-xs">
-              <span className="text-slate-400">Auto-snipe max:</span>
+              <span className="text-ink-500">Auto-snipe max:</span>
               <input
                 type="number"
                 value={maxInput}
                 placeholder="0"
                 onChange={(e) => setMaxInput(e.target.value)}
                 onBlur={() => onSetMax(maxInput ? Number(maxInput) : undefined)}
-                className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs"
+                className="w-20 bg-ink-100 border border-line rounded px-2 py-1 text-xs"
               />
               {auction.myMaxBid && (
-                <span className="text-emerald-300">armed @ ${auction.myMaxBid}</span>
+                <span className="text-ebayGreen-600">armed @ ${auction.myMaxBid}</span>
               )}
             </div>
           )}
@@ -225,8 +225,8 @@ function AuctionCard({
 
 function Pill({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded bg-slate-800/70 px-2 py-1">
-      <div className="text-[9px] uppercase tracking-widest text-slate-500">{label}</div>
+    <div className="rounded bg-ink-100 px-2 py-1">
+      <div className="text-[9px] uppercase tracking-widest text-ink-400">{label}</div>
       <div className={`text-xs font-semibold ${accent}`}>{value}</div>
     </div>
   );

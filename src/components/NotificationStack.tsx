@@ -3,11 +3,11 @@ import { useGameStore } from '../store/useGameStore';
 import { Icon, type IconName } from './Icon';
 
 const KIND_STYLES: Record<string, string> = {
-  info: 'border-slate-600 bg-slate-800/95 text-slate-100',
-  success: 'border-emerald-500/60 bg-emerald-900/85 text-emerald-100',
-  warning: 'border-amber-500/60 bg-amber-900/85 text-amber-100',
-  event: 'border-purple-500/60 bg-purple-900/85 text-purple-100',
-  achievement: 'border-amber-400/70 bg-amber-900/85 text-amber-100',
+  info: 'border-line bg-white text-ink-900',
+  success: 'border-ebayGreen-500 bg-white text-ebayGreen-700 border-l-4',
+  warning: 'border-ebayYellow-500 bg-white text-ebayYellow-700 border-l-4',
+  event: 'border-feebay-500 bg-white text-feebay-700 border-l-4',
+  achievement: 'border-ebayYellow-500 bg-white text-ebayYellow-700 border-l-4',
 };
 
 const KIND_ICON: Record<string, IconName> = {

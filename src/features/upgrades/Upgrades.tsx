@@ -10,7 +10,7 @@ export function Upgrades() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold">Upgrades</h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-ink-500 text-sm">
           Spend cash on better tools. Each upgrade compounds your edge.
         </p>
       </div>
@@ -24,22 +24,22 @@ export function Upgrades() {
               key={u.id}
               className={`rounded-lg border p-4 flex flex-col gap-3 ${
                 owned
-                  ? 'border-emerald-700/60 bg-emerald-900/20'
-                  : 'border-slate-800 bg-slate-900/60'
+                  ? 'border-emerald-700/60 bg-ebayGreen-500/10'
+                  : 'border-line bg-white shadow-card'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-semibold text-sm">{u.name}</div>
-                  <div className="text-xs text-slate-400 mt-1">{u.description}</div>
+                  <div className="text-xs text-ink-500 mt-1">{u.description}</div>
                 </div>
-                <div className="text-xs uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                <div className="text-xs uppercase tracking-widest text-ink-500 whitespace-nowrap">
                   ${u.cost}
                 </div>
               </div>
               <div className="mt-auto">
                 {owned ? (
-                  <div className="rounded bg-emerald-900/40 text-emerald-200 px-3 py-1.5 text-xs uppercase tracking-widest text-center">
+                  <div className="rounded bg-ebayGreen-500/10 text-ebayGreen-700 px-3 py-1.5 text-xs uppercase tracking-widest text-center">
                     Owned
                   </div>
                 ) : (
@@ -48,8 +48,8 @@ export function Upgrades() {
                     disabled={!affordable}
                     className={`w-full rounded py-1.5 text-sm font-semibold ${
                       affordable
-                        ? 'bg-feebay-600 hover:bg-feebay-500'
-                        : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        ? 'bg-feebay-500 hover:bg-feebay-600'
+                        : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                     }`}
                   >
                     {affordable ? `Buy for $${u.cost}` : `Need $${u.cost}`}

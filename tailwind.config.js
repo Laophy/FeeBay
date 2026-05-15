@@ -4,36 +4,72 @@ export default {
   theme: {
     extend: {
       colors: {
+        // eBay-style brand palette
         feebay: {
-          50: '#eff8ff',
-          100: '#dceffd',
-          200: '#b1dffb',
-          300: '#76c7f9',
-          400: '#37acf3',
-          500: '#1290e0',
-          600: '#0972bf',
-          700: '#0a5c9a',
-          800: '#0e4f7f',
-          900: '#11436a',
+          50: '#eaf3ff',
+          100: '#d1e4ff',
+          200: '#a6c9ff',
+          300: '#6ba6ff',
+          400: '#3a85f5',
+          500: '#0064d2', // ← eBay link blue
+          600: '#0053b0',
+          700: '#003f87',
+          800: '#002f63',
+          900: '#001f40',
         },
-        rare: {
-          common: '#94a3b8',
-          uncommon: '#22c55e',
-          rare: '#3b82f6',
-          holo: '#a855f7',
-          secret: '#f43f5e',
-          mythic: '#f59e0b',
-          error: '#ef4444',
-          first: '#10b981',
-          signed: '#f5d76e',
-          prototype: '#ec4899',
+        ebayRed: {
+          400: '#ff6e75',
+          500: '#e53238', // ← eBay red (in the logo)
+          600: '#c1262c',
+          700: '#971d21',
+        },
+        ebayYellow: {
+          300: '#fdd95a',
+          400: '#fbc23a',
+          500: '#f5af02', // ← eBay yellow (in the logo / Bids)
+          600: '#cf8e00',
+          700: '#9b6a00',
+        },
+        ebayGreen: {
+          400: '#a5d04a',
+          500: '#86b817', // ← eBay green (in the logo / Sell)
+          600: '#6c9512',
+          700: '#54750c',
+        },
+        // Page surfaces & borders for the light theme
+        paper: '#f5f6f7',
+        card: '#ffffff',
+        line: '#e5e7eb',
+        lineSoft: '#eef0f3',
+        ink: {
+          900: '#191919',
+          800: '#26282b',
+          700: '#3c3f44',
+          600: '#5a5e66',
+          500: '#7c828c',
+          400: '#9aa0aa',
+          300: '#bcc0c7',
+          200: '#dadde2',
+          100: '#eef0f3',
+        },
+        cozy: {
+          50: '#fdf8f0',
+          100: '#fbf0dc',
+          200: '#f7dfb1',
+          300: '#f1c97a',
+          400: '#e8ad44',
+          500: '#d49222',
+          600: '#b07417',
+          700: '#8a5912',
         },
       },
+      boxShadow: {
+        card: '0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04)',
+        cardHover: '0 4px 12px rgba(15, 23, 42, 0.1), 0 2px 4px rgba(15, 23, 42, 0.05)',
+        topbar: '0 1px 0 #e5e7eb',
+      },
       keyframes: {
-        flip: {
-          '0%': { transform: 'rotateY(0deg)' },
-          '100%': { transform: 'rotateY(360deg)' },
-        },
+        flip: { '0%': { transform: 'rotateY(0deg)' }, '100%': { transform: 'rotateY(360deg)' } },
         popIn: {
           '0%': { transform: 'scale(0.6)', opacity: '0' },
           '60%': { transform: 'scale(1.05)', opacity: '1' },

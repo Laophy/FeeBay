@@ -31,24 +31,24 @@ export function GradingRevealModal() {
   const isGem = reveal.grade >= 10;
   const isStrong = reveal.grade >= 9;
   const gradeColor = isGem
-    ? 'text-amber-300'
+    ? 'text-ebayYellow-700'
     : isStrong
-    ? 'text-emerald-300'
+    ? 'text-ebayGreen-600'
     : reveal.grade >= 8
-    ? 'text-feebay-300'
+    ? 'text-feebay-600'
     : reveal.grade > 0
-    ? 'text-slate-200'
-    : 'text-rose-400';
+    ? 'text-ink-800'
+    : 'text-ebayRed-500';
 
   return (
     <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-sm ${
+      className={`fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4 ${
         isGem ? 'animate-pulse' : ''
       }`}
     >
       {isGem && phase === 'show' && <ConfettiBurst />}
-      <div className="w-[440px] rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl animate-popIn">
-        <div className="text-center text-xs uppercase tracking-widest text-slate-400">
+      <div className="w-[440px] rounded-xl border border-line bg-white p-6 shadow-2xl animate-popIn">
+        <div className="text-center text-xs uppercase tracking-widest text-ink-500">
           {reveal.company} Grading — Result
         </div>
         <div className="mt-2 text-center text-lg font-semibold">{item.name}</div>
@@ -78,8 +78,8 @@ export function GradingRevealModal() {
             <div
               className={`mt-3 rounded-md border px-3 py-2 text-center text-sm font-semibold flex items-center justify-center gap-2 ${
                 profit >= 0
-                  ? 'border-emerald-500/60 bg-emerald-900/40 text-emerald-200'
-                  : 'border-rose-500/60 bg-rose-900/40 text-rose-200'
+                  ? 'border-ebayGreen-500 bg-ebayGreen-500/10 text-ebayGreen-700'
+                  : 'border-ebayRed-500 bg-ebayRed-500/10 text-ebayRed-600'
               }`}
             >
               <Icon name={profit >= 0 ? 'chart-up' : 'chart-down'} size={16} />
@@ -89,13 +89,13 @@ export function GradingRevealModal() {
             </div>
             <button
               onClick={() => consume(reveal.submissionId)}
-              className="mt-5 w-full rounded bg-feebay-600 hover:bg-feebay-500 py-2 font-semibold"
+              className="mt-5 w-full rounded bg-feebay-500 hover:bg-feebay-600 text-white py-2 font-semibold"
             >
               Continue
             </button>
           </>
         ) : (
-          <div className="mt-6 text-center text-slate-400 text-sm">Cracking the slab...</div>
+          <div className="mt-6 text-center text-ink-500 text-sm">Cracking the slab...</div>
         )}
       </div>
     </div>
@@ -104,8 +104,8 @@ export function GradingRevealModal() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-slate-800/70 px-3 py-2">
-      <div className="text-[10px] uppercase tracking-widest text-slate-400">{label}</div>
+    <div className="rounded-md bg-ink-100 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-widest text-ink-500">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>
   );

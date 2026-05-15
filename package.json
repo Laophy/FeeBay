@@ -11,7 +11,9 @@
     "typecheck": "tsc -b --noEmit",
     "electron:dev": "vite",
     "electron:build": "tsc -b && vite build && electron-builder",
-    "package": "npm run build && electron-builder"
+    "pack": "npm run build && electron-builder --dir",
+    "package": "npm run build && electron-builder --win nsis",
+    "portable": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -44,7 +46,18 @@
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "portable": {
+      "artifactName": "FeeBay-Simulator-Portable-${version}.exe"
     }
   }
 }

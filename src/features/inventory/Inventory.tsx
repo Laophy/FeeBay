@@ -111,7 +111,7 @@ export function Inventory() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Inventory</h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-ink-500 text-sm">
             {inventory.length} / {slots} slots used. Sell raw, bundle, or grade.
           </p>
         </div>
@@ -122,39 +122,39 @@ export function Inventory() {
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-md border ${
                 filter === f
-                  ? 'border-feebay-500 bg-feebay-700/40 text-feebay-100'
-                  : 'border-slate-700 text-slate-300 hover:border-slate-500'
+                  ? 'border-feebay-500 bg-feebay-500 text-white font-semibold'
+                  : 'border-line text-ink-700 hover:border-ink-400 bg-white'
               }`}
             >
               {f}
             </button>
           ))}
-          <span className="border-l border-slate-700 mx-1" />
+          <span className="border-l border-line mx-1" />
           {(['recent', 'value', 'profit', 'rarity', 'condition'] as SortKey[]).map((k) => (
             <button
               key={k}
               onClick={() => setSortKey(k)}
               className={`px-3 py-1.5 rounded-md border ${
                 sortKey === k
-                  ? 'border-feebay-500 bg-feebay-700/40 text-feebay-100'
-                  : 'border-slate-700 text-slate-300 hover:border-slate-500'
+                  ? 'border-feebay-500 bg-feebay-500 text-white font-semibold'
+                  : 'border-line text-ink-700 hover:border-ink-400 bg-white'
               }`}
             >
               {k}
             </button>
           ))}
-          <span className="border-l border-slate-700 mx-1" />
+          <span className="border-l border-line mx-1" />
           {bundleMode ? (
             <button
               onClick={exitBundleMode}
-              className="px-3 py-1.5 rounded-md border border-rose-500 text-rose-200"
+              className="px-3 py-1.5 rounded-md border border-ebayRed-500 text-ebayRed-600 bg-white"
             >
               Cancel bundle
             </button>
           ) : (
             <button
               onClick={() => setBundleMode(true)}
-              className="px-3 py-1.5 rounded-md border border-amber-500/60 text-amber-200 hover:bg-amber-900/30 flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-md border border-ebayYellow-500 text-ebayYellow-700 bg-ebayYellow-500/10 hover:bg-ebayYellow-500/20 flex items-center gap-1.5 font-semibold"
             >
               <Icon name="package" size={12} /> Bundle mode
             </button>
@@ -163,8 +163,8 @@ export function Inventory() {
       </div>
 
       {movers.length > 0 && !bundleMode && (
-        <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3 flex items-center gap-3 flex-wrap">
-          <div className="text-xs uppercase tracking-widest text-slate-400 mr-1">
+        <div className="rounded-xl border border-line bg-white shadow-card p-3 flex items-center gap-3 flex-wrap">
+          <div className="text-xs uppercase tracking-widest text-ink-500 mr-1">
             Market movers
           </div>
           {movers.map((m) => {
@@ -176,10 +176,10 @@ export function Inventory() {
                 key={m.cardId}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs ${
                   flat
-                    ? 'border-slate-700 bg-slate-800/60 text-slate-300'
+                    ? 'border-line bg-ink-100 text-ink-700'
                     : up
-                    ? 'border-emerald-700/50 bg-emerald-900/25 text-emerald-200'
-                    : 'border-rose-700/50 bg-rose-900/25 text-rose-200'
+                    ? 'border-ebayGreen-500 bg-ebayGreen-500/10 text-ebayGreen-700'
+                    : 'border-ebayRed-500/60 bg-ebayRed-500/10 text-ebayRed-600'
                 }`}
               >
                 <Icon
@@ -198,24 +198,24 @@ export function Inventory() {
       )}
 
       {bundleMode && (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-900/15 p-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="rounded-xl border border-ebayYellow-500 bg-ebayYellow-500/10 p-3 flex items-center justify-between flex-wrap gap-3">
           <div className="text-sm">
-            <span className="font-semibold text-amber-200">{selectedIds.size} selected.</span>{' '}
-            <span className="text-slate-400">
+            <span className="font-bold text-ebayYellow-700">{selectedIds.size} selected.</span>{' '}
+            <span className="text-ink-500">
               Bundles take 90% of summed value but pay fees once. Better for stacks of low-value commons.
             </span>
           </div>
           {selectedIds.size >= 2 && (
             <div className="flex items-center gap-3 text-xs">
-              <span className="text-slate-400">
-                Est. net <span className="text-emerald-300 font-semibold">${bundleNetEstimate}</span>{' '}
+              <span className="text-ink-500">
+                Est. net <span className="text-ebayGreen-600 font-semibold">${bundleNetEstimate}</span>{' '}
                 ({bundleProfitEstimate >= 0 ? '+' : ''}${bundleProfitEstimate.toFixed(0)} vs cost)
               </span>
               {unlocked.filter((m) => m !== 'SlabHub').map((m) => (
                 <button
                   key={m}
                   onClick={() => confirmBundleSale(m)}
-                  className="rounded bg-amber-600 hover:bg-amber-500 px-3 py-1.5 font-semibold"
+                  className="rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 px-3 py-1.5 font-semibold"
                 >
                   Sell on {m}
                 </button>
@@ -226,7 +226,7 @@ export function Inventory() {
       )}
 
       {sorted.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-700 p-10 text-center text-slate-400">
+        <div className="rounded border border-dashed border-line p-10 text-center text-ink-500">
           {filter === 'all'
             ? 'Inventory empty. Time to go shopping on FeeBay.'
             : `No ${filter} items.`}
@@ -303,16 +303,16 @@ function ItemCard({
   const bundleEligible = bundleMode && item.status === 'raw';
   const containerCls = bundleEligible
     ? selected
-      ? 'border-amber-400 ring-2 ring-amber-400/40 cursor-pointer'
-      : 'border-slate-800 hover:border-amber-500/60 cursor-pointer'
+      ? 'border-ebayYellow-500 ring-2 ring-ebayYellow-500/40 cursor-pointer'
+      : 'border-line hover:border-ebayYellow-500 cursor-pointer'
     : bundleMode
-    ? 'border-slate-800 opacity-50'
-    : 'border-slate-800';
+    ? 'border-line opacity-50'
+    : 'border-line';
 
   return (
     <div
       onClick={bundleEligible ? onToggleSelect : bundleMode ? undefined : onOpenDetail}
-      className={`rounded-lg border bg-slate-900/60 p-3 flex flex-col gap-3 transition ${
+      className={`rounded-lg border bg-white shadow-card p-3 flex flex-col gap-3 transition ${
         bundleMode ? containerCls : `${containerCls} cursor-pointer hover:border-feebay-600/60`
       }`}
     >
@@ -335,30 +335,30 @@ function ItemCard({
               <span
                 className={`shrink-0 w-4 h-4 rounded-sm border flex items-center justify-center ${
                   selected
-                    ? 'bg-amber-400 border-amber-300 text-slate-900'
-                    : 'border-slate-600'
+                    ? 'bg-ebayYellow-500 border-ebayYellow-600 text-ink-900'
+                    : 'border-ink-300'
                 }`}
               >
                 {selected && <Icon name="check" size={10} />}
               </span>
             )}
           </div>
-          <div className="text-xs text-slate-400">{item.rarity} • {item.rawCondition}</div>
-          <div className="text-xs text-slate-500">From {item.acquiredFrom}</div>
+          <div className="text-xs text-ink-500">{item.rarity} • {item.rawCondition}</div>
+          <div className="text-xs text-ink-400">From {item.acquiredFrom}</div>
           {item.status === 'grading' && (
-            <div className="mt-1 inline-block text-[10px] uppercase tracking-widest bg-purple-900/60 text-purple-200 px-1.5 py-0.5 rounded">
+            <div className="mt-1 inline-block text-[10px] uppercase tracking-widest bg-feebay-50 text-feebay-700 px-1.5 py-0.5 rounded">
               At {item.gradingCompany} Grading
             </div>
           )}
           {item.status === 'listed' && (
-            <div className="mt-1 inline-block text-[10px] uppercase tracking-widest bg-amber-900/60 text-amber-200 px-1.5 py-0.5 rounded">
+            <div className="mt-1 inline-block text-[10px] uppercase tracking-widest bg-ebayYellow-500/20 text-ebayYellow-700 px-1.5 py-0.5 rounded">
               On your storefront
             </div>
           )}
           {item.status === 'graded' && item.grade !== undefined && (
             <div
               className={`mt-1 inline-block text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded ${
-                item.grade >= 9 ? 'bg-amber-900/60 text-amber-200' : 'bg-slate-800 text-slate-300'
+                item.grade >= 9 ? 'bg-ebayYellow-500/20 text-ebayYellow-700' : 'bg-ink-100 text-ink-700'
               }`}
             >
               {item.gradeLabel}
@@ -373,7 +373,7 @@ function ItemCard({
         <Pill
           label="Margin"
           value={`${profit >= 0 ? '+' : ''}$${profit.toFixed(0)} (${profitPct.toFixed(0)}%)`}
-          accent={profit >= 0 ? 'text-emerald-300' : 'text-rose-300'}
+          accent={profit >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'}
         />
       </div>
 
@@ -384,10 +384,10 @@ function ItemCard({
           value={`${centeringScore(item.centeringOffsetX, item.centeringOffsetY)}/100`}
           accent={
             centeringScore(item.centeringOffsetX, item.centeringOffsetY) >= 80
-              ? 'text-emerald-300'
+              ? 'text-ebayGreen-600'
               : centeringScore(item.centeringOffsetX, item.centeringOffsetY) >= 55
-              ? 'text-amber-300'
-              : 'text-rose-300'
+              ? 'text-ebayYellow-700'
+              : 'text-ebayRed-500'
           }
         />
         <Pill
@@ -407,14 +407,14 @@ function ItemCard({
                 <button
                   key={m}
                   onClick={() => onSell(m)}
-                  className="text-xs px-2 py-1.5 rounded bg-feebay-600 hover:bg-feebay-500"
+                  className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
                 >
                   Sell on {m}
                 </button>
               ))}
               <button
                 onClick={onList}
-                className="text-xs px-2 py-1.5 rounded bg-amber-600 hover:bg-amber-500"
+                className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"
               >
                 List @ price
               </button>
@@ -422,7 +422,7 @@ function ItemCard({
                 <button
                   key={c}
                   onClick={() => onGrade(c)}
-                  className="text-xs px-2 py-1.5 rounded bg-purple-700 hover:bg-purple-600"
+                  className="text-xs px-2 py-1.5 rounded bg-feebay-500 hover:bg-feebay-600 text-white"
                 >
                   Grade @ {c}
                 </button>
@@ -435,24 +435,24 @@ function ItemCard({
                 <button
                   key={m}
                   onClick={() => onSell(m)}
-                  className="text-xs px-2 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500"
+                  className="text-xs px-2 py-1.5 rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white"
                 >
                   Sell slab on {m}
                 </button>
               ))}
               <button
                 onClick={onList}
-                className="text-xs px-2 py-1.5 rounded bg-amber-600 hover:bg-amber-500"
+                className="text-xs px-2 py-1.5 rounded bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900"
               >
                 List @ price
               </button>
             </>
           )}
           {item.status === 'grading' && (
-            <span className="text-xs text-slate-400">Waiting on grade...</span>
+            <span className="text-xs text-ink-500">Waiting on grade...</span>
           )}
           {item.status === 'listed' && (
-            <span className="text-xs text-slate-400">Active on storefront — see Storefront tab.</span>
+            <span className="text-xs text-ink-500">Active on storefront — see Storefront tab.</span>
           )}
         </div>
       )}
@@ -463,15 +463,15 @@ function ItemCard({
 function Pill({
   label,
   value,
-  accent = 'text-slate-100',
+  accent = 'text-ink-900',
 }: {
   label: string;
   value: string;
   accent?: string;
 }) {
   return (
-    <div className="rounded bg-slate-800/70 px-2 py-1">
-      <div className="text-[9px] uppercase tracking-widest text-slate-500">{label}</div>
+    <div className="rounded bg-ink-100 px-2 py-1">
+      <div className="text-[9px] uppercase tracking-widest text-ink-400">{label}</div>
       <div className={`text-xs font-semibold ${accent}`}>{value}</div>
     </div>
   );
@@ -495,19 +495,19 @@ function MarketPill({
         : 'animate-mktDown'
       : '';
   const accent = flat
-    ? 'text-slate-200'
+    ? 'text-ink-800'
     : up
-    ? 'text-emerald-300'
-    : 'text-rose-300';
+    ? 'text-ebayGreen-600'
+    : 'text-ebayRed-500';
   return (
-    <div className={`rounded bg-slate-800/70 px-2 py-1 ${flashClass}`}>
-      <div className="text-[9px] uppercase tracking-widest text-slate-500 flex items-center gap-1">
+    <div className={`rounded bg-ink-100 px-2 py-1 ${flashClass}`}>
+      <div className="text-[9px] uppercase tracking-widest text-ink-400 flex items-center gap-1">
         <span>Market</span>
         {!flat && (
           <Icon
             name={up ? 'chart-up' : 'chart-down'}
             size={10}
-            className={up ? 'text-emerald-300' : 'text-rose-300'}
+            className={up ? 'text-ebayGreen-600' : 'text-ebayRed-500'}
           />
         )}
       </div>
@@ -516,12 +516,12 @@ function MarketPill({
       </div>
       <style>{`
         @keyframes mktUp {
-          0% { background-color: rgba(16,185,129,0.45); }
-          100% { background-color: rgba(30,41,59,0.7); }
+          0% { background-color: rgba(134, 184, 23, 0.35); }
+          100% { background-color: rgba(238, 240, 243, 1); }
         }
         @keyframes mktDown {
-          0% { background-color: rgba(244,63,94,0.45); }
-          100% { background-color: rgba(30,41,59,0.7); }
+          0% { background-color: rgba(229, 50, 56, 0.3); }
+          100% { background-color: rgba(238, 240, 243, 1); }
         }
         .animate-mktUp { animation: mktUp 1.4s ease-out; }
         .animate-mktDown { animation: mktDown 1.4s ease-out; }

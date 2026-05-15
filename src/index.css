@@ -11,19 +11,52 @@ body,
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
+  background: #f5f6f7;
+  color: #191919;
 }
 
+/* ---------- Scrollbars ---------- */
+
+/* Firefox / spec */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c5cad2 transparent;
+}
+
+/* WebKit / Chromium */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.7);
-  border-radius: 6px;
+  background: #c5cad2;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.15s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.9);
+  background: #0064d2; /* feebay link blue */
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background: #0053b0;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark surfaces (lot reveal modal, etc.) — opt in with .dark-scroll */
+.dark-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.dark-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+}
+.dark-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
 }

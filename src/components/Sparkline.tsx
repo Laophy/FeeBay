@@ -16,7 +16,7 @@ export function Sparkline({
   if (data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center text-xs text-slate-500"
+        className="flex items-center justify-center text-xs text-ink-400"
         style={{ width, height }}
       >
         No data yet — keep flipping.
