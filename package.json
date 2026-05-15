@@ -1,6 +1,7 @@
 {
   "name": "FeeBay",
   "version": "0.1.2",
+  "author": "Lake Country Games",
   "private": true,
   "description": "FeeBay Simulator — a parody marketplace card flipping game.",
   "main": "dist-electron/main.js",
