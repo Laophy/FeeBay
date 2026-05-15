@@ -93,26 +93,27 @@ export function centeringLean(offsetX: number, offsetY: number): string {
   return `leans ${parts.join('-')}`;
 }
 
-/** Map offsets to border-pixel widths for the four sides of the card. */
+/**
+ * Map centering offsets to the four card-border widths, expressed as a
+ * percentage of the card's width. Percentages (not px) keep the border the
+ * same proportion at every render size — grid, detail, slab and zoom match.
+ */
 export function centeringBorders(offsetX: number, offsetY: number): {
   left: number;
   right: number;
   top: number;
   bottom: number;
 } {
-  // Base 2px, each unit of offset adds 0.5 px to the heavy side (capped at 6px).
-  const base = 2;
-  const heavyL = offsetX > 0 ? offsetX : 0;
-  const heavyR = offsetX < 0 ? -offsetX : 0;
-  const heavyT = offsetY > 0 ? offsetY : 0;
-  const heavyB = offsetY < 0 ? -offsetY : 0;
-  const scale = 0.6;
-  const cap = (v: number) => Math.min(6, base + v * scale);
+  // An even ~1.8%-of-width frame when perfectly centred; each unit of offset
+  // thickens the heavy side, capped so the light side never fully vanishes.
+  const base = 1.8;
+  const scale = 0.46;
+  const heavy = (v: number) => Math.min(5.4, base + Math.max(0, v) * scale);
   return {
-    left: cap(heavyL),
-    right: cap(heavyR),
-    top: cap(heavyT),
-    bottom: cap(heavyB),
+    left: heavy(offsetX),
+    right: heavy(-offsetX),
+    top: heavy(offsetY),
+    bottom: heavy(-offsetY),
   };
 }
 

@@ -80,6 +80,8 @@ type Props = {
   cardId?: string;
   /** When false, holo foil renders statically (no infinite animation). Use for big grids. */
   animated?: boolean;
+  /** Detail/zoom view — shows the full card name & set text instead of truncating it. */
+  detail?: boolean;
 };
 
 const SLAB_THEME: Record<
@@ -128,6 +130,7 @@ export const CardArt = memo(function CardArt({
   large,
   cardId,
   animated = true,
+  detail,
 }: Props) {
   // Look up card def if id provided (for character + set + variant + edition).
   let character = 'default';
@@ -170,10 +173,25 @@ export const CardArt = memo(function CardArt({
       centeringOffsetX={centeringOffsetX}
       centeringOffsetY={centeringOffsetY}
       small={small}
-      hideHeader={isSlabbed}
-      hideFooter={isSlabbed}
+      detail={detail}
       hideGradePip={isSlabbed}
     />
+  );
+
+  // Proportional centering frame — border widths are a % of the card width,
+  // so the frame looks identical at every render size (grid, detail, slab,
+  // zoom). The same framed card is used raw and inside the slab window.
+  const borders = centeringBorders(centeringOffsetX, centeringOffsetY);
+  const framedCard = (
+    <div
+      className="absolute inset-0 overflow-hidden"
+      style={{
+        background: borderColor,
+        padding: `${borders.top}% ${borders.right}% ${borders.bottom}% ${borders.left}%`,
+      }}
+    >
+      {cardBody}
+    </div>
   );
 
   if (isSlabbed && gradingCompany) {
@@ -185,10 +203,11 @@ export const CardArt = memo(function CardArt({
         rarity={rarity}
         setName={setName}
         small={!!small}
+        detail={!!detail}
         size={size}
         certSeed={cardId ?? name}
       >
-        {cardBody}
+        {framedCard}
       </SlabFrame>
     );
   }
@@ -199,7 +218,7 @@ export const CardArt = memo(function CardArt({
         className={`relative ${size} rounded-md overflow-hidden border-2 border-rose-600`}
         style={{ background: '#1f0a0c' }}
       >
-        <div className="absolute inset-0 opacity-90">{cardBody}</div>
+        <div className="absolute inset-0 opacity-90">{framedCard}</div>
         <div className="absolute inset-0 bg-rose-900/40 mix-blend-multiply pointer-events-none" />
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
           <div className="inline-block px-1 py-0.5 bg-rose-600 text-white text-[8px] font-black tracking-widest rotate-[-8deg]">
@@ -234,22 +253,14 @@ export const CardArt = memo(function CardArt({
   return (
     <div
       className={`relative rounded-md ${glow} ${size} overflow-hidden`}
-      style={{
-        background: cardBodyGradient(hue, variant),
-        borderStyle: 'solid',
-        borderColor,
-        borderLeftWidth: centeringBorders(centeringOffsetX, centeringOffsetY).left,
-        borderRightWidth: centeringBorders(centeringOffsetX, centeringOffsetY).right,
-        borderTopWidth: centeringBorders(centeringOffsetX, centeringOffsetY).top,
-        borderBottomWidth: centeringBorders(centeringOffsetX, centeringOffsetY).bottom,
-      }}
+      style={{ background: borderColor }}
       title={
         centeringOffsetX || centeringOffsetY
           ? `Centering offset X:${centeringOffsetX} Y:${centeringOffsetY}`
           : undefined
       }
     >
-      {cardBody}
+      {framedCard}
     </div>
   );
 });
@@ -425,6 +436,7 @@ function CardBody({
   centeringOffsetX,
   centeringOffsetY,
   small,
+  detail,
   hideHeader,
   hideFooter,
   hideGradePip,
@@ -444,6 +456,7 @@ function CardBody({
   centeringOffsetX: number;
   centeringOffsetY: number;
   small?: boolean;
+  detail?: boolean;
   hideHeader?: boolean;
   hideFooter?: boolean;
   hideGradePip?: boolean;
@@ -467,7 +480,9 @@ function CardBody({
       {!hideHeader && (
         <div className={`relative z-10 flex items-center gap-1 px-1 ${small ? 'pt-0.5' : 'pt-1'}`}>
           <div
-            className={`flex-1 text-white font-semibold drop-shadow truncate ${small ? 'text-[8px]' : 'text-[10px]'}`}
+            className={`flex-1 text-white font-semibold drop-shadow ${
+              detail ? 'leading-tight break-words' : 'truncate'
+            } ${small ? 'text-[8px]' : 'text-[10px]'}`}
           >
             {name}
           </div>
@@ -567,7 +582,7 @@ function CardBody({
           className={`relative z-10 flex items-center justify-between gap-1 px-1 ${small ? 'pb-0.5 text-[7px]' : 'pb-1 text-[8px]'}`}
         >
           <span
-            className={`truncate uppercase tracking-wider ${RARITY_TEXT_COLOR[rarity]} drop-shadow`}
+            className={`${detail ? 'break-words' : 'truncate'} uppercase tracking-wider ${RARITY_TEXT_COLOR[rarity]} drop-shadow`}
           >
             {small ? character : setName ? `${character} • ${setName}` : character}
           </span>
@@ -635,6 +650,7 @@ function SlabFrame({
   rarity,
   setName,
   small,
+  detail,
   size,
   certSeed,
   children,
@@ -645,131 +661,161 @@ function SlabFrame({
   rarity: CardRarity;
   setName: string;
   small: boolean;
+  detail: boolean;
   size: string;
   certSeed: string;
   children: React.ReactNode;
 }) {
   const theme = SLAB_THEME[company];
   const isGem = grade >= 10;
-  const isPremium = grade >= 9;
+  const tierWord =
+    grade >= 10 ? 'GEM MINT' : grade >= 9 ? 'MINT' : grade >= 7 ? 'NM-MT' : 'GRADED';
+  // Two-digit grades (10) get a smaller face so the number never crowds or
+  // overlaps the card name/set text beside it.
+  const gradeText = String(grade);
+  const gradeSize = small
+    ? gradeText.length >= 2
+      ? 'text-[11px]'
+      : 'text-[15px]'
+    : gradeText.length >= 2
+    ? 'text-[15px]'
+    : 'text-[19px]';
+
   return (
-    <div
-      className={`relative ${size} rounded-md overflow-hidden`}
-      style={{
-        background: 'linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 40%, #94a3b8 100%)',
-        border: '1.5px solid #475569',
-        boxShadow: '0 4px 14px rgba(15,23,42,0.55), inset 0 0 0 1px rgba(255,255,255,0.4)',
-      }}
-      title={`${company} Grade ${grade} • ${name}`}
-    >
-      {/* Label band */}
+    // Card-sized footprint keeps grids uniform; the slab itself is a taller,
+    // narrower plastic case centred within that footprint.
+    <div className={`relative ${size} flex items-center justify-center`}>
       <div
-        className="relative flex flex-col items-stretch"
+        className="relative h-full flex flex-col rounded-[7px] overflow-hidden"
         style={{
-          background: theme.bg,
-          borderBottom: `1.5px solid ${theme.border}`,
-          color: theme.text,
+          aspectRatio: '9 / 16',
+          isolation: 'isolate',
+          gap: '2px',
+          padding: small ? '3px' : '4px',
+          background:
+            'linear-gradient(150deg, #f4f6f9 0%, #d6dce4 40%, #a9b1be 70%, #c7ced8 100%)',
+          border: '1px solid #828c9c',
+          boxShadow: '0 6px 16px rgba(15,23,42,0.5)',
         }}
+        title={`${company} Grade ${grade} • ${name}`}
       >
-        <div className={`flex items-center justify-between px-1 ${small ? 'pt-0.5' : 'pt-1'}`}>
-          <span
-            className={`${small ? 'text-[7px]' : 'text-[9px]'} font-black tracking-[0.18em]`}
-            style={{ color: theme.text }}
-          >
-            {company}
-          </span>
-          <span
-            className={`${small ? 'text-[7px]' : 'text-[8px]'} font-bold tracking-wider`}
-            style={{ color: theme.accent }}
-          >
-            {isGem ? 'GEM MINT' : isPremium ? 'MINT' : 'GRADED'}
-          </span>
-        </div>
-        <div className={`flex items-center justify-between gap-1 px-1 ${small ? 'pb-0.5' : 'pb-1'}`}>
-          <div className="flex-1 min-w-0">
-            <div
-              className={`${small ? 'text-[7px]' : 'text-[8px]'} truncate font-semibold uppercase tracking-wider`}
-              style={{ color: theme.text, opacity: 0.95 }}
-            >
-              {name}
-            </div>
-            {!small && (
-              <div
-                className="text-[7px] truncate uppercase tracking-widest"
-                style={{ color: theme.accent, opacity: 0.85 }}
-              >
-                {setName} • {rarity}
-              </div>
-            )}
-          </div>
-          <div
-            className={`flex items-baseline justify-center font-black leading-none ${small ? 'min-w-[18px]' : 'min-w-[28px]'}`}
-            style={{
-              color: isGem ? '#fde047' : '#ffffff',
-              textShadow: isGem
-                ? '0 0 6px rgba(253,224,71,0.7), 0 1px 1px rgba(0,0,0,0.5)'
-                : '0 1px 2px rgba(0,0,0,0.6)',
-            }}
-          >
-            <span className={small ? 'text-[18px]' : 'text-[28px]'}>{grade}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Card window — inset to look like cardboard behind plastic */}
-      <div
-        className="relative mx-[3px] my-[2px] rounded-sm overflow-hidden"
-        style={{
-          height: small ? 'calc(100% - 38px)' : 'calc(100% - 56px)',
-          boxShadow:
-            'inset 0 0 0 1px rgba(15,23,42,0.4), 0 1px 2px rgba(0,0,0,0.3)',
-        }}
-      >
-        {children}
-      </div>
-
-      {/* Bottom cert serial bar */}
-      {!small && (
+        {/* Grading label — flex-1, so it fills whatever space is left above
+            the card window without ever stealing room from the card. */}
         <div
-          className="absolute bottom-0 inset-x-0 flex items-center justify-between px-1.5 py-0.5"
+          className="relative z-10 flex items-stretch gap-1 px-1.5 flex-1 min-h-0 rounded-[3px]"
           style={{
             background: theme.bg,
+            border: `1px solid ${theme.border}`,
             color: theme.text,
-            borderTop: `1px solid ${theme.border}`,
           }}
         >
-          <span className="text-[7px] tracking-[0.2em]" style={{ color: theme.accent }}>
-            CERT
-          </span>
-          <span className="text-[7px] font-mono tracking-wider" style={{ color: theme.text }}>
-            {shortCert(certSeed)}
-          </span>
+          <div className="flex-1 min-w-0 flex flex-col justify-center leading-none">
+            <div
+              className={`font-black tracking-[0.14em] ${
+                small ? 'text-[6px]' : 'text-[8px]'
+              }`}
+            >
+              {company}
+            </div>
+            {!small && (
+              <>
+                <div
+                  className={`font-bold uppercase tracking-wide text-[8px] mt-[2px] ${
+                    detail ? 'break-words leading-tight' : 'truncate'
+                  }`}
+                  style={{ opacity: 0.98 }}
+                >
+                  {name}
+                </div>
+                <div
+                  className={`uppercase tracking-[0.14em] text-[6px] mt-[1px] ${
+                    detail ? 'break-words leading-tight' : 'truncate'
+                  }`}
+                  style={{ color: theme.accent, opacity: 0.9 }}
+                >
+                  {setName ? `${setName} · ${rarity}` : rarity}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col items-center justify-center shrink-0 leading-none">
+            {!small && (
+              <span
+                className="text-[6px] font-black tracking-[0.1em] whitespace-nowrap mb-[1px]"
+                style={{ color: theme.accent }}
+              >
+                {tierWord}
+              </span>
+            )}
+            <span
+              className={`font-black leading-none ${gradeSize}`}
+              style={{
+                color: isGem ? '#fde047' : '#ffffff',
+                textShadow: isGem
+                  ? '0 0 7px rgba(253,224,71,0.85), 0 1px 1px rgba(0,0,0,0.5)'
+                  : '0 1px 2px rgba(0,0,0,0.6)',
+              }}
+            >
+              {grade}
+            </span>
+            {!small && (
+              <span
+                className="text-[5px] font-bold tracking-[0.16em] mt-[1px]"
+                style={{ color: theme.accent }}
+              >
+                {shortCert(certSeed)}
+              </span>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Glass shine sweep — moving highlight to sell the "encased" feel */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{ mixBlendMode: 'screen' }}
-      >
+        {/* Card window — a width-driven 112:160 box. The whole card fills it
+            exactly, so it can never be cropped at any render size. */}
         <div
-          className="absolute top-0 bottom-0 -left-1/3 w-1/3"
+          className="relative shrink-0 overflow-hidden rounded-[3px]"
+          style={{
+            width: '100%',
+            aspectRatio: '112 / 160',
+            background: '#0e121a',
+            boxShadow:
+              'inset 0 0 0 1px rgba(0,0,0,0.6), inset 0 2px 7px rgba(0,0,0,0.65)',
+          }}
+        >
+          {children}
+        </div>
+
+        {/* Static plastic gloss */}
+        <div
+          className="pointer-events-none absolute inset-0 z-20"
           style={{
             background:
-              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)',
-            animation: 'slabShine 8s linear infinite',
+              'linear-gradient(125deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.05) 18%, transparent 40%, transparent 72%, rgba(255,255,255,0.12) 100%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        {/* Animated glass glint — sweeps fully across, then rests off-slab */}
+        <div
+          className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
+          style={{ mixBlendMode: 'screen' }}
+        >
+          <div
+            className="absolute top-0 bottom-0 -left-1/3 w-1/3"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)',
+              animation: 'slabShine 8s linear infinite',
+            }}
+          />
+        </div>
+        {/* Case edge bevel */}
+        <div
+          className="pointer-events-none absolute inset-0 z-20 rounded-[7px]"
+          style={{
+            boxShadow:
+              'inset 0 1.5px 0 rgba(255,255,255,0.85), inset 0 -2px 4px rgba(0,0,0,0.4), inset 1.5px 0 0 rgba(255,255,255,0.45), inset -1.5px 0 0 rgba(0,0,0,0.2)',
           }}
         />
       </div>
-
-      {/* Outer plastic edge highlight */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-md"
-        style={{
-          boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(0,0,0,0.3)',
-        }}
-      />
     </div>
   );
 }

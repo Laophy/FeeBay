@@ -30,9 +30,12 @@ export function CardZoomOverlay({
   condition,
   onClose,
 }: Props) {
-  const scale = 3.6;
-  const baseW = 112;
-  const baseH = 160;
+  // Render at the large card layout, then scale up modestly. The bigger native
+  // size keeps slab label text proportionate and lets it fit without cropping
+  // (the old approach magnified the tiny default layout 3.6x).
+  const scale = 2.3;
+  const baseW = 176;
+  const baseH = 252;
   const score = centeringScore(centeringOffsetX, centeringOffsetY);
   const lean = centeringLean(centeringOffsetX, centeringOffsetY);
   return createPortal(
@@ -54,6 +57,8 @@ export function CardZoomOverlay({
             gradingCompany={gradingCompany}
             centeringOffsetX={centeringOffsetX}
             centeringOffsetY={centeringOffsetY}
+            large
+            detail
           />
         </div>
       </div>
