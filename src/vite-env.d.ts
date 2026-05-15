@@ -9,8 +9,12 @@ declare global {
         minimize: () => void;
         maximizeToggle: () => void;
         close: () => void;
+        fullscreenToggle: () => void;
         isMaximized: () => Promise<boolean>;
-        onStateChange: (cb: (state: { maximized: boolean }) => void) => () => void;
+        isFullScreen: () => Promise<boolean>;
+        onStateChange: (
+          cb: (state: { maximized: boolean; fullscreen: boolean }) => void,
+        ) => () => void;
       };
       steam?: {
         /** True when the Steam client initialized successfully this session. */

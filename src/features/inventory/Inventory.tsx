@@ -121,7 +121,8 @@ export function Inventory() {
         <div>
           <h1 className="text-2xl font-bold">Inventory</h1>
           <p className="text-ink-500 text-sm">
-            {inventory.length} / {slots} slots used. Sell raw, bundle, or grade.
+            {inventory.length - showcaseIds.length} / {slots} slots used. Showcased
+            cards don&apos;t count. Sell raw, bundle, or grade.
           </p>
         </div>
         <div className="flex gap-2 text-xs flex-wrap">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore } from '../store/useGameStore';
 import { CardArt } from './CardArt';
 import { SFX } from '../game/audio';
@@ -74,7 +75,7 @@ export function BulkGradeRevealModal() {
   const runningProfit = runningTotal(reveals, index, phase, (r) => r.profit);
   const gemsSoFar = countGems(reveals, index, phase);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4">
       {isGem && <ConfettiBurst />}
       <div className="w-[460px] max-w-full rounded-xl border border-line bg-white p-6 shadow-2xl animate-popIn">
@@ -210,7 +211,8 @@ export function BulkGradeRevealModal() {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -7,12 +7,17 @@ import { APP_VERSION } from '../version';
  */
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     const ctrl = window.feebay?.window;
     if (!ctrl) return;
     ctrl.isMaximized().then(setMaximized);
-    const off = ctrl.onStateChange((s) => setMaximized(s.maximized));
+    ctrl.isFullScreen().then(setFullscreen);
+    const off = ctrl.onStateChange((s) => {
+      setMaximized(s.maximized);
+      setFullscreen(s.fullscreen);
+    });
     return off;
   }, []);
 
@@ -44,6 +49,28 @@ export function TitleBar() {
         className="flex items-stretch h-full"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        <TitleBarButton
+          onClick={() => ctrl?.fullscreenToggle()}
+          aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+        >
+          {fullscreen ? (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path
+                d="M3.5 .5V3.5H.5 M6.5 .5V3.5H9.5 M.5 6.5H3.5V9.5 M9.5 6.5H6.5V9.5"
+                stroke="currentColor"
+                strokeWidth="1.1"
+              />
+            </svg>
+          ) : (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path
+                d="M3.6 .5H.5V3.6 M6.4 .5H9.5V3.6 M.5 6.4V9.5H3.6 M9.5 6.4V9.5H6.4"
+                stroke="currentColor"
+                strokeWidth="1.1"
+              />
+            </svg>
+          )}
+        </TitleBarButton>
         <TitleBarButton onClick={() => ctrl?.minimize()} aria-label="Minimize">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M0 5 H10" stroke="currentColor" strokeWidth="1.1" />

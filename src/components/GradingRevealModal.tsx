@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/useGameStore';
 import { CardArt } from './CardArt';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { SFX } from '../game/audio';
 import { Icon } from './Icon';
 
@@ -40,7 +41,7 @@ export function GradingRevealModal() {
     ? 'text-ink-800'
     : 'text-ebayRed-500';
 
-  return (
+  return createPortal(
     <div
       className={`fixed inset-0 z-[200] flex items-center justify-center bg-ink-900/55 backdrop-blur-sm p-4 ${
         isGem ? 'animate-pulse' : ''
@@ -98,7 +99,8 @@ export function GradingRevealModal() {
           <div className="mt-6 text-center text-ink-500 text-sm">Cracking the slab...</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

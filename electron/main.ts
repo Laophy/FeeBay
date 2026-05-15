@@ -141,10 +141,20 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'));
   }
 
-  // Notify the renderer when maximize state changes, so the maximize/restore
-  // icon updates without polling.
-  win.on('maximize', () => win?.webContents.send('window:state', { maximized: true }));
-  win.on('unmaximize', () => win?.webContents.send('window:state', { maximized: false }));
+  // Notify the renderer when maximize / fullscreen state changes, so the
+  // title-bar icons update without polling.
+  win.on('maximize', sendWindowState);
+  win.on('unmaximize', sendWindowState);
+  win.on('enter-full-screen', sendWindowState);
+  win.on('leave-full-screen', sendWindowState);
+}
+
+function sendWindowState() {
+  if (!win) return;
+  win.webContents.send('window:state', {
+    maximized: win.isMaximized(),
+    fullscreen: win.isFullScreen(),
+  });
 }
 
 // Window control IPC — called from the custom title bar.
@@ -160,8 +170,15 @@ ipcMain.on('window:maximize-toggle', (e) => {
 ipcMain.on('window:close', (e) => {
   BrowserWindow.fromWebContents(e.sender)?.close();
 });
+ipcMain.on('window:fullscreen-toggle', (e) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (w) w.setFullScreen(!w.isFullScreen());
+});
 ipcMain.handle('window:is-maximized', (e) => {
   return BrowserWindow.fromWebContents(e.sender)?.isMaximized() ?? false;
+});
+ipcMain.handle('window:is-fullscreen', (e) => {
+  return BrowserWindow.fromWebContents(e.sender)?.isFullScreen() ?? false;
 });
 
 app.whenReady().then(() => {

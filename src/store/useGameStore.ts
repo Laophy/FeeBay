@@ -69,6 +69,16 @@ export function vaultStableFor(state: { upgradesPurchased: string[] }): boolean 
   return state.upgradesPurchased.includes('hire_vault_keeper');
 }
 
+/** Inventory slots in use. Showcased cards are display-only and don't count. */
+export function occupiedSlots(state: {
+  inventory: InventoryItem[];
+  showcaseItemIds: string[];
+}): number {
+  if (state.showcaseItemIds.length === 0) return state.inventory.length;
+  const showcased = new Set(state.showcaseItemIds);
+  return state.inventory.filter((i) => !showcased.has(i.id)).length;
+}
+
 /** Effective FeeBay storefront fee rate (0..1) charged on withdraw. */
 export function storefrontFeeRate(state: { upgradesPurchased: string[]; businessLevel: number }): number {
   const b = storefrontFeeBreakdown(state);
@@ -352,9 +362,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const { items } = isStorageUnit
         ? resolveStorageUnit(listing, listing.source)
         : resolveMysteryLot(listing, listing.source);
-      if (state.inventory.length + items.length > slots) {
+      if (occupiedSlots(state) + items.length > slots) {
         get().pushNotification(
-          `Lot has ${items.length} cards, only ${slots - state.inventory.length} slots free.`,
+          `Lot has ${items.length} cards, only ${slots - occupiedSlots(state)} slots free.`,
           'warning',
         );
         return;
@@ -417,7 +427,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    if (state.inventory.length >= slots) {
+    if (occupiedSlots(state) >= slots) {
       get().pushNotification('Inventory full. Sell or buy more storage.', 'warning');
       return;
     }
@@ -1432,7 +1442,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         )
         .sort((a, b) => b.trueMarketValue - b.askingPrice - (a.trueMarketValue - a.askingPrice));
       const slots = get().inventorySlots();
-      if (targets.length > 0 && state.inventory.length < slots) {
+      if (targets.length > 0 && occupiedSlots(state) < slots) {
         const target = targets[0];
         get().buyListing(target.id);
         get().pushNotification(`Buyer Agent grabbed ${target.title.slice(0, 30)}.`, 'info');
@@ -1773,7 +1783,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
     const slots = get().inventorySlots();
-    if (state.inventory.length >= slots) {
+    if (occupiedSlots(state) >= slots) {
       get().pushNotification('Inventory full. Free a slot first.', 'warning');
       return;
     }
@@ -1860,6 +1870,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!item) return;
     const present = state.showcaseItemIds.includes(itemId);
     if (present) {
+      // Removing from the showcase puts the card back to occupying a slot —
+      // it needs room in the inventory.
+      if (occupiedSlots(state) >= get().inventorySlots()) {
+        get().pushNotification(
+          'Inventory is full — free a slot before taking a card off your showcase.',
+          'warning',
+        );
+        return;
+      }
       set({ showcaseItemIds: state.showcaseItemIds.filter((id) => id !== itemId) });
       get().pushNotification(`${item.name} removed from your showcase.`, 'info');
     } else {
@@ -1889,7 +1908,7 @@ function awardWonAuction(auctionId: string, price: number) {
     return;
   }
   const slots = store.inventorySlots();
-  if (store.inventory.length >= slots) {
+  if (occupiedSlots(store) >= slots) {
     store.pushNotification('You won the auction but inventory is full! Sell something fast.', 'warning');
     return;
   }

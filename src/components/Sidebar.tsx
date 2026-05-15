@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Route } from '../App';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore, occupiedSlots } from '../store/useGameStore';
 import { isMuted, setMuted, SFX } from '../game/audio';
 import { Icon, type IconName } from './Icon';
 import { NotificationStack } from './NotificationStack';
@@ -92,7 +92,7 @@ export function Sidebar({ route, setRoute }: Props) {
   const state = useGameStore();
   const auctionsCount = state.auctions.filter((a) => !a.resolved).length;
   const pendingGrades = state.gradingSubmissions.length;
-  const inventoryCount = state.inventory.length;
+  const inventoryCount = occupiedSlots(state);
   const inventoryMax = state.inventorySlots();
   const storefrontCount = state.playerListings.length;
   const achievementsUnlocked = state.achievementsUnlocked.length;
@@ -243,8 +243,20 @@ export function Sidebar({ route, setRoute }: Props) {
           <span className="flex-1 text-left">{muted ? 'Audio off' : 'Audio on'}</span>
         </button>
       </div>
-      <div className="px-4 py-2 text-[10px] text-ink-400 border-t border-line">
-        Fictional brands only. No real cards harmed.
+      <div className="px-3 py-2 border-t border-line">
+        <button
+          onClick={() => {
+            SFX.click();
+            window.open('https://discord.gg/8FPP5wqRea', '_blank');
+          }}
+          className="w-full flex items-center justify-center gap-2 rounded px-2.5 py-1.5 text-xs font-bold text-white bg-[#5865F2] hover:bg-[#4752c4] transition"
+        >
+          <Icon name="discord" size={15} />
+          Join our Discord
+        </button>
+        <div className="mt-2 text-[10px] text-ink-400 text-center">
+          Fictional brands only. No real cards harmed.
+        </div>
       </div>
 
       <style>{`

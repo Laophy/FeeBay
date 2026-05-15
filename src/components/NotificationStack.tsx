@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Icon, type IconName } from './Icon';
 import type { GameNotification } from '../types';
@@ -73,6 +73,15 @@ export function NotificationStack() {
         .noti-slide-in {
           animation: notiSlideIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
+        @keyframes notiCountdown {
+          from { transform: scaleX(1); }
+          to   { transform: scaleX(0); }
+        }
+        .noti-countdown {
+          transform-origin: left;
+          animation: notiCountdown linear forwards;
+          will-change: transform;
+        }
       `}</style>
     </div>
   );
@@ -81,28 +90,18 @@ export function NotificationStack() {
 function Toast({ note }: { note: GameNotification }) {
   const dismiss = useGameStore((s) => s.dismissNotification);
   const duration = KIND_DURATION_MS[note.kind] ?? 3000;
-  const [progress, setProgress] = useState(100);
-  const onDismiss = () => dismiss(note.id);
 
-  // Keyed only on the notification id + duration so parent re-renders (game ticks)
-  // never restart the countdown. `dismiss` is a stable zustand action reference.
+  // Auto-dismiss. Keyed on id + duration so parent re-renders (game ticks)
+  // never restart the timer. `dismiss` is a stable zustand action reference.
   useEffect(() => {
-    const start = Date.now();
     const timer = setTimeout(() => dismiss(note.id), duration);
-    const tick = setInterval(() => {
-      const elapsed = Date.now() - start;
-      setProgress(Math.max(0, 100 - (elapsed / duration) * 100));
-    }, 60);
-    return () => {
-      clearTimeout(timer);
-      clearInterval(tick);
-    };
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id, duration]);
 
   return (
     <button
-      onClick={onDismiss}
+      onClick={() => dismiss(note.id)}
       className={`noti-slide-in select-none cursor-pointer text-left rounded-md border px-2 py-1.5 text-[11px] shadow-sm flex items-start gap-1.5 relative overflow-hidden ${
         KIND_STYLES[note.kind] ?? KIND_STYLES.info
       }`}
@@ -113,10 +112,12 @@ function Toast({ note }: { note: GameNotification }) {
         className="mt-0.5 shrink-0 opacity-80"
       />
       <span className="flex-1 leading-snug">{note.message}</span>
+      {/* Countdown bar — pure CSS transform animation, runs on the compositor
+          for a perfectly smooth drain with no per-frame React re-renders. */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-ink-100">
         <div
-          className={`h-full ${KIND_PROGRESS[note.kind] ?? KIND_PROGRESS.info}`}
-          style={{ width: `${progress}%` }}
+          className={`noti-countdown h-full w-full ${KIND_PROGRESS[note.kind] ?? KIND_PROGRESS.info}`}
+          style={{ animationDuration: `${duration}ms` }}
         />
       </div>
     </button>

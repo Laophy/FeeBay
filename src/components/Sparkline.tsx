@@ -1,5 +1,8 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+
 type Props = {
   data: { t: number; v: number }[];
+  /** Deprecated — the chart now measures its container and scales to fit. */
   width?: number;
   height?: number;
   stroke?: string;
@@ -8,21 +11,51 @@ type Props = {
 
 export function Sparkline({
   data,
-  width = 360,
   height = 80,
   stroke = '#37acf3',
   fill = 'rgba(55, 172, 243, 0.18)',
 }: Props) {
-  if (data.length === 0) {
-    return (
-      <div
-        className="flex items-center justify-center text-xs text-ink-400"
-        style={{ width, height }}
-      >
-        No data yet — keep flipping.
-      </div>
-    );
-  }
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  // Track the container's real width so the chart scales with the layout
+  // instead of overflowing on small screens.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="w-full" style={{ height }}>
+      {data.length === 0 ? (
+        <div className="flex h-full items-center justify-center text-xs text-ink-400">
+          No data yet — keep flipping.
+        </div>
+      ) : width > 0 ? (
+        <Chart data={data} width={width} height={height} stroke={stroke} fill={fill} />
+      ) : null}
+    </div>
+  );
+}
+
+function Chart({
+  data,
+  width,
+  height,
+  stroke,
+  fill,
+}: {
+  data: { t: number; v: number }[];
+  width: number;
+  height: number;
+  stroke: string;
+  fill: string;
+}) {
   const padding = 4;
   const w = width - padding * 2;
   const h = height - padding * 2;

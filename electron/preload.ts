@@ -15,9 +15,11 @@ contextBridge.exposeInMainWorld('feebay', {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximizeToggle: () => ipcRenderer.send('window:maximize-toggle'),
     close: () => ipcRenderer.send('window:close'),
+    fullscreenToggle: () => ipcRenderer.send('window:fullscreen-toggle'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized') as Promise<boolean>,
-    onStateChange: (cb: (state: { maximized: boolean }) => void) => {
-      const handler = (_: unknown, state: { maximized: boolean }) => cb(state);
+    isFullScreen: () => ipcRenderer.invoke('window:is-fullscreen') as Promise<boolean>,
+    onStateChange: (cb: (state: { maximized: boolean; fullscreen: boolean }) => void) => {
+      const handler = (_: unknown, state: { maximized: boolean; fullscreen: boolean }) => cb(state);
       ipcRenderer.on('window:state', handler);
       return () => ipcRenderer.removeListener('window:state', handler);
     },
