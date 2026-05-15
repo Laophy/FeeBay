@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { APP_VERSION } from '../version';
 
 const LETTERS: { char: string; color: string }[] = [
   { char: 'F', color: '#e53238' },
@@ -63,6 +64,9 @@ export function LoadingScreen({ onDone, durationMs = 2400 }: Props) {
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-[0.4em] text-ink-500 font-bold">
             Simulator
+          </span>
+          <span className="text-[10px] tracking-widest text-ink-400 font-bold tabular-nums">
+            {APP_VERSION}
           </span>
         </div>
         <div className="splash-dots flex items-center gap-1.5 mt-2">

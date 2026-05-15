@@ -22,6 +22,7 @@ export function Stats() {
   const marketNoise = useGameStore((s) => s.marketNoise);
   const convention = useGameStore((s) => s.convention);
   const upgradesPurchased = useGameStore((s) => s.upgradesPurchased);
+  const storefrontBalance = useGameStore((s) => s.storefrontBalance);
 
   const inventoryValue = inventory.reduce(
     (sum, i) =>
@@ -31,7 +32,7 @@ export function Stats() {
         : calculateCurrentValue(i, marketTrends, marketNoise, convention, vaultStableFor({ upgradesPurchased }))),
     0,
   );
-  const netWorth = cash + inventoryValue;
+  const netWorth = cash + storefrontBalance + inventoryValue;
   const current = getBusinessLevel(businessLevel);
   const nextLevel = getNextBusinessLevel(businessLevel);
   const canPromote =

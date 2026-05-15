@@ -170,6 +170,8 @@ export type PlayerStats = {
   highestNetWorth: number;
   /** Total player-storefront sales (separate from totalSold). */
   storefrontSales: number;
+  /** Lifetime gross revenue (net of fees) from player-storefront sales. */
+  storefrontRevenue: number;
   /** Whether the player has triggered at least one supply crash. */
   crashesCaused: number;
 };
@@ -295,6 +297,10 @@ export type GameState = {
   storefrontHistory: StorefrontSale[];
   /** Pending storefront sales waiting on buyer payment or cancellation. */
   pendingPayments: PendingPayment[];
+  /** Net revenue accumulated from storefront sales; manually moved to cash via withdraw. */
+  storefrontBalance: number;
+  /** Whether the player has toggled auto-withdraw on. Only effective if the upgrade is owned. */
+  autoWithdrawEnabled: boolean;
   /** Per-helper last-tick timestamps so we throttle their actions. */
   hiredHelpState: {
     apprenticeLastFlipAt: number;
@@ -351,8 +357,8 @@ export type StorefrontSale = {
   listPrice: number;
   netRevenue: number;
   profit: number;
-  /** Whether the buyer paid right away or after a delay. */
-  status: 'instant' | 'delayed';
+  /** Whether the buyer paid right away, after a delay, or never paid (cancelled). */
+  status: 'instant' | 'delayed' | 'cancelled';
   buyerName?: string;
 };
 

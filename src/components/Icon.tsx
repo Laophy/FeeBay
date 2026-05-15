@@ -26,6 +26,7 @@ export type IconName =
   | 'arrow-down'
   | 'plus'
   | 'minus'
+  | 'x'
   | 'gavel'
   | 'wallet'
   | 'chart-up'
@@ -273,6 +274,7 @@ const PATHS: Record<IconName, JSX.Element> = {
     </>
   ),
   minus: <path d="M5 12h14" />,
+  x: <path d="M5 5l14 14M19 5L5 19" />,
   search: (
     <>
       <circle cx="11" cy="11" r="7" />

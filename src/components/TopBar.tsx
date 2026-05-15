@@ -49,6 +49,7 @@ export function TopBar({ route, bounceLogo }: Props) {
   const noise = useGameStore((s) => s.marketNoise);
   const convention = useGameStore((s) => s.convention);
   const upgradesPurchased = useGameStore((s) => s.upgradesPurchased);
+  const storefrontBalance = useGameStore((s) => s.storefrontBalance);
   const resetGame = useGameStore((s) => s.resetGame);
 
   const inventoryValue = inventory.reduce(
@@ -59,7 +60,7 @@ export function TopBar({ route, bounceLogo }: Props) {
         : calculateCurrentValue(i, trends, noise, convention, vaultStableFor({ upgradesPurchased }))),
     0,
   );
-  const netWorth = cash + inventoryValue;
+  const netWorth = cash + storefrontBalance + inventoryValue;
 
   return (
     <header className="bg-white border-b border-line">

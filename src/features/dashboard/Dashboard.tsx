@@ -33,6 +33,7 @@ export function Dashboard({ onNavigate }: Props) {
   const businessLevel = useGameStore((s) => s.businessLevel);
   const day = useGameStore((s) => s.day);
   const reputation = useGameStore((s) => s.reputation);
+  const storefrontBalance = useGameStore((s) => s.storefrontBalance);
 
   const inventoryValue = inventory.reduce(
     (sum, i) =>
@@ -42,7 +43,7 @@ export function Dashboard({ onNavigate }: Props) {
         : calculateCurrentValue(i, trends, noise, convention, vaultStableFor({ upgradesPurchased }))),
     0,
   );
-  const netWorth = cash + inventoryValue;
+  const netWorth = cash + storefrontBalance + inventoryValue;
   const recentEvents = notes.filter((n) => n.kind === 'event').slice(0, 5);
   const recentFlips = notes.filter((n) => n.kind === 'success' || n.kind === 'warning').slice(0, 6);
   const collectionOwned = Object.keys(collection).length;

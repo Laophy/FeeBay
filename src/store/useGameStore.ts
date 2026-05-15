@@ -68,6 +68,32 @@ export function vaultStableFor(state: { upgradesPurchased: string[] }): boolean 
   return state.upgradesPurchased.includes('hire_vault_keeper');
 }
 
+/** Effective FeeBay storefront fee rate (0..1) charged on withdraw. */
+export function storefrontFeeRate(state: { upgradesPurchased: string[]; businessLevel: number }): number {
+  const b = storefrontFeeBreakdown(state);
+  return b.rate;
+}
+
+/** Detailed breakdown of how the storefront fee was computed, for UI. */
+export function storefrontFeeBreakdown(state: {
+  upgradesPurchased: string[];
+  businessLevel: number;
+}): {
+  base: number;
+  upgradeReduction: number;
+  businessDiscount: number;
+  rate: number;
+} {
+  const base = 0.14;
+  let upgradeReduction = 0;
+  if (state.upgradesPurchased.includes('verified_seller')) upgradeReduction += 0.04;
+  if (state.upgradesPurchased.includes('top_seller')) upgradeReduction += 0.06;
+  const afterUpgrades = Math.max(0, base - upgradeReduction);
+  const businessDiscount = getBusinessLevel(state.businessLevel).feeDiscount;
+  const rate = +(afterUpgrades * (1 - businessDiscount)).toFixed(4);
+  return { base, upgradeReduction, businessDiscount, rate };
+}
+
 export function listingCountFor(state: { businessLevel: number }): number {
   return 12 + getBusinessLevel(state.businessLevel).bonusListings;
 }
@@ -93,6 +119,7 @@ function emptyStats(): PlayerStats {
     highestReputation: 0,
     highestNetWorth: 0,
     storefrontSales: 0,
+    storefrontRevenue: 0,
     crashesCaused: 0,
   };
 }
@@ -162,6 +189,8 @@ function defaultState(): GameState {
     showcaseItemIds: [],
     storefrontHistory: [],
     pendingPayments: [],
+    storefrontBalance: 0,
+    autoWithdrawEnabled: false,
     hiredHelpState: {
       apprenticeLastFlipAt: 0,
       buyerAgentLastBuyAt: 0,
@@ -237,6 +266,10 @@ type Actions = {
   ): void;
   delistFromStorefront(listingId: string): void;
   tickPlayerListings(): void;
+  /** Move the storefront wallet balance into cash. */
+  withdrawStorefront(): void;
+  /** Toggle the player's auto-withdraw preference. No-op if the upgrade isn't owned. */
+  setAutoWithdraw(enabled: boolean): void;
   claimAchievement(id: string): void;
   claimAllAchievements(): void;
   /** central evaluation hook */
@@ -252,6 +285,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const loaded = loadGame();
     if (loaded) {
       set({ ...defaultState(), ...loaded });
+    }
+    // Heal any inventory items stuck at status 'listed' without a matching active listing
+    // (legacy bug: cancelled-pending-payment cards returned with their pre-cancel status).
+    const s = get();
+    const listedIds = new Set(s.playerListings.map((l) => l.itemId));
+    const pendingIds = new Set(s.pendingPayments.map((p) => p.item.id));
+    const fixed = s.inventory.map((i) => {
+      if (i.status !== 'listed') return i;
+      if (listedIds.has(i.id) || pendingIds.has(i.id)) return i;
+      return { ...i, status: i.grade !== undefined ? ('graded' as const) : ('raw' as const) };
+    });
+    if (fixed.some((i, idx) => i !== s.inventory[idx])) {
+      set({ inventory: fixed });
     }
     if (get().listings.length === 0) {
       get().refreshListings();
@@ -937,11 +983,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 
+  withdrawStorefront() {
+    const state = get();
+    const amount = state.storefrontBalance;
+    if (amount <= 0) return;
+    const rate = storefrontFeeRate(state);
+    const fee = +(amount * rate).toFixed(2);
+    const net = +(amount - fee).toFixed(2);
+    set({
+      cash: +(state.cash + net).toFixed(2),
+      storefrontBalance: 0,
+      stats: {
+        ...state.stats,
+        totalFeesPaid: +(state.stats.totalFeesPaid + fee).toFixed(2),
+      },
+    });
+    SFX.chaching();
+    get().pushNotification(
+      `Withdrew $${net.toFixed(2)} (FeeBay took $${fee.toFixed(2)} at ${(rate * 100).toFixed(0)}%).`,
+      'success',
+    );
+    get().save();
+  },
+
+  setAutoWithdraw(enabled) {
+    const state = get();
+    if (enabled && !state.upgradesPurchased.includes('auto_withdraw')) {
+      get().pushNotification('Buy the Auto-Withdraw upgrade first.', 'warning');
+      return;
+    }
+    set({ autoWithdrawEnabled: enabled });
+    get().save();
+  },
+
   tickPlayerListings() {
     const state = get();
     if (state.playerListings.length === 0 && state.pendingPayments.length === 0) return;
     const now = Date.now();
+    const autoWithdraw =
+      state.autoWithdrawEnabled && state.upgradesPurchased.includes('auto_withdraw');
     let cashDelta = 0;
+    let walletDelta = 0;
     let inventory = state.inventory;
     const remaining: typeof state.playerListings = [];
     let totalProfit = state.stats.totalProfit;
@@ -951,6 +1033,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let biggestLoss = state.stats.biggestLoss;
     let reputationGain = 0;
     let storefrontSales = state.stats.storefrontSales;
+    let storefrontRevenue = state.stats.storefrontRevenue ?? 0;
     let anyStorefrontSale = false;
     const newHistory: typeof state.storefrontHistory = [];
     const newPending: typeof state.pendingPayments = [];
@@ -993,7 +1076,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         if (willInstantPay) {
           // Pay now (current behavior)
-          cashDelta += sale.net;
+          if (autoWithdraw) cashDelta += sale.net;
+          else walletDelta += sale.net;
           totalProfit += profit;
           totalFees += totalFeeAmount;
           totalSold += 1;
@@ -1001,6 +1085,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           biggestLoss = Math.min(biggestLoss, profit);
           if (profit > 0) reputationGain += 1;
           storefrontSales += 1;
+          storefrontRevenue += sale.net;
           anyStorefrontSale = true;
           newHistory.push({
             id: uid('sfh_'),
@@ -1065,9 +1150,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
         continue;
       }
       if (p.willCancel) {
-        // Buyer ghosted. Return the card to inventory.
-        inventory = [...inventory, p.item];
+        // Buyer ghosted. Return the card to inventory with its pre-listing status restored.
+        const restored = {
+          ...p.item,
+          status: p.item.grade !== undefined ? ('graded' as const) : ('raw' as const),
+        };
+        inventory = [...inventory, restored];
         SFX.loss();
+        newHistory.push({
+          id: uid('sfh_'),
+          cardId: p.item.cardId,
+          cardName: p.item.name,
+          rarity: p.item.rarity,
+          hue: p.item.hue,
+          grade: p.item.grade,
+          gradingCompany: p.item.gradingCompany,
+          centeringOffsetX: p.item.centeringOffsetX,
+          centeringOffsetY: p.item.centeringOffsetY,
+          marketplace: p.marketplace,
+          soldAt: now,
+          listPrice: p.listPrice,
+          netRevenue: 0,
+          profit: 0,
+          status: 'cancelled',
+          buyerName: p.buyerName,
+        });
         get().pushNotification(
           `@${p.buyerName} cancelled the order for ${p.item.name}. Card returned. Wasted ${Math.round(
             (p.resolveAt - p.saleAt) / 1000,
@@ -1076,7 +1183,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         );
       } else {
         // Payment arrives now.
-        cashDelta += p.netRevenue;
+        if (autoWithdraw) cashDelta += p.netRevenue;
+        else walletDelta += p.netRevenue;
         totalProfit += p.profit;
         totalFees += p.fees;
         totalSold += 1;
@@ -1084,6 +1192,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         biggestLoss = Math.min(biggestLoss, p.profit);
         if (p.profit > 0) reputationGain += 1;
         storefrontSales += 1;
+        storefrontRevenue += p.netRevenue;
         anyStorefrontSale = true;
         newHistory.push({
           id: uid('sfh_'),
@@ -1116,12 +1225,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (
       cashDelta !== 0 ||
+      walletDelta !== 0 ||
       remaining.length !== state.playerListings.length ||
       reputationGain !== 0 ||
       pendingChanged
     ) {
       set({
         cash: +(state.cash + cashDelta).toFixed(2),
+        storefrontBalance: +(state.storefrontBalance + walletDelta).toFixed(2),
         inventory,
         playerListings: remaining,
         stats: {
@@ -1132,6 +1243,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           bestSaleProfit: bestProfit,
           biggestLoss,
           storefrontSales,
+          storefrontRevenue: +storefrontRevenue.toFixed(2),
         },
         reputation: state.reputation + reputationGain,
         storefrontHistory:
@@ -1312,7 +1424,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           : calculateCurrentValue(i, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state))),
       0,
     );
-    const netWorth = state.cash + inventoryValue;
+    const netWorth = state.cash + state.storefrontBalance + inventoryValue;
     if (netWorth < next.netWorthRequirement) {
       get().pushNotification(
         `Need $${next.netWorthRequirement.toLocaleString()} net worth to step up to ${next.name}.`,
@@ -1399,6 +1511,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       showcaseItemIds: state.showcaseItemIds,
       storefrontHistory: state.storefrontHistory,
       pendingPayments: state.pendingPayments,
+      storefrontBalance: state.storefrontBalance,
+      autoWithdrawEnabled: state.autoWithdrawEnabled,
       hiredHelpState: state.hiredHelpState,
       ui: state.ui,
     });
@@ -1613,7 +1727,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           : calculateCurrentValue(i, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state))),
       0,
     );
-    const v = +(state.cash + inventoryValue).toFixed(2);
+    const v = +(state.cash + state.storefrontBalance + inventoryValue).toFixed(2);
     const sample = { t: Date.now(), v };
     const last = state.netWorthSamples[state.netWorthSamples.length - 1];
     if (!last || sample.t - last.t > 2_000) {

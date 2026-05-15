@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useGameStore } from '../../store/useGameStore';
+import { useGameStore, storefrontFeeBreakdown } from '../../store/useGameStore';
 import { CardArt } from '../../components/CardArt';
 import { getCardById } from '../../data/cards';
 import { saleProbabilityPerTick } from '../../game/storefront';
@@ -11,6 +11,23 @@ export function Storefront() {
   const delist = useGameStore((s) => s.delistFromStorefront);
   const history = useGameStore((s) => s.storefrontHistory);
   const pending = useGameStore((s) => s.pendingPayments);
+  const balance = useGameStore((s) => s.storefrontBalance);
+  const autoWithdraw = useGameStore((s) => s.autoWithdrawEnabled);
+  const upgrades = useGameStore((s) => s.upgradesPurchased);
+  const withdraw = useGameStore((s) => s.withdrawStorefront);
+  const setAutoWithdraw = useGameStore((s) => s.setAutoWithdraw);
+  const stats = useGameStore((s) => s.stats);
+  const autoWithdrawUnlocked = upgrades.includes('auto_withdraw');
+
+  const totalListedValue = listings.reduce((s, l) => s + l.askingPrice, 0);
+  const pendingValue = pending.reduce((s, p) => s + (p.willCancel ? 0 : p.netRevenue), 0);
+  const totalSalesCount = stats.storefrontSales;
+  const totalSalesRevenue = stats.storefrontRevenue ?? 0;
+  const businessLevel = useGameStore((s) => s.businessLevel);
+  const feeBreakdown = storefrontFeeBreakdown({ upgradesPurchased: upgrades, businessLevel });
+  const feeRate = feeBreakdown.rate;
+  const previewFee = +(balance * feeRate).toFixed(2);
+  const previewNet = +(balance - previewFee).toFixed(2);
 
   const [, force] = useState(0);
   useEffect(() => {
@@ -33,6 +50,152 @@ export function Storefront() {
         <p className="text-ink-500 text-sm">
           Cards you've listed at your chosen prices. Buyers nibble probabilistically — list close to value for steady sales, list above for jackpot odds.
         </p>
+      </div>
+
+      {/* Wallet + stats */}
+      <div className="rounded-xl border border-line bg-white shadow-card overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto]">
+          <div className="grid grid-cols-3 divide-x divide-lineSoft">
+            <WalletStat
+              icon="chart-up"
+              label="Total sales"
+              value={`$${totalSalesRevenue.toFixed(2)}`}
+              sub={`${totalSalesCount} order${totalSalesCount === 1 ? '' : 's'} · ${listings.length} active · ${pending.length} pending`}
+              accent="text-ebayGreen-700"
+            />
+            <WalletStat
+              icon="tag"
+              label="Listed value"
+              value={`$${totalListedValue.toFixed(2)}`}
+              sub="Sum of active asking prices"
+              accent="text-feebay-700"
+            />
+            <WalletStat
+              icon="wallet"
+              label="In transit"
+              value={`$${pendingValue.toFixed(2)}`}
+              sub="Buyers about to pay"
+              accent="text-ebayYellow-700"
+            />
+          </div>
+
+          <div className="bg-gradient-to-br from-ebayGreen-500/10 via-white to-white border-t lg:border-t-0 lg:border-l border-lineSoft p-4 flex flex-col gap-3 lg:min-w-[320px]">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-md bg-ebayGreen-500 text-white flex items-center justify-center shadow-sm">
+                <Icon name="wallet" size={18} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-widest font-bold text-ink-500">
+                  Storefront wallet
+                </div>
+                <div className="text-2xl font-black text-ebayGreen-700 tabular-nums leading-none mt-0.5">
+                  ${balance.toFixed(2)}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-md border border-line bg-paper px-3 py-2 text-[11px] space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-ink-500 inline-flex items-center gap-1">
+                  <Icon name="tag" size={11} />
+                  FeeBay fee
+                  <span
+                    className="text-ink-400"
+                    title={`Base 14%${
+                      feeBreakdown.upgradeReduction > 0
+                        ? ` − ${(feeBreakdown.upgradeReduction * 100).toFixed(0)}% upgrades`
+                        : ''
+                    }${
+                      feeBreakdown.businessDiscount > 0
+                        ? ` − ${(feeBreakdown.businessDiscount * 100).toFixed(0)}% business level`
+                        : ''
+                    }`}
+                  >
+                    ({(feeRate * 100).toFixed(2).replace(/\.?0+$/, '')}%)
+                  </span>
+                </span>
+                <span className="font-bold text-ebayRed-500 tabular-nums">
+                  −${previewFee.toFixed(2)}
+                </span>
+              </div>
+              {(feeBreakdown.upgradeReduction > 0 || feeBreakdown.businessDiscount > 0) && (
+                <div className="flex items-center justify-between text-ink-400">
+                  <span className="inline-flex items-center gap-1">
+                    <Icon name="sparkle" size={10} />
+                    Discounts
+                  </span>
+                  <span className="tabular-nums">
+                    {feeBreakdown.upgradeReduction > 0 && (
+                      <span className="text-ebayGreen-700 font-semibold">
+                        −{(feeBreakdown.upgradeReduction * 100).toFixed(0)}% upgrades
+                      </span>
+                    )}
+                    {feeBreakdown.upgradeReduction > 0 && feeBreakdown.businessDiscount > 0 && (
+                      <span className="text-ink-300 mx-1">·</span>
+                    )}
+                    {feeBreakdown.businessDiscount > 0 && (
+                      <span className="text-ebayYellow-700 font-semibold">
+                        −{(feeBreakdown.businessDiscount * 100).toFixed(0)}% biz lv{businessLevel}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-t border-lineSoft pt-1 mt-1">
+                <span className="text-ink-700 font-semibold">You receive</span>
+                <span className="font-black text-ink-900 tabular-nums">
+                  ${previewNet.toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={withdraw}
+              disabled={balance <= 0}
+              className={`w-full rounded-md py-2 text-sm font-bold uppercase tracking-widest transition border-2 ${
+                balance > 0
+                  ? 'bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white border-ebayGreen-600 shadow-sm'
+                  : 'bg-ink-100 text-ink-400 border-line cursor-not-allowed'
+              }`}
+            >
+              {balance > 0 ? `Withdraw $${previewNet.toFixed(2)}` : 'Nothing to withdraw'}
+            </button>
+            <label
+              className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 ${
+                autoWithdrawUnlocked
+                  ? 'border-line bg-paper cursor-pointer'
+                  : 'border-dashed border-line bg-paper opacity-70 cursor-not-allowed'
+              }`}
+              title={
+                autoWithdrawUnlocked
+                  ? 'When on, sales deposit straight into your cash.'
+                  : 'Buy the Auto-Withdraw upgrade to enable this.'
+              }
+            >
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-ink-900 flex items-center gap-1.5">
+                  <Icon name="bolt" size={12} className="text-feebay-600" />
+                  Auto-withdraw
+                  {!autoWithdrawUnlocked && (
+                    <span className="ml-1 text-[9px] uppercase tracking-widest text-ink-400 font-bold inline-flex items-center gap-0.5">
+                      <Icon name="lock" size={9} /> upgrade
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-ink-500">
+                  {autoWithdrawUnlocked
+                    ? autoWithdraw
+                      ? 'On — sales deposit instantly.'
+                      : 'Off — sales stack in your wallet.'
+                    : 'Locked. See Upgrades.'}
+                </div>
+              </div>
+              <Toggle
+                checked={autoWithdrawUnlocked && autoWithdraw}
+                disabled={!autoWithdrawUnlocked}
+                onChange={(v) => setAutoWithdraw(v)}
+              />
+            </label>
+          </div>
+        </div>
       </div>
 
       {listings.length === 0 ? (
@@ -227,67 +390,158 @@ export function Storefront() {
           </div>
         ) : (
           <ul className="divide-y divide-lineSoft">
-            {history.map((h) => (
-              <li key={h.id} className="flex items-center gap-3 py-2.5">
-                <CardArt
-                  name={h.cardName}
-                  rarity={h.rarity}
-                  hue={h.hue}
-                  cardId={h.cardId}
-                  grade={h.grade}
-                  gradingCompany={h.gradingCompany}
-                  centeringOffsetX={h.centeringOffsetX}
-                  centeringOffsetY={h.centeringOffsetY}
-                  small
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-ink-900 truncate">{h.cardName}</div>
-                  <div className="text-[11px] text-ink-500">
-                    Sold on <span className="text-ink-700 font-semibold">{h.marketplace}</span>
-                    <span className="text-ink-300 mx-1.5">•</span>
-                    {h.rarity}
-                    {h.grade !== undefined && (
+            {history.map((h) => {
+              const cancelled = h.status === 'cancelled';
+              return (
+                <li
+                  key={h.id}
+                  className={`flex items-center gap-3 py-2.5 ${cancelled ? 'opacity-70' : ''}`}
+                >
+                  <CardArt
+                    name={h.cardName}
+                    rarity={h.rarity}
+                    hue={h.hue}
+                    cardId={h.cardId}
+                    grade={h.grade}
+                    gradingCompany={h.gradingCompany}
+                    centeringOffsetX={h.centeringOffsetX}
+                    centeringOffsetY={h.centeringOffsetY}
+                    small
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`text-sm font-bold truncate ${
+                        cancelled ? 'text-ink-600 line-through decoration-ebayRed-500/60' : 'text-ink-900'
+                      }`}
+                    >
+                      {h.cardName}
+                    </div>
+                    <div className="text-[11px] text-ink-500">
+                      {cancelled ? 'Listed on' : 'Sold on'}{' '}
+                      <span className="text-ink-700 font-semibold">{h.marketplace}</span>
+                      <span className="text-ink-300 mx-1.5">•</span>
+                      {h.rarity}
+                      {h.grade !== undefined && (
+                        <>
+                          <span className="text-ink-300 mx-1.5">•</span>
+                          <span className="text-ebayYellow-700 font-semibold">
+                            {h.gradingCompany} {h.grade}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {cancelled ? (
                       <>
-                        <span className="text-ink-300 mx-1.5">•</span>
-                        <span className="text-ebayYellow-700 font-semibold">
-                          {h.gradingCompany} {h.grade}
-                        </span>
+                        <div className="text-sm font-black text-ink-400">—</div>
+                        <div className="text-[11px] font-bold text-ebayRed-500">No payment</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-sm font-black text-ink-900">
+                          ${h.netRevenue.toFixed(2)}
+                        </div>
+                        <div
+                          className={`text-[11px] font-bold ${
+                            h.profit >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'
+                          }`}
+                        >
+                          {h.profit >= 0 ? '+' : ''}${h.profit.toFixed(2)}
+                        </div>
                       </>
                     )}
                   </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-black text-ink-900">${h.netRevenue.toFixed(2)}</div>
-                  <div
-                    className={`text-[11px] font-bold ${
-                      h.profit >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'
-                    }`}
-                  >
-                    {h.profit >= 0 ? '+' : ''}${h.profit.toFixed(2)}
+                  <div className="shrink-0 w-20 flex justify-center">
+                    {h.status === 'instant' ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-ebayGreen-500/15 text-ebayGreen-700 border border-ebayGreen-500/50">
+                        <Icon name="check" size={10} /> Instant
+                      </span>
+                    ) : h.status === 'delayed' ? (
+                      <span
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-feebay-50 text-feebay-700 border border-feebay-500/50"
+                        title="Buyer took a while to pay"
+                      >
+                        <Icon name="wallet" size={10} /> Delayed
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-ebayRed-500/10 text-ebayRed-600 border border-ebayRed-500/50"
+                        title="Buyer never paid — card returned to inventory"
+                      >
+                        <Icon name="x" size={10} /> Cancelled
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="shrink-0 w-20 flex justify-center">
-                  {h.status === 'instant' ? (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-ebayGreen-500/15 text-ebayGreen-700 border border-ebayGreen-500/50">
-                      <Icon name="check" size={10} /> Instant
-                    </span>
-                  ) : (
-                    <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-feebay-50 text-feebay-700 border border-feebay-500/50"
-                      title="Buyer took a while to pay"
-                    >
-                      <Icon name="wallet" size={10} /> Delayed
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-ink-400 shrink-0 w-16 text-right">
-                  {fmtRelative(h.soldAt)}
-                </div>
-              </li>
-            ))}
+                  <div className="text-[11px] text-ink-400 shrink-0 w-16 text-right">
+                    {fmtRelative(h.soldAt)}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
     </div>
+  );
+}
+
+function WalletStat({
+  icon,
+  label,
+  value,
+  sub,
+  accent = 'text-ink-900',
+}: {
+  icon: 'wallet' | 'tag' | 'chart-up';
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: string;
+}) {
+  return (
+    <div className="px-4 py-4 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-md bg-paper border border-line text-ink-600 flex items-center justify-center shrink-0">
+        <Icon name={icon} size={16} />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase tracking-widest text-ink-500 font-bold">{label}</div>
+        <div className={`text-xl font-black tabular-nums leading-tight ${accent}`}>{value}</div>
+        {sub && <div className="text-[10px] text-ink-500 mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Toggle({
+  checked,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      className={`relative inline-flex items-center h-5 w-9 rounded-full transition shrink-0 ${
+        disabled
+          ? 'bg-ink-200 cursor-not-allowed'
+          : checked
+          ? 'bg-ebayGreen-500'
+          : 'bg-ink-300'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
+          checked ? 'translate-x-4' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
   );
 }

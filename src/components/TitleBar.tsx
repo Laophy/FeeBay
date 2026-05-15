@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { APP_VERSION } from '../version';
 
 /**
  * Custom Electron title bar. Light theme, eBay-style colorful logo letters.
@@ -31,6 +32,9 @@ export function TitleBar() {
         <span className="text-feebay-500">y</span>
         <span className="text-ink-500 ml-1.5 font-medium text-[11px] tracking-wide">
           Simulator
+        </span>
+        <span className="text-ink-400 ml-1 font-bold text-[10px] tracking-widest tabular-nums">
+          {APP_VERSION}
         </span>
       </div>
 
