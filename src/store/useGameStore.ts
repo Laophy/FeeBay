@@ -4,6 +4,7 @@ import type {
   BulkGradeReveal,
   GameNotification,
   GameState,
+  GradeHistoryEntry,
   GradingCompanyId,
   InventoryItem,
   MarketplaceListing,
@@ -17,6 +18,7 @@ import {
   computeSale,
 } from '../game/economyEngine';
 import { rollGrade } from '../game/gradingEngine';
+import { generateGraderNote } from '../game/graderNotes';
 import { pruneExpiredTrends, rollMarketEvent } from '../game/marketEvents';
 import { loadGame, saveGame } from '../game/saveSystem';
 import { pick, rand, uid } from '../game/rng';
@@ -180,6 +182,7 @@ function defaultState(): GameState {
     lastMarketEvent: 0,
     pendingGradeReveals: [],
     pendingBulkReveal: [],
+    gradingHistory: [],
     pendingLotReveals: [],
     achievementsUnlocked: [],
     achievementsClaimed: [],
@@ -711,6 +714,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ gradingSubmissions: state.gradingSubmissions.filter((s) => s.id !== submissionId) });
       return;
     }
+    // Raw market value just before grading — for the history before/after.
+    const rawValue = calculateCurrentValue(
+      item,
+      state.marketTrends,
+      state.marketNoise,
+      state.convention,
+      vaultStableFor(state),
+    );
     const result = rollGrade(item, sub.company);
     const updated: InventoryItem = {
       ...item,
@@ -721,6 +732,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
     const inventory = state.inventory.map((i) => (i.id === item.id ? updated : i));
     const finalValue = calculateCurrentValue(updated, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state));
+    const historyEntry = {
+      id: uid('gh_'),
+      cardId: item.cardId,
+      cardName: item.name,
+      rarity: item.rarity,
+      hue: item.hue,
+      centeringOffsetX: item.centeringOffsetX,
+      centeringOffsetY: item.centeringOffsetY,
+      grade: result.grade,
+      gradeLabel: result.label,
+      gradingCompany: result.company,
+      rawValue,
+      gradedValue: finalValue,
+      cost: sub.cost,
+      graderNote: generateGraderNote(item, result.grade),
+      gradedAt: Date.now(),
+    };
     const reveal = {
       submissionId: sub.id,
       itemId: item.id,
@@ -747,6 +775,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gradingSubmissions: state.gradingSubmissions.filter((s) => s.id !== submissionId),
       stats,
       collection,
+      gradingHistory: [historyEntry, ...state.gradingHistory].slice(0, 40),
     });
     get().evaluateAndApplyAchievements({ kind: 'graded', grade: result.grade, item: updated });
     get().save();
@@ -771,10 +800,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
     const bulkReveals: BulkGradeReveal[] = [];
     const gradedItems: InventoryItem[] = [];
+    const historyEntries: GradeHistoryEntry[] = [];
 
     for (const sub of ready) {
       const item = inventory.find((i) => i.id === sub.itemId);
       if (!item) continue;
+      const rawValue = calculateCurrentValue(
+        item,
+        state.marketTrends,
+        state.marketNoise,
+        state.convention,
+        vaultStableFor(state),
+      );
       const result = rollGrade(item, sub.company);
       const updated: InventoryItem = {
         ...item,
@@ -785,6 +822,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
       inventory = inventory.map((i) => (i.id === item.id ? updated : i));
       const finalValue = calculateCurrentValue(updated, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state));
+      historyEntries.push({
+        id: uid('gh_'),
+        cardId: item.cardId,
+        cardName: item.name,
+        rarity: item.rarity,
+        hue: item.hue,
+        centeringOffsetX: item.centeringOffsetX,
+        centeringOffsetY: item.centeringOffsetY,
+        grade: result.grade,
+        gradeLabel: result.label,
+        gradingCompany: result.company,
+        rawValue,
+        gradedValue: finalValue,
+        cost: sub.cost,
+        graderNote: generateGraderNote(item, result.grade),
+        gradedAt: Date.now(),
+      });
       const key = String(result.grade);
       stats.gradesReceived[key] = (stats.gradesReceived[key] ?? 0) + 1;
       if (!stats.gradingCompaniesUsed.includes(result.company)) {
@@ -817,6 +871,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       stats,
       collection,
       pendingBulkReveal: bulkReveals,
+      gradingHistory: [...historyEntries, ...state.gradingHistory].slice(0, 40),
     });
 
     for (const item of gradedItems) {
@@ -1598,6 +1653,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastMarketEvent: state.lastMarketEvent,
       pendingGradeReveals: state.pendingGradeReveals,
       pendingBulkReveal: state.pendingBulkReveal,
+      gradingHistory: state.gradingHistory,
       pendingLotReveals: state.pendingLotReveals,
       achievementsUnlocked: state.achievementsUnlocked,
       achievementsClaimed: state.achievementsClaimed,

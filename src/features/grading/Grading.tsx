@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { GRADING_COMPANIES } from '../../data/gradingCompanies';
 import { GradingRevealModal } from '../../components/GradingRevealModal';
 import { BulkGradeRevealModal } from '../../components/BulkGradeRevealModal';
+import { CardArt } from '../../components/CardArt';
 import { Icon } from '../../components/Icon';
 
 export function Grading() {
@@ -10,6 +11,7 @@ export function Grading() {
   const upgrades = useGameStore((s) => s.upgradesPurchased);
   const inventory = useGameStore((s) => s.inventory);
   const stats = useGameStore((s) => s.stats);
+  const gradingHistory = useGameStore((s) => s.gradingHistory);
   const revealGrading = useGameStore((s) => s.revealGradingSubmission);
   const revealAll = useGameStore((s) => s.revealAllReadyGrading);
   const hasMassReveal = upgrades.includes('mass_grade_reveal');
@@ -85,16 +87,26 @@ export function Grading() {
                 {submissions.filter((s) => Date.now() >= s.resolveAt).length} ready
               </div>
             )}
-            {hasMassReveal && submissions.some((s) => Date.now() >= s.resolveAt) && (
-              <button
-                onClick={revealAll}
-                className="rounded-md bg-feebay-500 hover:bg-feebay-600 text-white px-3 py-1.5 text-[11px] font-black uppercase tracking-widest border-2 border-feebay-600 shadow-sm inline-flex items-center gap-1.5"
-                title="Crack every ready slab at once"
-              >
-                <Icon name="bolt" size={12} />
-                Reveal All
-              </button>
-            )}
+            {submissions.some((s) => Date.now() >= s.resolveAt) &&
+              (hasMassReveal ? (
+                <button
+                  onClick={revealAll}
+                  className="rounded-md bg-feebay-500 hover:bg-feebay-600 text-white px-3 py-1.5 text-[11px] font-black uppercase tracking-widest border-2 border-feebay-600 shadow-sm inline-flex items-center gap-1.5"
+                  title="Crack every ready slab at once"
+                >
+                  <Icon name="bolt" size={12} />
+                  Reveal All
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="rounded-md bg-ink-100 text-ink-400 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest border-2 border-line inline-flex items-center gap-1.5 cursor-not-allowed"
+                  title="Unlock the Mass-Reveal Cracker upgrade in the Upgrades tab to crack every ready slab at once."
+                >
+                  <Icon name="lock" size={12} />
+                  Reveal All
+                </button>
+              ))}
           </div>
         </div>
         {submissions.length === 0 ? (
@@ -166,6 +178,78 @@ export function Grading() {
         )}
       </div>
 
+      {/* Recently graded — before / after with grader notes */}
+      {gradingHistory.length > 0 && (
+        <div className="rounded-lg border border-line bg-white shadow-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-semibold">Recently graded</div>
+            <div className="text-[11px] text-ink-500">
+              Last {Math.min(40, gradingHistory.length)} back from grading
+            </div>
+          </div>
+          <ul className="divide-y divide-lineSoft">
+            {gradingHistory.map((h) => {
+              const net = h.gradedValue - h.rawValue - h.cost;
+              return (
+                <li key={h.id} className="flex items-center gap-3 py-3">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <CardArt
+                      name={h.cardName}
+                      rarity={h.rarity}
+                      hue={h.hue}
+                      cardId={h.cardId}
+                      centeringOffsetX={h.centeringOffsetX}
+                      centeringOffsetY={h.centeringOffsetY}
+                      small
+                      animated={false}
+                    />
+                    <span className="text-ink-400 font-black text-sm">→</span>
+                    <CardArt
+                      name={h.cardName}
+                      rarity={h.rarity}
+                      hue={h.hue}
+                      cardId={h.cardId}
+                      grade={h.grade}
+                      gradingCompany={h.gradingCompany}
+                      centeringOffsetX={h.centeringOffsetX}
+                      centeringOffsetY={h.centeringOffsetY}
+                      small
+                      animated={false}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-ink-900 truncate">{h.cardName}</div>
+                    <div className="text-[11px] text-ink-500">
+                      <span className="font-semibold text-ink-700">{h.gradingCompany}</span>{' '}
+                      {h.gradeLabel}
+                    </div>
+                    <div className="text-[11px] italic text-ink-500 mt-0.5 leading-snug">
+                      &ldquo;{h.graderNote}&rdquo;
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[11px] text-ink-500">
+                      ${h.rawValue.toFixed(0)} <span className="text-ink-300">→</span>{' '}
+                      <span className="font-bold text-ink-900">${h.gradedValue.toFixed(0)}</span>
+                    </div>
+                    <div
+                      className={`text-[11px] font-bold ${
+                        net >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'
+                      }`}
+                    >
+                      {net >= 0 ? '+' : ''}${net.toFixed(0)} net
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-ink-400 shrink-0 w-14 text-right">
+                    {fmtRelative(h.gradedAt)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       <div className="rounded-lg border border-line bg-white shadow-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-semibold">Grade history</div>
@@ -226,6 +310,14 @@ export function Grading() {
       <BulkGradeRevealModal />
     </div>
   );
+}
+
+function fmtRelative(t: number): string {
+  const sec = Math.max(0, (Date.now() - t) / 1000);
+  if (sec < 60) return `${Math.floor(sec)}s ago`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+  return `${Math.floor(sec / 86400)}d ago`;
 }
 
 function Stat({ label, value, accent = 'text-ink-900' }: { label: string; value: string; accent?: string }) {

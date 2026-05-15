@@ -201,6 +201,29 @@ export type GradingReveal = {
   company: GradingCompanyId;
 };
 
+/** A logged grading result — drives the "Recently graded" history list. */
+export type GradeHistoryEntry = {
+  id: string;
+  cardId: string;
+  cardName: string;
+  rarity: CardRarity;
+  hue: number;
+  centeringOffsetX: number;
+  centeringOffsetY: number;
+  grade: number;
+  gradeLabel: string;
+  gradingCompany: GradingCompanyId;
+  /** Raw market value just before grading. */
+  rawValue: number;
+  /** Market value once slabbed. */
+  gradedValue: number;
+  /** What the player paid to grade (incl. shipping). */
+  cost: number;
+  /** Funny grader note generated from the card's traits. */
+  graderNote: string;
+  gradedAt: number;
+};
+
 export type BulkGradeReveal = {
   itemId: string;
   cardId: string;
@@ -295,6 +318,8 @@ export type GameState = {
   pendingGradeReveals: GradingReveal[];
   /** Session-only — populated when Reveal All fires, consumed by the bulk-reveal modal. Not persisted. */
   pendingBulkReveal: BulkGradeReveal[];
+  /** Log of graded cards (newest first, capped) for the Recently Graded list. */
+  gradingHistory: GradeHistoryEntry[];
   pendingLotReveals: LotReveal[];
   achievementsUnlocked: string[];
   achievementsClaimed: string[];
