@@ -1,4 +1,4 @@
-import type { CardDef, CardVariant } from '../types';
+import type { CardDef, CardRarity, CardVariant } from '../types';
 
 export const TCG_BRAND = 'Mythic Monsters';
 
@@ -811,33 +811,48 @@ const CREATURE_ROSTER: CreatureSeed[] = [
 
 // --- Variant generation ---------------------------------------------------
 
-const VARIANTS: CardVariant[] = ['normal', 'reverse_holo', 'holo'];
+/** Variants every creature is printed in. */
+const BASE_VARIANTS: CardVariant[] = ['normal', 'reverse_holo', 'holo'];
+
+/** Rainbow rares only exist for premium-rarity creatures. */
+const RAINBOW_RARITIES = new Set<CardRarity>([
+  'Holo Rare',
+  'Secret Rare',
+  'Mythic Rare',
+  'Error Print',
+  'Signed',
+  'Prototype Card',
+]);
 
 /** Value multiplier applied to baseValue/basePremiumValue per variant. */
 const VARIANT_VALUE_MULT: Record<CardVariant, number> = {
   normal: 0.3,
   reverse_holo: 0.55,
   holo: 1,
+  rainbow: 2.4,
 };
 
-/** Non-holo prints are more plentiful; holos are scarcer. */
+/** Non-holo prints are more plentiful; holos scarcer; rainbows rarest. */
 const VARIANT_SUPPLY_BONUS: Record<CardVariant, number> = {
   normal: 26,
   reverse_holo: 12,
   holo: 0,
+  rainbow: -10,
 };
 
-/** Holo prints swing harder on the market. */
+/** Holo + rainbow prints swing harder on the market. */
 const VARIANT_VOL_MULT: Record<CardVariant, number> = {
   normal: 0.7,
   reverse_holo: 0.85,
   holo: 1,
+  rainbow: 1.25,
 };
 
 const VARIANT_NAME_SUFFIX: Record<CardVariant, string> = {
   normal: '',
   reverse_holo: ' (RH)',
   holo: ' (Holo)',
+  rainbow: ' (Rainbow)',
 };
 
 /** Id suffix per variant. Holo keeps the bare creature id for save compatibility. */
@@ -845,6 +860,7 @@ const VARIANT_ID_SUFFIX: Record<CardVariant, string> = {
   normal: '--base',
   reverse_holo: '--rh',
   holo: '',
+  rainbow: '--rainbow',
 };
 
 /** Per-set economy tweaks. Lunar Echoes is a scarce, pricey prototype set. */
@@ -869,7 +885,11 @@ function expandCreature(seed: CreatureSeed, firstEdition: boolean): CardDef[] {
     ? [...seed.trendTags, 'first-edition']
     : seed.trendTags;
 
-  return VARIANTS.map((variant) => {
+  const variants = RAINBOW_RARITIES.has(seed.rarity)
+    ? [...BASE_VARIANTS, 'rainbow' as CardVariant]
+    : BASE_VARIANTS;
+
+  return variants.map((variant) => {
     const valueMult = VARIANT_VALUE_MULT[variant] * setMod.value * editionValueMult;
     const id =
       variant === 'holo' ? idBase : `${idBase}${VARIANT_ID_SUFFIX[variant]}`;

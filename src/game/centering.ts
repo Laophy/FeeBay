@@ -138,6 +138,19 @@ export function rollCenteringForGrade(grade: number): {
   };
 }
 
+/**
+ * Rainbow rares are notoriously poorly centred — they roll a wide skew, which
+ * also makes them genuinely hard to grade high.
+ */
+export function rollRainbowCentering(): { centeringOffsetX: number; centeringOffsetY: number } {
+  const signX = chance(0.5) ? -1 : 1;
+  const signY = chance(0.5) ? -1 : 1;
+  return {
+    centeringOffsetX: randInt(2, 7) * signX,
+    centeringOffsetY: randInt(2, 7) * signY,
+  };
+}
+
 /** Roll function with no quality bias — for random lot cards or fallback uses. */
 export function rollCenteringNeutral(): { centeringOffsetX: number; centeringOffsetY: number } {
   const signX = rand(0, 1) < 0.5 ? -1 : 1;

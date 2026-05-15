@@ -279,24 +279,48 @@ const CodexCard = memo(function CodexCard({
   onSelect: (id: string) => void;
 }) {
   const owned = !!entry;
+  // Rainbow rares (and anything above holo) stay a mystery until collected.
+  const hidden = !owned && card.variant === 'rainbow';
   return (
     <div
-      onClick={() => onSelect(card.id)}
-      className="group flex flex-col items-center gap-1 cursor-pointer"
-      title={owned ? `${card.name} • ${entry!.totalOwned} owned` : `${card.name} — not yet owned`}
+      onClick={() => {
+        if (!hidden) onSelect(card.id);
+      }}
+      className={`group flex flex-col items-center gap-1 ${hidden ? 'cursor-default' : 'cursor-pointer'}`}
+      title={
+        hidden
+          ? 'Hidden rainbow rare — collect one to reveal it'
+          : owned
+          ? `${card.name} • ${entry!.totalOwned} owned`
+          : `${card.name} — not yet owned`
+      }
     >
       <div
         className={`codex-card relative group-hover:z-10 group-hover:drop-shadow-xl ${
-          owned ? '' : 'opacity-45 grayscale group-hover:grayscale-0 group-hover:opacity-100'
+          owned
+            ? ''
+            : hidden
+            ? 'opacity-65 group-hover:opacity-100'
+            : 'opacity-45 grayscale group-hover:grayscale-0 group-hover:opacity-100'
         }`}
       >
-        <CardArt name={card.name} rarity={card.rarity} hue={card.hue} cardId={card.id} small animated={false} />
+        {hidden ? (
+          <MysteryCard />
+        ) : (
+          <CardArt name={card.name} rarity={card.rarity} hue={card.hue} cardId={card.id} small animated={false} />
+        )}
       </div>
-      <div className="text-[10px] text-center text-ink-700 w-20 truncate group-hover:text-ink-900">
-        {card.name}
+      <div
+        className={`text-[10px] text-center w-20 truncate ${
+          hidden ? 'text-ink-400 font-bold tracking-widest' : 'text-ink-700 group-hover:text-ink-900'
+        }`}
+      >
+        {hidden ? '???' : card.name}
       </div>
       <div className="flex items-center gap-1 text-[9px]">
-        {owned ? (
+        {hidden ? (
+          <span className="text-ink-400">Locked</span>
+        ) : owned ? (
           <>
             <span className="text-ebayGreen-600">×{entry!.totalOwned}</span>
             {entry!.bestGrade !== undefined && (
@@ -320,3 +344,20 @@ const CodexCard = memo(function CodexCard({
     </div>
   );
 });
+
+/** Placeholder shown for un-collected rainbow rares — rainbow frame, no reveal. */
+function MysteryCard() {
+  return (
+    <div
+      className="h-24 w-16 rounded-md p-[2px] overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #ff5d5d, #f5af02, #86b817, #38bdf8, #a855f7)',
+      }}
+    >
+      <div className="h-full w-full rounded-[3px] bg-gradient-to-b from-ink-700 to-ink-900 flex flex-col items-center justify-center gap-1">
+        <span className="text-2xl font-black text-white/45 leading-none">?</span>
+        <Icon name="lock" size={11} className="text-white/35" />
+      </div>
+    </div>
+  );
+}

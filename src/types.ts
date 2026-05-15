@@ -32,8 +32,8 @@ export type LotType = 'single' | 'binder' | 'sealed' | 'slab' | 'mystery_lot' | 
 
 export type GradingCompanyId = 'ZAG' | 'PZA' | 'Bucket';
 
-/** Print variant of a card. Each creature is printed in all three. */
-export type CardVariant = 'normal' | 'reverse_holo' | 'holo';
+/** Print variant of a card. Rainbow is the top tier — premium creatures only. */
+export type CardVariant = 'normal' | 'reverse_holo' | 'holo' | 'rainbow';
 
 export type CardDef = {
   id: string;

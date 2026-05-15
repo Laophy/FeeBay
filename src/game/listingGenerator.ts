@@ -26,7 +26,12 @@ import {
   trendMultiplier,
 } from './economyEngine';
 import { chance, pick, rand, randInt, uid, weightedPick } from './rng';
-import { centeringPriceMultiplier, rollCentering, rollCenteringForGrade } from './centering';
+import {
+  centeringPriceMultiplier,
+  rollCentering,
+  rollCenteringForGrade,
+  rollRainbowCentering,
+} from './centering';
 import { expectedPullValue, tierForPrice } from './lotResolver';
 
 const RAW_CONDITIONS: RawCondition[] = [
@@ -39,9 +44,17 @@ const RAW_CONDITIONS: RawCondition[] = [
   'Gem Candidate',
 ];
 
-/** How often a card variant shows up in the wild — holos and 1st editions are scarce. */
+/** How often a card variant shows up in the wild — holos, 1st editions and
+ *  especially rainbow rares are scarce. */
 function pullWeight(c: CardDef): number {
-  let w = c.variant === 'normal' ? 12 : c.variant === 'reverse_holo' ? 5 : 2;
+  let w =
+    c.variant === 'normal'
+      ? 12
+      : c.variant === 'reverse_holo'
+      ? 5
+      : c.variant === 'holo'
+      ? 2
+      : 0.3; // rainbow — genuinely hard to find
   if (c.firstEdition) w *= 0.4;
   return w;
 }
@@ -405,6 +418,12 @@ export function generateListings(
     );
     const { raw, score } = rollCondition(quality);
     let { centeringOffsetX, centeringOffsetY } = rollCentering(quality);
+    // Rainbow rares are chronically off-centre.
+    if (card.variant === 'rainbow') {
+      const rc = rollRainbowCentering();
+      centeringOffsetX = rc.centeringOffsetX;
+      centeringOffsetY = rc.centeringOffsetY;
+    }
     const centeringMult = centeringPriceMultiplier(centeringOffsetX, centeringOffsetY);
     const trueValue = trueValueFor(card, raw, score, trends, centeringMult);
     const askingPrice = priceFor(quality, trueValue);

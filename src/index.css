@@ -70,6 +70,10 @@ body {
   0% { transform: translateX(-80%); }
   100% { transform: translateX(180%); }
 }
+@keyframes rainbowFlow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
 
 /* Lets the browser skip layout/paint for off-screen content (big card grids). */
 .cv-auto {

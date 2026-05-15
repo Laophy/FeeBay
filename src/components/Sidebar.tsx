@@ -249,10 +249,22 @@ export function Sidebar({ route, setRoute }: Props) {
             SFX.click();
             window.open('https://discord.gg/8FPP5wqRea', '_blank');
           }}
-          className="w-full flex items-center justify-center gap-2 rounded px-2.5 py-1.5 text-xs font-bold text-white bg-[#5865F2] hover:bg-[#4752c4] transition"
+          className="discord-btn w-full flex items-center justify-center gap-2 rounded px-2.5 py-1.5 text-xs font-bold text-white bg-[#5865F2] hover:bg-[#4752c4] transition"
         >
-          <Icon name="discord" size={15} />
-          Join our Discord
+          <span className="discord-icon inline-flex">
+            <Icon name="discord" size={15} />
+          </span>
+          <span>
+            {'Join our Discord'.split('').map((ch, i) => (
+              <span
+                key={i}
+                className="discord-letter inline-block whitespace-pre"
+                style={{ animationDelay: `${i * 0.045}s` }}
+              >
+                {ch === ' ' ? ' ' : ch}
+              </span>
+            ))}
+          </span>
         </button>
         <div className="mt-2 text-[10px] text-ink-400 text-center">
           Fictional brands only. No real cards harmed.

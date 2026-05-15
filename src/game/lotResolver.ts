@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { CARDS } from '../data/cards';
 import { chance, pick, rand, randInt, uid, weightedPick } from './rng';
-import { rollCenteringNeutral } from './centering';
+import { rollCenteringNeutral, rollRainbowCentering } from './centering';
 import { conditionMult, rarityMult } from './economyEngine';
 
 const RAW: RawCondition[] = [
@@ -113,9 +113,17 @@ export function tierForPrice(askingPrice: number): LotTier {
   return 'whale';
 }
 
-/** Holo / reverse-holo / 1st-edition prints are scarcer inside lots too. */
+/** Holo / reverse-holo / 1st-edition prints are scarcer inside lots too;
+ *  rainbow rares are vanishingly so. */
 function variantLotFactor(c: CardDef): number {
-  let f = c.variant === 'normal' ? 1 : c.variant === 'reverse_holo' ? 0.38 : 0.14;
+  let f =
+    c.variant === 'normal'
+      ? 1
+      : c.variant === 'reverse_holo'
+      ? 0.38
+      : c.variant === 'holo'
+      ? 0.14
+      : 0.025; // rainbow
   if (c.firstEdition) f *= 0.35;
   return f;
 }
@@ -206,7 +214,8 @@ export function resolveMysteryLot(
     const isFake = listing.qualityType === 'fake' && chance(0.35);
     const sellValue = expectedCardSellValue(card, raw, score);
     totalRawValueEstimate += sellValue;
-    const { centeringOffsetX, centeringOffsetY } = rollCenteringNeutral();
+    const { centeringOffsetX, centeringOffsetY } =
+      card.variant === 'rainbow' ? rollRainbowCentering() : rollCenteringNeutral();
     items.push({
       id: uid('inv_'),
       cardId: card.id,
@@ -294,7 +303,8 @@ export function resolveStorageUnit(
     const isFake = chance(0.05);
     const sellValue = expectedCardSellValue(card, raw, score);
     totalRawValueEstimate += sellValue;
-    const { centeringOffsetX, centeringOffsetY } = rollCenteringNeutral();
+    const { centeringOffsetX, centeringOffsetY } =
+      card.variant === 'rainbow' ? rollRainbowCentering() : rollCenteringNeutral();
     items.push({
       id: uid('inv_'),
       cardId: card.id,

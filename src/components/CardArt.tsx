@@ -220,7 +220,9 @@ export const CardArt = memo(function CardArt({
   }
 
   const glow =
-    variant === 'holo'
+    variant === 'rainbow'
+      ? 'shadow-xl'
+      : variant === 'holo'
       ? 'shadow-lg'
       : variant === 'reverse_holo'
       ? 'shadow-md'
@@ -249,8 +251,11 @@ export const CardArt = memo(function CardArt({
   );
 });
 
-/** Body gradient. Holo is vivid and saturated, normal is flat and muted. */
+/** Body gradient. Rainbow cycles every hue, holo is vivid, normal is flat. */
 function cardBodyGradient(hue: number, variant: CardVariant): string {
+  if (variant === 'rainbow') {
+    return `linear-gradient(150deg, hsl(0,82%,56%) 0%, hsl(48,88%,56%) 22%, hsl(140,72%,48%) 45%, hsl(195,82%,52%) 66%, hsl(265,76%,56%) 84%, hsl(320,80%,56%) 100%)`;
+  }
   if (variant === 'holo') {
     return `linear-gradient(155deg, hsl(${hue}, 78%, 56%) 0%, hsl(${(hue + 30) % 360}, 82%, 42%) 55%, hsl(${(hue + 220) % 360}, 72%, 26%) 100%)`;
   }
@@ -304,6 +309,7 @@ function CardBody({
   const isHolo = variant === 'holo';
   const isReverse = variant === 'reverse_holo';
   const isNormal = variant === 'normal';
+  const isRainbow = variant === 'rainbow';
   const innerGradient = isNormal
     ? `linear-gradient(170deg, hsl(${hue}, 24%, 38%), hsl(${hue}, 22%, 24%))`
     : `linear-gradient(170deg, hsl(${hue}, 60%, 35%), hsl(${(hue + 200) % 360}, 60%, 18%))`;
@@ -361,6 +367,21 @@ function CardBody({
               />
             );
           })()}
+          {/* Rainbow rares wash the creature art in a flowing rainbow filter. */}
+          {isRainbow && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                mixBlendMode: 'overlay',
+                opacity: 0.62,
+                backgroundImage:
+                  'linear-gradient(115deg, hsl(0,90%,60%), hsl(48,95%,60%), hsl(140,80%,52%), hsl(195,90%,58%), hsl(265,85%,62%), hsl(320,90%,62%), hsl(0,90%,60%))',
+                backgroundSize: '220% 220%',
+                backgroundPosition: animated ? undefined : '40% 50%',
+                animation: animated ? 'rainbowFlow 5s linear infinite' : undefined,
+              }}
+            />
+          )}
         </div>
         {stampLabel && (
           <div
@@ -411,12 +432,21 @@ function CardBody({
             {!isNormal && (
               <span
                 className={`px-1 rounded font-black uppercase ${small ? 'text-[6px]' : 'text-[7px]'}`}
-                style={{
-                  background: isHolo ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.55)',
-                  color: '#0f172a',
-                }}
+                style={
+                  isRainbow
+                    ? {
+                        backgroundImage:
+                          'linear-gradient(90deg, #ff5d5d, #f5af02, #86b817, #38bdf8, #a855f7)',
+                        color: '#ffffff',
+                        textShadow: '0 1px 1px rgba(0,0,0,0.55)',
+                      }
+                    : {
+                        background: isHolo ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.55)',
+                        color: '#0f172a',
+                      }
+                }
               >
-                {isHolo ? 'HOLO' : 'RV'}
+                {isRainbow ? 'RAINBOW' : isHolo ? 'HOLO' : 'RV'}
               </span>
             )}
             {!hideGradePip && grade !== undefined && (
@@ -487,6 +517,41 @@ function CardBody({
               backgroundSize: '300% 300%',
               backgroundPosition: animated ? undefined : '50% 50%',
               animation: animated ? 'holoShine 9s linear infinite' : undefined,
+            }}
+          />
+        </>
+      )}
+      {/* Rainbow foil — full rainbow wash, bright moving sheen, dense glitter. */}
+      {isRainbow && (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none mix-blend-color-dodge"
+            style={{
+              opacity: 0.4,
+              backgroundImage:
+                'linear-gradient(125deg, hsla(0,95%,62%,0.7), hsla(48,95%,62%,0.7), hsla(140,85%,55%,0.7), hsla(200,95%,60%,0.7), hsla(280,90%,64%,0.7), hsla(330,95%,64%,0.7))',
+              backgroundSize: '300% 300%',
+              backgroundPosition: animated ? undefined : '50% 50%',
+              animation: animated ? 'rainbowFlow 7s linear infinite' : undefined,
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none mix-blend-screen"
+            style={{
+              opacity: 0.7,
+              backgroundImage:
+                'linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.85) 50%, transparent 70%)',
+              backgroundSize: '200% 200%',
+              backgroundPosition: animated ? undefined : '60% 0%',
+              animation: animated ? 'holoShine 4.5s linear infinite' : undefined,
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none mix-blend-screen opacity-45"
+            style={{
+              backgroundImage:
+                'radial-gradient(rgba(255,255,255,0.8) 0.7px, transparent 1.5px)',
+              backgroundSize: '6px 6px',
             }}
           />
         </>
