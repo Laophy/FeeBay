@@ -1,5 +1,5 @@
 {
-  "name": "feebay-simulator",
+  "name": "FeeBay",
   "version": "0.1.2",
   "private": true,
   "description": "FeeBay Simulator — a parody marketplace card flipping game.",
@@ -18,6 +18,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "steamworks.js": "^0.4.0",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
@@ -39,7 +40,11 @@
     "productName": "FeeBay Simulator",
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "node_modules/steamworks.js/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/steamworks.js/**/*"
     ],
     "directories": {
       "buildResources": "build",
