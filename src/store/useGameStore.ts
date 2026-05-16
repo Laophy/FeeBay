@@ -213,6 +213,7 @@ function defaultState(): GameState {
       buyerAgentLastBuyAt: 0,
       marketingLastTickAt: 0,
     },
+    cheatsConsoleOpen: false,
     ui: {
       inventoryFilter: 'all',
       inventorySortKey: 'recent',
@@ -221,6 +222,16 @@ function defaultState(): GameState {
     },
   };
 }
+
+/** Cheats available from the hidden `/cheats` developer console. */
+export type CheatId =
+  | 'cash'
+  | 'unlock_upgrades'
+  | 'unlock_marketplaces'
+  | 'max_reputation'
+  | 'max_business'
+  | 'skip_day'
+  | 'unlock_achievements';
 
 function hashString(s: string): number {
   let h = 0;
@@ -298,6 +309,12 @@ type Actions = {
   claimAllAchievements(): void;
   /** central evaluation hook */
   evaluateAndApplyAchievements(ctx: Parameters<typeof evaluateAchievements>[1]): void;
+  /** Open the hidden `/cheats` developer console (and grant its easter-egg achievement). */
+  openCheatsConsole(): void;
+  /** Close the developer console. */
+  closeCheatsConsole(): void;
+  /** Apply a developer cheat. `amount` is only used by the `cash` cheat. */
+  applyCheat(cheat: CheatId, amount?: number): void;
 };
 
 export type GameStore = GameState & Actions;
@@ -1746,6 +1763,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       storefrontBalance: state.storefrontBalance,
       autoWithdrawEnabled: state.autoWithdrawEnabled,
       hiredHelpState: state.hiredHelpState,
+      // Session-only — always persist false so a save made while the console is
+      // open doesn't auto-reopen it on the next load.
+      cheatsConsoleOpen: false,
       ui: state.ui,
     });
   },
@@ -1834,6 +1854,81 @@ export const useGameStore = create<GameStore>((set, get) => ({
       `Claimed $${total.toFixed(2)} across ${toClaim.length} achievement${toClaim.length === 1 ? '' : 's'}.`,
       'success',
     );
+    get().save();
+  },
+
+  openCheatsConsole() {
+    if (get().cheatsConsoleOpen) return;
+    set({ cheatsConsoleOpen: true });
+    // Finding the secret console is itself a (hidden) achievement.
+    get().unlockAchievements(['cheat_breach']);
+  },
+
+  closeCheatsConsole() {
+    set({ cheatsConsoleOpen: false });
+  },
+
+  applyCheat(cheat, amount) {
+    const state = get();
+    switch (cheat) {
+      case 'cash': {
+        const delta = Math.max(0, amount ?? 0);
+        set({ cash: +(state.cash + delta).toFixed(2) });
+        SFX.chaching();
+        get().pushNotification(`☠ CHEAT: $${delta.toLocaleString()} injected into your wallet.`, 'success');
+        break;
+      }
+      case 'unlock_upgrades': {
+        set({ upgradesPurchased: UPGRADES.map((u) => u.id) });
+        SFX.coin();
+        get().pushNotification(`☠ CHEAT: All ${UPGRADES.length} upgrades unlocked — free of charge.`, 'success');
+        break;
+      }
+      case 'unlock_marketplaces': {
+        set({ marketplacesUnlocked: MARKETPLACES.map((m) => m.id) });
+        SFX.coin();
+        get().pushNotification(`☠ CHEAT: All ${MARKETPLACES.length} marketplaces unlocked.`, 'success');
+        break;
+      }
+      case 'max_reputation': {
+        set({ reputation: Math.max(state.reputation, 999) });
+        get().tryUnlockMarketplaces();
+        SFX.achievement();
+        get().pushNotification('☠ CHEAT: Reputation cranked to 999. The streets know your name.', 'success');
+        break;
+      }
+      case 'max_business': {
+        const top = BUSINESS_LEVELS[BUSINESS_LEVELS.length - 1];
+        set({ businessLevel: top.level });
+        get().tryUnlockMarketplaces();
+        SFX.achievement();
+        get().pushNotification(`☠ CHEAT: Promoted straight to ${top.name}.`, 'success');
+        break;
+      }
+      case 'skip_day': {
+        // Rewind the day clock so the next tickDay rolls the proper end-of-day report.
+        set({ dayStartedAt: Date.now() - DAY_LENGTH_MS - 2_000 });
+        get().pushNotification('☠ CHEAT: Fast-forwarding to tomorrow...', 'info');
+        break;
+      }
+      case 'unlock_achievements': {
+        const allIds = ACHIEVEMENTS.map((a) => a.id);
+        const added = allIds.filter((id) => !state.achievementsUnlocked.includes(id));
+        set({ achievementsUnlocked: allIds });
+        // Mirror each to Steam (no-op when Steam isn't running), but skip the per-unlock toast spam.
+        for (const id of added) window.feebay?.steam?.unlockAchievement(id);
+        SFX.achievement();
+        get().pushNotification(
+          `☠ CHEAT: ${added.length} achievement${added.length === 1 ? '' : 's'} force-unlocked. Go claim the cash.`,
+          'achievement',
+        );
+        break;
+      }
+    }
+    // Re-evaluate threshold achievements so cheated cash / rep / level pop immediately.
+    if (cheat !== 'unlock_achievements') {
+      get().evaluateAndApplyAchievements({ kind: 'tick' });
+    }
     get().save();
   },
 
@@ -2050,6 +2145,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         `${item.name} added to your showcase. Locked from sale.`,
         'success',
       );
+      // A freshly-showcased card may push the display past a value milestone.
+      get().evaluateAndApplyAchievements({ kind: 'tick' });
     }
     get().save();
   },

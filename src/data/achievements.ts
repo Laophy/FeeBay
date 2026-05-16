@@ -1,4 +1,42 @@
 import type { Achievement } from '../types';
+import { CARDS } from './cards';
+
+/**
+ * Stable achievement id for a codex set.
+ * e.g. "Base Set 1st Edition" -> "set_base_set_1st_edition".
+ */
+export function setAchievementId(setName: string): string {
+  return 'set_' + setName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+}
+
+/**
+ * One "complete this set" achievement per codex set, generated from the card
+ * roster so it stays in sync if sets are added. Reward & tier scale with set size.
+ */
+function buildSetAchievements(): Achievement[] {
+  const sizeBySet = new Map<string, number>();
+  for (const c of CARDS) sizeBySet.set(c.set, (sizeBySet.get(c.set) ?? 0) + 1);
+
+  const out: Achievement[] = [];
+  for (const [setName, size] of sizeBySet) {
+    const firstEd = setName.includes('1st Edition');
+    const tier: Achievement['tier'] = firstEd || size >= 28 ? 'gold' : size >= 12 ? 'silver' : 'bronze';
+    // Avoid "the Base Set set" — only append " set" when the name doesn't already end in it.
+    const suffix = /set$/i.test(setName) ? '' : ' set';
+    out.push({
+      id: setAchievementId(setName),
+      name: `${setName} Curator`,
+      description: `Own every card in the ${setName}${suffix}.`,
+      icon: firstEd ? 'crown' : 'trophy',
+      cashReward: firstEd ? 3000 : Math.max(400, size * 50),
+      tier,
+    });
+  }
+  return out;
+}
+
+/** Per-set codex-completion achievements, exported for the engine to evaluate. */
+export const SET_ACHIEVEMENTS: Achievement[] = buildSetAchievements();
 
 export const ACHIEVEMENTS: Achievement[] = [
   // Bronze tier — early-game baseline (small rewards; the achievement is the badge, not the bag)
@@ -70,4 +108,14 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'fake_sale_1', name: 'Caveat Emptor', description: 'Sell a fake card off your storefront.', icon: 'shield', cashReward: 150, tier: 'silver' },
   { id: 'fake_sale_5', name: 'Forgery Ring', description: 'Sell 5 fake cards off your storefront.', icon: 'shield', cashReward: 400, tier: 'silver' },
   { id: 'fake_sale_100', name: 'Counterfeit Kingpin', description: 'Sell 100 fake cards off your storefront.', icon: 'shield', cashReward: 5000, tier: 'gold' },
+
+  // Easter egg — type "/cheats" into the FeeBay search bar to breach the dev console
+  { id: 'cheat_breach', name: 'Hack the Planet', description: 'Breach the secret FeeBay developer console.', icon: 'bolt', cashReward: 1337, tier: 'gold' },
+
+  // Showcase — reward the player for putting valuable cards on display
+  { id: 'showcase_value_10k', name: 'Gallery Opening', description: 'Display $10,000+ worth of cards on your Collection showcase.', icon: 'crown', cashReward: 500, tier: 'silver' },
+  { id: 'showcase_value_100k', name: 'Museum Wing', description: 'Display $100,000+ worth of cards on your Collection showcase.', icon: 'crown', cashReward: 3000, tier: 'gold' },
+
+  // Per-set codex completion — generated from the card roster (see buildSetAchievements)
+  ...SET_ACHIEVEMENTS,
 ];

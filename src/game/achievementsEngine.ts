@@ -1,8 +1,9 @@
 import type { CardRarity, GameState, InventoryItem } from '../types';
-import { ACHIEVEMENTS } from '../data/achievements';
+import { ACHIEVEMENTS, setAchievementId } from '../data/achievements';
 import { CARDS } from '../data/cards';
 import { MARKETPLACES } from '../data/marketplaces';
 import { centeringScore } from './centering';
+import { calculateCurrentValue } from './economyEngine';
 
 const RARE_OR_BETTER: CardRarity[] = [
   'Secret Rare',
@@ -103,6 +104,13 @@ export function evaluateAchievements(
     mark('all_sets');
   }
 
+  // Per-set codex completion — one achievement per set
+  for (const [setName, m] of setEntries) {
+    if (m.total > 0 && m.owned === m.total) {
+      mark(setAchievementId(setName));
+    }
+  }
+
   // Top Pop: own a Gem 10 of every Mythic + Prototype card
   const ultraIds = CARDS.filter(
     (c) => c.rarity === 'Mythic Rare' || c.rarity === 'Prototype Card',
@@ -145,6 +153,28 @@ export function evaluateAchievements(
   if (owned >= CARDS.length) mark('codex_complete');
   if (Object.values(setMap).some((m) => m.owned === m.total)) {
     mark('set_completionist');
+  }
+
+  // Showcase display value — mirrors the Collection page's showcase total
+  if (state.showcaseItemIds.length > 0) {
+    const showcased = new Set(state.showcaseItemIds);
+    const vaultStable = state.upgradesPurchased.includes('hire_vault_keeper');
+    const showcaseValue = state.inventory
+      .filter((i) => showcased.has(i.id))
+      .reduce(
+        (sum, i) =>
+          sum +
+          calculateCurrentValue(
+            i,
+            state.marketTrends,
+            state.marketNoise,
+            state.convention,
+            vaultStable,
+          ),
+        0,
+      );
+    if (showcaseValue >= 10000) mark('showcase_value_10k');
+    if (showcaseValue >= 100000) mark('showcase_value_100k');
   }
 
   // Marketplaces

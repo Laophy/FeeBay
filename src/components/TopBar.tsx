@@ -180,9 +180,13 @@ function pickFakeResults(q: string): typeof FAKE_RESULT_LINES {
   return shuffled.slice(0, 4);
 }
 
+/** Hidden easter-egg command — typing this into the search bar opens the dev console. */
+const CHEAT_COMMAND = '/cheats';
+
 function SearchBar() {
   const setActiveSource = useGameStore((s) => s.setMarketplaceActiveSource);
   const unlockAchievements = useGameStore((s) => s.unlockAchievements);
+  const openCheatsConsole = useGameStore((s) => s.openCheatsConsole);
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -198,8 +202,21 @@ function SearchBar() {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
-  const showDropdown = focused && query.trim().length > 0;
-  const results = showDropdown ? pickFakeResults(query.trim()) : [];
+  const trimmed = query.trim();
+  const isCheatCommand = trimmed.toLowerCase() === CHEAT_COMMAND;
+  const showDropdown = focused && trimmed.length > 0;
+  const results = showDropdown && !isCheatCommand ? pickFakeResults(trimmed) : [];
+
+  // Either breach the dev console (cheat command) or run the regular fake search.
+  function submit() {
+    if (isCheatCommand) {
+      openCheatsConsole();
+    } else {
+      setActiveSource('all');
+    }
+    setQuery('');
+    setFocused(false);
+  }
 
   return (
     <div className="relative" ref={wrapRef}>
@@ -219,9 +236,7 @@ function SearchBar() {
           onFocus={() => setFocused(true)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              setActiveSource('all');
-              setQuery('');
-              setFocused(false);
+              submit();
             } else if (e.key === 'Escape') {
               setFocused(false);
             }
@@ -229,11 +244,7 @@ function SearchBar() {
           className="flex-1 bg-white text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none px-1"
         />
         <button
-          onClick={() => {
-            setActiveSource('all');
-            setQuery('');
-            setFocused(false);
-          }}
+          onClick={submit}
           className="px-6 bg-feebay-500 hover:bg-feebay-600 text-white text-sm font-bold tracking-wide"
         >
           Search
@@ -242,6 +253,37 @@ function SearchBar() {
 
       {showDropdown && (
         <div className="absolute top-full left-0 right-0 mt-1 z-[150] origin-top search-drop">
+          {isCheatCommand && (
+            <button
+              onClick={submit}
+              className="group w-full overflow-hidden rounded-md border-2 border-[#1f5d34] bg-[#050a06] text-left shadow-cardHover"
+            >
+              <div className="flex items-center gap-2 border-b border-[#143d22] px-3 py-2 font-mono">
+                <Icon name="bolt" size={12} className="text-[#4ee37a]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#4ee37a]">
+                  hidden command detected
+                </span>
+                <span className="ml-auto text-[10px] text-[#2f8a4d]">access level: ???</span>
+              </div>
+              <div className="search-drop-row flex items-center gap-3 px-3 py-3 font-mono">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#1f5d34] bg-black/60 text-[#4ee37a]">
+                  <Icon name="lock" size={15} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-[#7dffa3]">
+                    FeeBay Developer Console
+                  </span>
+                  <span className="block text-[11px] text-[#3aa860]">
+                    Press Enter to breach /admin — you didn't see this.
+                  </span>
+                </span>
+                <span className="ml-auto shrink-0 rounded border border-[#1f5d34] px-2 py-1 text-[10px] text-[#4ee37a] group-hover:bg-[#13301c]">
+                  ENTER ›
+                </span>
+              </div>
+            </button>
+          )}
+          {!isCheatCommand && (
           <div className="rounded-md border border-line bg-white shadow-cardHover overflow-hidden">
             <div className="px-3 py-2 border-b border-lineSoft flex items-center gap-2 bg-paper">
               <Icon name="search" size={12} className="text-ink-400" />
@@ -282,6 +324,7 @@ function SearchBar() {
               </button>
             </div>
           </div>
+          )}
           <style>{`
             @keyframes searchDrop {
               0%   { opacity: 0; transform: translateY(-6px) scaleY(0.96); }

@@ -406,6 +406,8 @@ export type GameState = {
     buyerAgentLastBuyAt: number;
     marketingLastTickAt: number;
   };
+  /** Session-only — true while the hidden `/cheats` developer console is open. Not persisted. */
+  cheatsConsoleOpen: boolean;
   /** Session-only UI state that survives screen navigation but isn't persisted. */
   ui: {
     inventoryFilter: 'all' | 'raw' | 'grading' | 'graded' | 'listed' | 'showcased';

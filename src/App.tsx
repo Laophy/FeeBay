@@ -16,6 +16,7 @@ import { Storefront } from './features/storefront/Storefront';
 import { LotRevealModal } from './components/LotRevealModal';
 import { IntroModal } from './components/IntroModal';
 import { EndOfDayModal } from './components/EndOfDayModal';
+import { CheatsModal } from './components/CheatsModal';
 import { TitleBar } from './components/TitleBar';
 import { LoadingScreen } from './components/LoadingScreen';
 
@@ -145,6 +146,7 @@ export default function App() {
       <LotRevealModal />
       <EndOfDayModal />
       <IntroModal />
+      <CheatsModal />
       {booting && <LoadingScreen onDone={() => setBooting(false)} />}
     </div>
   );
