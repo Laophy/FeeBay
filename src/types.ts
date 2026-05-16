@@ -260,6 +260,33 @@ export type LotReveal = {
   lotKind: 'mystery' | 'binder' | 'storage_unit' | 'slab_bag';
 };
 
+export type AuctionRivalArchetype = 'whale' | 'steady' | 'cheapskate' | 'sniper';
+
+/** A named rival bidder competing on a BidGoblin lot. */
+export type AuctionRival = {
+  id: string;
+  name: string;
+  archetype: AuctionRivalArchetype;
+  /** Hidden ceiling — the most this rival will ever pay. */
+  budget: number;
+  /** 0..1 — how eagerly they jump in on a given tick. */
+  aggression: number;
+  /** False once they top out or bail. */
+  active: boolean;
+};
+
+/** One entry in an auction's running bid feed. */
+export type AuctionBid = {
+  id: string;
+  /** Rival name, 'You', or 'GOBLIN' for house lines. */
+  bidder: string;
+  amount: number;
+  at: number;
+  kind: 'player' | 'rival' | 'goblin' | 'system';
+  /** Flavor text for goblin/system feed entries. */
+  text?: string;
+};
+
 export type AuctionListing = {
   id: string;
   cardId: string;
@@ -272,10 +299,19 @@ export type AuctionListing = {
   currentBid: number;
   bidIncrement: number;
   buyoutPrice?: number;
+  startedAt: number;
   endsAt: number;
   myMaxBid?: number;
-  /** rival bidder activity */
-  rivalAggression: number;
+  /** Named rival bidders warring over this lot. */
+  rivals: AuctionRival[];
+  /** Running bid feed, newest first, capped. */
+  bids: AuctionBid[];
+  /** Who currently holds the high bid — 'You' or a rival name ('' if no bids). */
+  leaderName: string;
+  /** Cosmetic onlooker count. */
+  watchers: number;
+  /** Anti-snipe extensions applied so far. */
+  extensionCount: number;
   isMine: boolean;
   resolved: boolean;
   wonByPlayer?: boolean;

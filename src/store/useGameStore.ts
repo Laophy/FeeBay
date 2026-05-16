@@ -41,9 +41,9 @@ import { evaluateAchievements } from '../game/achievementsEngine';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { SFX } from '../game/audio';
 import {
+  applyPlayerBid,
   generateAuctions,
-  tickAuctionRivals,
-  trySnipe,
+  tickAuction,
 } from '../game/auctionEngine';
 
 const BASE_INVENTORY_SLOTS = 10;
@@ -258,7 +258,7 @@ type Actions = {
   unlockAchievements(ids: string[]): void;
   refreshAuctions(): void;
   tickListings(): void;
-  placeBid(auctionId: string): void;
+  placeBid(auctionId: string, amount?: number): void;
   setAutoSnipeMax(auctionId: string, max: number | undefined): void;
   buyoutAuction(auctionId: string): void;
   tickAuctions(): void;
@@ -322,6 +322,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
     if (fixed.some((i, idx) => i !== s.inventory[idx])) {
       set({ inventory: fixed });
+    }
+    // Drop any auctions saved in the pre-rework format (no rival roster).
+    if (get().auctions.some((a) => !Array.isArray(a.rivals))) {
+      set({ auctions: [] });
     }
     if (get().listings.length === 0) {
       get().refreshListings();
@@ -1860,30 +1864,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const cooldown = refreshCooldownMs(state);
     if (state.lastAuctionRefresh && now - state.lastAuctionRefresh < cooldown) {
       const remaining = Math.ceil((cooldown - (now - state.lastAuctionRefresh)) / 1000);
-      get().pushNotification(`Goblin is napping. New batch in ${remaining}s.`, 'info');
+      get().pushNotification(`Goblin is napping. New lots in ${remaining}s.`, 'info');
       return;
     }
-    const fresh = generateAuctions(now, state.marketTrends, 4);
-    set({ auctions: fresh, lastAuctionRefresh: now });
+    // Keep any auction still live so an active bid is never wiped — clear the
+    // resolved lots and top the floor back up with fresh ones.
+    const live = state.auctions.filter((a) => !a.resolved && now < a.endsAt);
+    const target = 6;
+    const fresh =
+      live.length >= target
+        ? []
+        : generateAuctions(now, state.marketTrends, target - live.length);
+    set({ auctions: [...live, ...fresh], lastAuctionRefresh: now });
     SFX.whoosh();
+    if (fresh.length === 0) {
+      get().pushNotification('The auction floor is already packed.', 'info');
+    }
   },
 
-  placeBid(auctionId) {
+  placeBid(auctionId, amount) {
     const state = get();
     const auction = state.auctions.find((a) => a.id === auctionId);
     if (!auction || auction.resolved) return;
-    if (Date.now() >= auction.endsAt) return;
-    const nextBid = auction.currentBid + auction.bidIncrement;
-    if (state.cash < nextBid) {
+    const now = Date.now();
+    if (now >= auction.endsAt) return;
+    if (auction.leaderName === 'You') {
+      get().pushNotification('You already hold the high bid on this lot.', 'info');
+      return;
+    }
+    const minNext = auction.currentBid + auction.bidIncrement;
+    const bid = amount && amount > minNext ? Math.round(amount) : minNext;
+    if (bid < minNext) return;
+    if (state.cash < bid) {
       get().pushNotification('Not enough cash to cover the bid.', 'warning');
       return;
     }
     set({
       auctions: state.auctions.map((a) =>
-        a.id === auctionId ? { ...a, currentBid: nextBid, isMine: true } : a,
+        a.id === auctionId ? applyPlayerBid(a, bid, now) : a,
       ),
     });
-    SFX.click();
+    SFX.coin();
   },
 
   setAutoSnipeMax(auctionId, max) {
@@ -1926,25 +1947,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (state.auctions.length === 0) return;
     const now = Date.now();
-    const autoSnipeOn = state.upgradesPurchased.includes('auto_sniper');
+    const proxyEnabled = state.upgradesPurchased.includes('auto_sniper');
+    const playerCash = state.cash;
+    let changed = false;
     const updated = state.auctions.map((a) => {
       if (a.resolved) return a;
-      let next = tickAuctionRivals(a, now);
-      if (autoSnipeOn) next = trySnipe(next, now);
+      let next = tickAuction(a, now, { proxyEnabled, playerCash });
       if (now >= next.endsAt) {
-        return { ...next, resolved: true, wonByPlayer: next.isMine };
+        next = { ...next, resolved: true, wonByPlayer: next.isMine };
       }
+      if (next !== a) changed = true;
       return next;
     });
+    if (!changed) return;
     set({ auctions: updated });
 
     for (const a of updated) {
       const prev = state.auctions.find((p) => p.id === a.id);
-      if (!prev || prev.resolved || !a.resolved) continue;
-      if (a.wonByPlayer) {
-        awardWonAuction(a.id, a.currentBid);
-      } else {
-        get().pushNotification('Outbid! The goblin laughs.', 'info');
+      if (!prev) continue;
+      let name = 'the lot';
+      try {
+        name = getCardById(a.cardId).name;
+      } catch {
+        /* unknown card id — keep the fallback */
+      }
+      // Lost the lead this tick and the proxy couldn't save it.
+      if (!prev.resolved && !a.resolved && prev.isMine && !a.isMine) {
+        SFX.loss();
+        get().pushNotification(`Outbid on ${name} — ${a.leaderName} jumped you.`, 'warning');
+      }
+      // Just resolved this tick.
+      if (!prev.resolved && a.resolved) {
+        if (a.wonByPlayer) {
+          awardWonAuction(a.id, a.currentBid);
+        } else if (a.bids.some((b) => b.kind === 'player')) {
+          get().pushNotification(`Lost ${name} on BidGoblin. The goblin cackles.`, 'info');
+        }
       }
     }
   },
