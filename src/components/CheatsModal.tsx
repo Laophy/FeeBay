@@ -56,7 +56,7 @@ const POWER_CHEATS: Cheat[] = [
   { cheat: 'max_reputation', icon: 'medal', label: 'Max Reputation', blurb: 'instant local legend', log: 'reputation cranked to 999 — the people love you' },
   { cheat: 'max_business', icon: 'crown', label: 'Max Business Level', blurb: 'skip the grind', log: 'promoted straight to the top of the org chart' },
   { cheat: 'skip_day', icon: 'reset', label: 'Skip to Next Day', blurb: 'fast-forward time', log: 'day clock yanked forward — time is a construct' },
-  { cheat: 'unlock_achievements', icon: 'trophy', label: 'Unlock ALL Achievements', blurb: 'cheater, cheater', log: 'every achievement force-unlocked — go claim the cash' },
+  { cheat: 'unlock_achievements', icon: 'trophy', label: 'Unlock ALL Achievements', blurb: 'or so it claims...', log: 'nice try — the only badge that unlocked was "Nice Try", reserved for cheaters' },
 ];
 
 export function CheatsModal() {

@@ -199,7 +199,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Hire: Apprentice',
     cost: 5000,
     effect: 'hire_apprentice',
-    description: 'Auto-flips raw cards worth under $80 every ~30s. Small steady income.',
+    description: 'Auto-flips raw cards your Buyer Agent picked up (worth under $80) every ~30s. Never touches cards you bought yourself.',
   },
   {
     id: 'hire_buyer_agent',

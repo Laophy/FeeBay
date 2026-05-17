@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { refreshCooldownMs, useGameStore } from '../../store/useGameStore';
 import { getCardById } from '../../data/cards';
 import { CardArt } from '../../components/CardArt';
+import { CardZoomOverlay } from '../../components/CardZoomOverlay';
 import { Icon } from '../../components/Icon';
 import { minNextBid, rivalHeat, type RivalHeat } from '../../game/auctionEngine';
 import type { AuctionBid, AuctionListing, AuctionRival } from '../../types';
@@ -288,6 +289,7 @@ function BiddingPit({
 
   const [jumpInput, setJumpInput] = useState('');
   const [maxInput, setMaxInput] = useState(auction.myMaxBid ? String(auction.myMaxBid) : '');
+  const [zoomed, setZoomed] = useState(false);
 
   // Auto-advance to the next live lot a few seconds after this one closes.
   const onSkipRef = useRef(onSkip);
@@ -367,7 +369,7 @@ function BiddingPit({
         }`}
       >
         <div className="flex gap-4">
-          <div className="shrink-0">
+          <div className="relative shrink-0">
             <CardArt
               name={card.name}
               rarity={auction.rarity}
@@ -376,6 +378,25 @@ function BiddingPit({
               centeringOffsetX={auction.centeringOffsetX}
               centeringOffsetY={auction.centeringOffsetY}
             />
+            <button
+              onClick={() => setZoomed(true)}
+              className="absolute -top-2.5 -right-2.5 z-20 w-8 h-8 rounded-full bg-feebay-500 hover:bg-feebay-600 text-white flex items-center justify-center shadow-md border-2 border-white transition"
+              title="Zoom in to inspect condition & centering"
+            >
+              <Icon name="search" size={15} />
+            </button>
+            {zoomed && (
+              <CardZoomOverlay
+                name={card.name}
+                rarity={auction.rarity}
+                hue={card.hue}
+                cardId={auction.cardId}
+                centeringOffsetX={auction.centeringOffsetX}
+                centeringOffsetY={auction.centeringOffsetY}
+                condition={auction.rawCondition}
+                onClose={() => setZoomed(false)}
+              />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-base font-black truncate leading-tight text-ink-900">

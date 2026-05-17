@@ -37,6 +37,9 @@ export type LotType =
   | 'storage_unit'
   | 'slab_bag';
 
+/** Value tier of a slab bag — drives its price and the graded card inside. */
+export type SlabBagTier = 'budget' | 'standard' | 'premium' | 'whale';
+
 export type GradingCompanyId = 'ZAG' | 'PZA' | 'Bucket';
 
 /** Print variant of a card. Rainbow is the top tier — premium creatures only. */
@@ -92,6 +95,8 @@ export type MarketplaceListing = {
   qualityType: ListingQuality;
   /** For mystery lots, the count of cards revealed on purchase (cosmetic on listing). */
   lotSize?: number;
+  /** For slab bags, the value tier the bag resolves against. */
+  slabBagTier?: SlabBagTier;
   /** When the listing is a slab, the grade and grading company on the case. */
   grade?: number;
   gradingCompany?: GradingCompanyId;
@@ -127,6 +132,9 @@ export type InventoryItem = {
   gradingCompany?: GradingCompanyId;
   acquiredFrom: MarketplaceSource;
   acquiredAt: number;
+  /** True only when a hired helper (Buyer Agent) bought this card. The
+   *  Apprentice auto-flips only these — never cards you bought yourself. */
+  autoBought?: boolean;
   isFake: boolean;
   hue: number;
 };

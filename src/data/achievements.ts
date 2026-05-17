@@ -75,7 +75,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'auction_vulture', name: 'Auction Vulture', description: 'Win 5 BidGoblin auctions.', icon: 'gavel', cashReward: 1500, tier: 'gold' },
   { id: 'storage_5', name: 'Storage Tycoon', description: 'Crack 5 storage units.', icon: 'box', cashReward: 1500, tier: 'gold' },
   { id: 'mogul_25k', name: 'Marketplace Mogul', description: 'Reach $25,000 net worth.', icon: 'trophy', cashReward: 2500, tier: 'gold' },
-  { id: 'all_marketplaces', name: 'Online Everywhere', description: 'Unlock all 6 marketplaces.', icon: 'trends', cashReward: 2000, tier: 'gold' },
+  { id: 'all_marketplaces', name: 'Online Everywhere', description: 'Unlock all marketplaces.', icon: 'trends', cashReward: 2000, tier: 'gold' },
   { id: 'storefront_5', name: 'Real Storefront', description: 'Have 5 active player listings at once.', icon: 'tag', cashReward: 1000, tier: 'gold' },
 
   // Mythic tier — endgame
@@ -111,6 +111,8 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   // Easter egg — type "/cheats" into the FeeBay search bar to breach the dev console
   { id: 'cheat_breach', name: 'Hack the Planet', description: 'Breach the secret FeeBay developer console.', icon: 'bolt', cashReward: 1337, tier: 'gold' },
+  // Gotcha — the cheats console "Unlock ALL Achievements" button grants only this one
+  { id: 'achievement_cheater', name: 'Nice Try', description: 'Use the cheats console to "unlock all achievements". It only unlocks this one.', icon: 'medal', cashReward: 1, tier: 'bronze' },
 
   // Showcase — reward the player for putting valuable cards on display
   { id: 'showcase_value_10k', name: 'Gallery Opening', description: 'Display $10,000+ worth of cards on your Collection showcase.', icon: 'crown', cashReward: 500, tier: 'silver' },

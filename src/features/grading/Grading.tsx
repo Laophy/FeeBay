@@ -130,46 +130,61 @@ export function Grading() {
                       : 'border-line bg-paper'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-ink-900 truncate">
-                        {s.cardName}
-                        {item?.rarity ? (
-                          <span className="text-ink-500 text-xs font-normal"> • {item.rarity}</span>
-                        ) : null}
+                  <div className="flex items-center gap-3">
+                    {item && (
+                      <div className="shrink-0">
+                        <CardArt
+                          name={item.name}
+                          rarity={item.rarity}
+                          hue={item.hue}
+                          cardId={item.cardId}
+                          centeringOffsetX={item.centeringOffsetX}
+                          centeringOffsetY={item.centeringOffsetY}
+                          small
+                          animated={false}
+                        />
                       </div>
-                      <div className="text-[11px] text-ink-500 mt-0.5">
-                        <span className="text-feebay-600 font-semibold">@ {s.company}</span>
-                        <span className="text-ink-300 mx-1.5">•</span>
-                        Paid ${s.cost}
-                        {s.shippingFee ? (
-                          <span className="text-ink-400">
-                            {' '}
-                            (incl ${s.shippingFee} ship)
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-ink-900 truncate">
+                            {s.cardName}
+                            {item?.rarity ? (
+                              <span className="text-ink-500 text-xs font-normal"> • {item.rarity}</span>
+                            ) : null}
+                          </div>
+                          <div className="text-[11px] text-ink-500 mt-0.5">
+                            <span className="text-feebay-600 font-semibold">@ {s.company}</span>
+                            <span className="text-ink-300 mx-1.5">•</span>
+                            Paid ${s.cost}
+                            {s.shippingFee ? (
+                              <span className="text-ink-400"> (incl ${s.shippingFee} ship)</span>
+                            ) : null}
+                          </div>
+                        </div>
+                        {ready ? (
+                          <button
+                            onClick={() => revealGrading(s.id)}
+                            className="shrink-0 rounded-md bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 px-4 py-1.5 text-xs font-black uppercase tracking-widest border-2 border-ebayYellow-600 shadow-sm"
+                          >
+                            Reveal
+                          </button>
+                        ) : (
+                          <span className="shrink-0 text-ink-500 text-xs tabular-nums">
+                            {Math.ceil(remaining / 1000)}s
                           </span>
-                        ) : null}
+                        )}
+                      </div>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-ink-100 overflow-hidden">
+                        <div
+                          className={`h-full transition-all ${
+                            ready ? 'bg-ebayGreen-500' : 'bg-feebay-500'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
                     </div>
-                    {ready ? (
-                      <button
-                        onClick={() => revealGrading(s.id)}
-                        className="shrink-0 rounded-md bg-ebayYellow-500 hover:bg-ebayYellow-600 text-ink-900 px-4 py-1.5 text-xs font-black uppercase tracking-widest border-2 border-ebayYellow-600 shadow-sm"
-                      >
-                        Reveal
-                      </button>
-                    ) : (
-                      <span className="shrink-0 text-ink-500 text-xs tabular-nums">
-                        {Math.ceil(remaining / 1000)}s
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-ink-100 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        ready ? 'bg-ebayGreen-500' : 'bg-feebay-500'
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
                   </div>
                 </li>
               );

@@ -244,7 +244,7 @@ function hashString(s: string): number {
 type Actions = {
   init(): void;
   refreshListings(opts?: { force?: boolean }): boolean;
-  buyListing(listingId: string): void;
+  buyListing(listingId: string, opts?: { byHelper?: boolean }): void;
   sellInventoryItem(itemId: string, marketplace?: MarketplaceSource): void;
   sendToGrading(itemId: string, companyId: GradingCompanyId): void;
   /** Manually reveal a submission whose timer is up. Rolls the grade, updates inventory/stats, queues a reveal modal entry. */
@@ -373,7 +373,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return true;
   },
 
-  buyListing(listingId) {
+  buyListing(listingId, opts) {
     const state = get();
     const listing = state.listings.find((l) => l.id === listingId);
     if (!listing) return;
@@ -490,7 +490,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       SFX.buy();
       if (isScam) {
         get().pushNotification(
-          `That ${listing.source} slab bag was a SCAM — the case is counterfeit and the slab is worthless.`,
+          `That ${listing.source} slab bag was a SCAM — a junk-grade slab dressed up for premium money.`,
           'warning',
         );
       } else {
@@ -517,14 +517,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     const isSlabListing =
       listing.lotType === 'slab' && listing.grade !== undefined && listing.gradingCompany;
+    // Inventory carries the card's real name & set, not the seller's clickbait
+    // listing title — fall back to the cleaned title only if the id is unknown.
+    let invName = cleanTitle(listing.title);
+    let invSet = '';
+    try {
+      const def = getCardById(listing.cardId);
+      invName = def.name;
+      invSet = def.set;
+    } catch {
+      /* unknown card id — keep the cleaned listing title */
+    }
     const item: InventoryItem = {
       id: uid('inv_'),
       cardId: listing.cardId,
-      name: isSlabListing
-        ? // strip the leading "10 PZA • " label so the inventory name reads cleanly
-          cleanTitle(listing.title).replace(/^\s*\d+(\.\d)?\s+(ZAG|PZA|Bucket)\s*•\s*/i, '')
-        : cleanTitle(listing.title),
-      set: '',
+      name: invName,
+      set: invSet,
       rarity: listing.rarity,
       rawCondition: listing.rawCondition,
       actualConditionScore: listing.actualConditionScore,
@@ -543,6 +551,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       acquiredFrom: listing.source,
       acquiredAt: Date.now(),
       isFake: listing.isFake,
+      autoBought: !!opts?.byHelper,
       hue: Math.floor((Math.abs(hashString(listing.cardId)) % 360)),
     };
     const acq = recordAcquisitions(state.collection, [item]);
@@ -1550,8 +1559,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Apprentice: every ~30s, auto-flip the lowest-value raw card under $80 in inventory.
     if (u.includes('hire_apprentice') && now - hs.apprenticeLastFlipAt > 30_000) {
+      // Only flips stock a hired helper bought — never cards the player bought.
       const candidates = state.inventory
-        .filter((i) => i.status === 'raw' && !i.isFake)
+        .filter((i) => i.status === 'raw' && !i.isFake && i.autoBought)
         .map((i) => ({
           item: i,
           value: calculateCurrentValue(i, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state)),
@@ -1584,7 +1594,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const slots = get().inventorySlots();
       if (targets.length > 0 && occupiedSlots(state) < slots) {
         const target = targets[0];
-        get().buyListing(target.id);
+        get().buyListing(target.id, { byHelper: true });
         get().pushNotification(`Buyer Agent grabbed ${target.title.slice(0, 30)}.`, 'info');
       }
       set((s) => ({
@@ -1912,16 +1922,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         break;
       }
       case 'unlock_achievements': {
-        const allIds = ACHIEVEMENTS.map((a) => a.id);
-        const added = allIds.filter((id) => !state.achievementsUnlocked.includes(id));
-        set({ achievementsUnlocked: allIds });
-        // Mirror each to Steam (no-op when Steam isn't running), but skip the per-unlock toast spam.
-        for (const id of added) window.feebay?.steam?.unlockAchievement(id);
-        SFX.achievement();
-        get().pushNotification(
-          `☠ CHEAT: ${added.length} achievement${added.length === 1 ? '' : 's'} force-unlocked. Go claim the cash.`,
-          'achievement',
-        );
+        // Gotcha — "Unlock ALL Achievements" unlocks exactly one: the cheater badge.
+        const cheaterId = 'achievement_cheater';
+        if (get().achievementsUnlocked.includes(cheaterId)) {
+          get().pushNotification(
+            '☠ CHEAT: Still just the one. Cheaters never win (twice).',
+            'info',
+          );
+          break;
+        }
+        get().unlockAchievements([cheaterId]);
         break;
       }
     }

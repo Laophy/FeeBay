@@ -6,6 +6,7 @@ import type {
   MarketplaceSource,
   MarketTrend,
   RawCondition,
+  SlabBagTier,
 } from '../types';
 import { GRADE_MULTIPLIER } from './economyEngine';
 import { CARDS } from '../data/cards';
@@ -32,12 +33,7 @@ import {
   rollCenteringForGrade,
   rollRainbowCentering,
 } from './centering';
-import {
-  expectedPullValue,
-  expectedSlabBagValue,
-  tierForPrice,
-  type SlabBagTier,
-} from './lotResolver';
+import { expectedPullValue, expectedSlabBagValue, tierForPrice } from './lotResolver';
 
 const RAW_CONDITIONS: RawCondition[] = [
   'Damaged',
@@ -273,11 +269,11 @@ export function generateStorageUnitListing(
 
 /* ---- Slab bags — a graded-card grab bag ---- */
 
-const SLAB_BAG_TIERS: { tier: SlabBagTier; askMin: number; askMax: number; label: string }[] = [
-  { tier: 'budget', askMin: 45, askMax: 110, label: 'Budget' },
-  { tier: 'standard', askMin: 150, askMax: 380, label: 'Standard' },
-  { tier: 'premium', askMin: 480, askMax: 980, label: 'Premium' },
-  { tier: 'whale', askMin: 1300, askMax: 2700, label: 'Whale' },
+const SLAB_BAG_TIERS: { tier: SlabBagTier; label: string }[] = [
+  { tier: 'budget', label: 'Budget' },
+  { tier: 'standard', label: 'Standard' },
+  { tier: 'premium', label: 'Premium' },
+  { tier: 'whale', label: 'Whale' },
 ];
 
 const SLAB_BAG_TITLES = [
@@ -302,11 +298,16 @@ const SLAB_BAG_DESCRIPTIONS_SHADY = [
 /** A graded-card grab bag. Resolves to one slab — sometimes a counterfeit. */
 export function generateSlabBagListing(source: MarketplaceSource): MarketplaceListing {
   const t = pick(SLAB_BAG_TIERS);
-  const askingPrice = randInt(t.askMin, t.askMax);
-  // Shady bags are far likelier to hide a counterfeit slab. JaredsList runs more of them.
+  // Shady bags are far likelier to hide a junk slab. JaredsList runs more of them.
   const shady = chance(source === 'JaredsList' ? 0.55 : 0.28);
   const scamRisk = shady ? rand(0.42, 0.72) : rand(0.05, 0.16);
+  // Price the bag at a discount of the tier's expected slab value, so a clean
+  // pull turns a profit. Shady bags lure with a steeper-looking discount.
   const trueValue = expectedSlabBagValue(t.tier);
+  const askingPrice = Math.max(
+    20,
+    Math.round(trueValue * (shady ? rand(0.5, 0.72) : rand(0.62, 0.85))),
+  );
   return {
     id: uid('lst_'),
     source,
@@ -315,8 +316,8 @@ export function generateSlabBagListing(source: MarketplaceSource): MarketplaceLi
     description: pick(shady ? SLAB_BAG_DESCRIPTIONS_SHADY : SLAB_BAG_DESCRIPTIONS_LEGIT),
     askingPrice,
     trueMarketValue: trueValue,
-    estimatedValueMin: Math.max(1, Math.round(askingPrice * 0.2)),
-    estimatedValueMax: Math.round(Math.max(trueValue, askingPrice) * 2.2),
+    estimatedValueMin: Math.max(1, Math.round(trueValue * 0.2)),
+    estimatedValueMax: Math.round(trueValue * 2.4),
     conditionHint: 'Sealed bag — the slab inside is graded, the card is a mystery.',
     actualConditionScore: 92,
     centeringOffsetX: 0,
@@ -326,6 +327,7 @@ export function generateSlabBagListing(source: MarketplaceSource): MarketplaceLi
     cardId: CARDS[0].id, // placeholder — art uses the bag tile
     lotType: 'slab_bag',
     lotSize: undefined,
+    slabBagTier: t.tier,
     scamRisk,
     fakeRisk: shady ? rand(0.3, 0.6) : rand(0.03, 0.12),
     isFake: false,
