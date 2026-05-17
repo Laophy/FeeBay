@@ -2,6 +2,7 @@ import type { CardRarity, GameState, InventoryItem } from '../types';
 import { ACHIEVEMENTS, setAchievementId } from '../data/achievements';
 import { CARDS } from '../data/cards';
 import { MARKETPLACES } from '../data/marketplaces';
+import { employeeCap } from '../data/employees';
 import { centeringScore } from './centering';
 import { calculateCurrentValue } from './economyEngine';
 
@@ -23,6 +24,7 @@ export type AchievementContext =
   | { kind: 'negotiation_accepted' }
   | { kind: 'crash_caused' }
   | { kind: 'slab_bag_opened'; grade: number; isScam: boolean }
+  | { kind: 'employee_fired' }
   | { kind: 'tick' };
 
 /**
@@ -182,6 +184,35 @@ export function evaluateAchievements(
     mark('all_marketplaces');
   }
 
+  // --- Employees: the automation workforce ---
+  const emps = state.employees;
+  if (emps.length >= 1) mark('first_hire');
+  if (emps.length >= 10) mark('big_team');
+  if (emps.some((e) => e.role === 'manager')) mark('manager_hired');
+  if (emps.some((e) => e.tier === 3)) mark('veteran_hired');
+  if (emps.some((e) => e.mistakes >= 1)) mark('employee_mistake');
+  if (emps.some((e) => e.idle === 'Account too low to buy stock')) mark('worker_idle_broke');
+  if (emps.some((e) => e.actions >= 250)) mark('employee_grinder');
+  if (emps.some((e) => e.profit >= 25000)) mark('star_employee');
+  if (emps.some((e) => e.log.some((l) => l.kind === 'mistake' && l.amount <= -300))) {
+    mark('costly_blunder');
+  }
+  if (
+    (['scout', 'flipper', 'promoter', 'manager'] as const).every((r) =>
+      emps.some((e) => e.role === r),
+    )
+  ) {
+    mark('dream_team');
+  }
+  const empCap = employeeCap(state.businessLevel);
+  if (empCap > 0 && emps.length >= empCap) mark('full_roster');
+  if (empCap >= 5 && emps.length >= empCap && emps.every((e) => e.tier === 3)) {
+    mark('all_veteran_team');
+  }
+  if (state.companyProfit >= 10000) mark('company_profit_10k');
+  if (state.companyProfit >= 100000) mark('company_profit_100k');
+  if (state.companyProfit >= 1000000) mark('company_profit_1m');
+
   // --- Context-specific ---
   if (ctx.kind === 'sold') {
     if (ctx.profitPct >= 200) mark('hidden_gem');
@@ -195,6 +226,7 @@ export function evaluateAchievements(
   if (ctx.kind === 'lot_opened' && ctx.rarities.some((r) => RARE_OR_BETTER.includes(r))) {
     mark('closet_treasure');
   }
+  if (ctx.kind === 'employee_fired') mark('first_fire');
 
   return newly;
 }

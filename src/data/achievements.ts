@@ -118,6 +118,24 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'showcase_value_10k', name: 'Gallery Opening', description: 'Display $10,000+ worth of cards on your Collection showcase.', icon: 'crown', cashReward: 500, tier: 'silver' },
   { id: 'showcase_value_100k', name: 'Museum Wing', description: 'Display $100,000+ worth of cards on your Collection showcase.', icon: 'crown', cashReward: 3000, tier: 'gold' },
 
+  // --- Employees: the automation workforce (unlocks at Business Level 2) ---
+  { id: 'first_hire', name: 'On the Payroll', description: 'Hire your first employee.', icon: 'users', cashReward: 75, tier: 'bronze' },
+  { id: 'manager_hired', name: 'Middle Management', description: 'Get a Manager running your floor.', icon: 'crown', cashReward: 60, tier: 'bronze' },
+  { id: 'employee_mistake', name: 'Shrinkage', description: 'Watch an employee blunder and cost you cash.', icon: 'chart-down', cashReward: 40, tier: 'bronze' },
+  { id: 'worker_idle_broke', name: 'Bench Warmer', description: 'Leave a worker idle because the account ran dry.', icon: 'coffee', cashReward: 40, tier: 'bronze' },
+  { id: 'first_fire', name: "You're Fired", description: 'Let an employee go.', icon: 'bolt', cashReward: 50, tier: 'bronze' },
+  { id: 'full_roster', name: 'Fully Staffed', description: 'Fill every employee slot for your business level.', icon: 'users', cashReward: 400, tier: 'silver' },
+  { id: 'dream_team', name: 'Dream Team', description: 'Have a Scout, Flipper, Promoter, and Manager on staff at once.', icon: 'medal', cashReward: 500, tier: 'silver' },
+  { id: 'veteran_hired', name: 'Headhunter', description: 'Land a 3-star Veteran employee.', icon: 'medal', cashReward: 350, tier: 'silver' },
+  { id: 'company_profit_10k', name: 'The Machine', description: 'Your team banks $10,000 in total profit.', icon: 'wallet', cashReward: 400, tier: 'silver' },
+  { id: 'employee_grinder', name: 'Employee of the Month', description: 'A single employee completes 250 tasks.', icon: 'trends', cashReward: 450, tier: 'silver' },
+  { id: 'company_profit_100k', name: 'Hands-Off Income', description: 'Your team banks $100,000 in total profit.', icon: 'trophy', cashReward: 2000, tier: 'gold' },
+  { id: 'big_team', name: 'Whole Operation', description: 'Run a 10-strong workforce at once.', icon: 'users', cashReward: 1500, tier: 'gold' },
+  { id: 'star_employee', name: 'Star Employee', description: 'One employee personally earns $25,000 in profit.', icon: 'crown', cashReward: 2000, tier: 'gold' },
+  { id: 'costly_blunder', name: 'Expensive Lesson', description: 'Eat a single employee mistake worth $300 or more.', icon: 'chart-down', cashReward: 1000, tier: 'gold' },
+  { id: 'company_profit_1m', name: 'Corner Office', description: 'Your team banks $1,000,000 in total profit.', icon: 'crown', cashReward: 25000, tier: 'mythic' },
+  { id: 'all_veteran_team', name: 'All-Star Roster', description: 'Field a full roster of nothing but Veterans (5+ slots).', icon: 'trophy', cashReward: 15000, tier: 'mythic' },
+
   // Per-set codex completion — generated from the card roster (see buildSetAchievements)
   ...SET_ACHIEVEMENTS,
 ];

@@ -76,6 +76,15 @@ const HELP: Record<Route, { title: string; body: (string | JSX.Element)[] }> = {
       'Buyout option (when available) skips the auction entirely at a premium price.',
     ],
   },
+  employees: {
+    title: 'Employees',
+    body: [
+      'Your automation workforce, unlocked at Business Level 2. Headcount cap grows with your business level (1 → 5 → 10 and beyond).',
+      'Scouts auto-buy underpriced singles; Flippers sell that stock for profit; Promoters build reputation; Managers speed up the whole team and cut mistakes.',
+      'Each employee works in timed cycles — watch the progress bar. Tap History on a card for their flip-by-flip log.',
+      'Employees occasionally slip up — a damaged card, a fake bought — and it costs you cash. Higher-tier staff and Managers make that rarer.',
+    ],
+  },
   upgrades: {
     title: 'Upgrades',
     body: [

@@ -7,6 +7,7 @@ import { Marketplace } from './features/marketplace/Marketplace';
 import { Inventory } from './features/inventory/Inventory';
 import { Grading } from './features/grading/Grading';
 import { Upgrades } from './features/upgrades/Upgrades';
+import { Employees } from './features/employees/Employees';
 import { MarketTrends } from './features/market/MarketTrends';
 import { Auctions } from './features/auctions/Auctions';
 import { Achievements } from './features/achievements/Achievements';
@@ -28,6 +29,7 @@ export type Route =
   | 'grading'
   | 'trends'
   | 'auctions'
+  | 'employees'
   | 'upgrades'
   | 'collection'
   | 'stats'
@@ -46,13 +48,14 @@ export default function App() {
   const tickMarketNoise = useGameStore((s) => s.tickMarketNoise);
   const tickConvention = useGameStore((s) => s.tickConvention);
   const tickPlayerListings = useGameStore((s) => s.tickPlayerListings);
-  const tickHiredHelp = useGameStore((s) => s.tickHiredHelp);
+  const tickEmployees = useGameStore((s) => s.tickEmployees);
   const sampleNetWorth = useGameStore((s) => s.sampleNetWorth);
   const refreshListings = useGameStore((s) => s.refreshListings);
   const lastListingRefresh = useGameStore((s) => s.lastListingRefresh);
   const listingsCount = useGameStore((s) => s.listings.length);
   const totalBought = useGameStore((s) => s.stats.totalBought);
   const auctionUnlocked = useGameStore((s) => s.upgradesPurchased.includes('auction_paddle'));
+  const businessLevel = useGameStore((s) => s.businessLevel);
   const gradingUnlocked = useGameStore(
     (s) =>
       s.upgradesPurchased.includes('grading_membership') ||
@@ -65,7 +68,8 @@ export default function App() {
     if (route === 'storefront' && totalBought === 0) setRoute('dashboard');
     if (route === 'grading' && !gradingUnlocked) setRoute('dashboard');
     if (route === 'auctions' && !auctionUnlocked) setRoute('dashboard');
-  }, [route, totalBought, gradingUnlocked, auctionUnlocked]);
+    if (route === 'employees' && businessLevel < 2) setRoute('dashboard');
+  }, [route, totalBought, gradingUnlocked, auctionUnlocked, businessLevel]);
 
   useEffect(() => {
     init();
@@ -80,7 +84,7 @@ export default function App() {
       tickMarketNoise();
       tickConvention();
       tickPlayerListings();
-      tickHiredHelp();
+      tickEmployees();
     }, 1000);
     return () => clearInterval(id);
   }, [
@@ -91,7 +95,7 @@ export default function App() {
     tickMarketNoise,
     tickConvention,
     tickPlayerListings,
-    tickHiredHelp,
+    tickEmployees,
   ]);
 
   useEffect(() => {
@@ -136,6 +140,7 @@ export default function App() {
           {route === 'grading' && <Grading />}
           {route === 'trends' && <MarketTrends />}
           {route === 'auctions' && <Auctions />}
+          {route === 'employees' && <Employees />}
           {route === 'upgrades' && <Upgrades />}
           {route === 'collection' && <Collection />}
           {route === 'stats' && <Stats />}

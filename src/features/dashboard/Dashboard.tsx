@@ -8,6 +8,8 @@ import { ACHIEVEMENTS } from '../../data/achievements';
 import { CARDS } from '../../data/cards';
 import { collectionPercent } from '../../game/collection';
 import { getBusinessLevel, getNextBusinessLevel } from '../../data/businessLevels';
+import { ProfitChart } from '../../components/ProfitChart';
+import type { Employee } from '../../types';
 
 type Props = { onNavigate: (r: Route) => void };
 
@@ -34,6 +36,9 @@ export function Dashboard({ onNavigate }: Props) {
   const day = useGameStore((s) => s.day);
   const reputation = useGameStore((s) => s.reputation);
   const storefrontBalance = useGameStore((s) => s.storefrontBalance);
+  const employees = useGameStore((s) => s.employees);
+  const companyProfit = useGameStore((s) => s.companyProfit);
+  const companyProfitHistory = useGameStore((s) => s.companyProfitHistory);
 
   const inventoryValue = inventory.reduce(
     (sum, i) =>
@@ -155,6 +160,16 @@ export function Dashboard({ onNavigate }: Props) {
           </button>
         </Section>
       </div>
+
+      {/* Live workforce snapshot */}
+      {businessLevel >= 2 && (
+        <WorkforcePanel
+          employees={employees}
+          companyProfit={companyProfit}
+          profitHistory={companyProfitHistory}
+          onNavigate={onNavigate}
+        />
+      )}
 
       {/* Activity + best/worst */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -370,4 +385,35 @@ function Row({
 
 function Empty({ text }: { text: string }) {
   return <div className="text-sm text-ink-500 py-2">{text}</div>;
+}
+
+/* ---------- Live workforce panel ---------- */
+
+function WorkforcePanel({
+  employees,
+  companyProfit,
+  profitHistory,
+  onNavigate,
+}: {
+  employees: Employee[];
+  companyProfit: number;
+  profitHistory: number[];
+  onNavigate: (r: Route) => void;
+}) {
+  if (employees.length === 0) {
+    return (
+      <div className="rounded-xl border border-line bg-white shadow-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="text-sm text-ink-500">
+          No employees yet. Hire an automation team to flip cards and watch the profit roll in.
+        </div>
+        <button
+          onClick={() => onNavigate('employees')}
+          className="shrink-0 rounded-md bg-feebay-500 hover:bg-feebay-600 text-white text-xs font-bold px-4 py-2"
+        >
+          Hire staff
+        </button>
+      </div>
+    );
+  }
+  return <ProfitChart history={profitHistory} current={companyProfit} />;
 }

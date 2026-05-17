@@ -66,6 +66,12 @@ const NAV_GROUPS: NavGroup[] = [
           return owns ? null : 'Unlock a grading membership in Upgrades';
         },
       },
+      {
+        id: 'employees',
+        label: 'Employees',
+        icon: 'users',
+        lock: (s) => (s.businessLevel >= 2 ? null : 'Reach Business Level 2'),
+      },
       { id: 'collection', label: 'Collection', icon: 'box' },
     ],
   },
@@ -131,6 +137,7 @@ export function Sidebar({ route, setRoute }: Props) {
   const badge = (id: Route): string | null => {
     if (id === 'inventory' && inventoryCount > 0) return `${inventoryCount}/${inventoryMax}`;
     if (id === 'storefront' && storefrontCount > 0) return `${storefrontCount}`;
+    if (id === 'employees' && state.employees.length > 0) return `${state.employees.length}`;
     if (id === 'grading' && pendingGrades > 0) return `${pendingGrades}`;
     if (id === 'auctions' && auctionsCount > 0) return `${auctionsCount}`;
     if (id === 'achievements') {

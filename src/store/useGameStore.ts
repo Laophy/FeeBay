@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type {
   AuctionListing,
   BulkGradeReveal,
+  Employee,
+  EmployeeLogEntry,
+  EmployeeRole,
   GameNotification,
   GameState,
   GradeHistoryEntry,
@@ -21,12 +24,29 @@ import { rollGrade } from '../game/gradingEngine';
 import { generateGraderNote } from '../game/graderNotes';
 import { pruneExpiredTrends, rollMarketEvent } from '../game/marketEvents';
 import { loadGame, saveGame } from '../game/saveSystem';
-import { pick, rand, uid } from '../game/rng';
+import { chance, pick, rand, randInt, uid, weightedPick } from '../game/rng';
 import { SELLER_NAMES } from '../data/listingTemplates';
 import { getMarketplace, MARKETPLACES } from '../data/marketplaces';
 import { UPGRADES, UPGRADE_EFFECTS } from '../data/upgrades';
 import { getCardById } from '../data/cards';
-import { resolveMysteryLot, resolveSlabBag, resolveStorageUnit } from '../game/lotResolver';
+import {
+  EMPLOYEE_NAMES,
+  EMPLOYEE_TIERS,
+  EMPLOYEE_TIER_WEIGHTS,
+  MISTAKE_LINES,
+  employeeCap,
+  getEmployeeRole,
+  hireCost,
+  mistakeCostRange,
+  promoterRep,
+  scoutBuyCap,
+} from '../data/employees';
+import {
+  resolveMysteryLot,
+  resolveSlabBag,
+  resolveStorageUnit,
+  sourceWholesaleCard,
+} from '../game/lotResolver';
 import { collectionSize, recordAcquisitions, recordGradeUpdate } from '../game/collection';
 import { initialMarketNoise, stepMarketNoise } from '../game/marketNoise';
 import { rollConvention } from '../game/conventions';
@@ -208,11 +228,9 @@ function defaultState(): GameState {
     pendingPayments: [],
     storefrontBalance: 0,
     autoWithdrawEnabled: false,
-    hiredHelpState: {
-      apprenticeLastFlipAt: 0,
-      buyerAgentLastBuyAt: 0,
-      marketingLastTickAt: 0,
-    },
+    employees: [],
+    companyProfit: 0,
+    companyProfitHistory: [],
     cheatsConsoleOpen: false,
     ui: {
       inventoryFilter: 'all',
@@ -244,8 +262,12 @@ function hashString(s: string): number {
 type Actions = {
   init(): void;
   refreshListings(opts?: { force?: boolean }): boolean;
-  buyListing(listingId: string, opts?: { byHelper?: boolean }): void;
-  sellInventoryItem(itemId: string, marketplace?: MarketplaceSource): void;
+  buyListing(listingId: string, opts?: { byHelper?: boolean; silent?: boolean }): void;
+  sellInventoryItem(
+    itemId: string,
+    marketplace?: MarketplaceSource,
+    opts?: { silent?: boolean },
+  ): { profit: number; net: number } | null;
   sendToGrading(itemId: string, companyId: GradingCompanyId): void;
   /** Manually reveal a submission whose timer is up. Rolls the grade, updates inventory/stats, queues a reveal modal entry. */
   revealGradingSubmission(submissionId: string): void;
@@ -282,7 +304,9 @@ type Actions = {
   toggleWatch(cardId: string): void;
   startConvention(): void;
   tickConvention(): void;
-  tickHiredHelp(): void;
+  hireEmployee(role: EmployeeRole): void;
+  fireEmployee(employeeId: string): void;
+  tickEmployees(): void;
   promoteBusinessLevel(): void;
   toggleShowcase(itemId: string): void;
   setInventoryFilter(filter: GameState['ui']['inventoryFilter']): void;
@@ -378,7 +402,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const listing = state.listings.find((l) => l.id === listingId);
     if (!listing) return;
     if (state.cash < listing.askingPrice) {
-      get().pushNotification("Not enough cash for that listing.", 'warning');
+      if (!opts?.silent) get().pushNotification("Not enough cash for that listing.", 'warning');
       return;
     }
 
@@ -512,7 +536,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     if (occupiedSlots(state) >= slots) {
-      get().pushNotification('Inventory full. Sell or buy more storage.', 'warning');
+      if (!opts?.silent) get().pushNotification('Inventory full. Sell or buy more storage.', 'warning');
       return;
     }
     const isSlabListing =
@@ -568,31 +592,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
         conventionBuys: state.stats.conventionBuys + (duringConvention ? 1 : 0),
       },
     });
-    if (acq.newCardIds.length > 0) {
-      get().pushNotification(`New card added to collection: ${item.name}.`, 'success');
+    if (!opts?.silent) {
+      if (acq.newCardIds.length > 0) {
+        get().pushNotification(`New card added to collection: ${item.name}.`, 'success');
+      }
+      SFX.buy();
+      get().pushNotification(
+        `Bought "${listing.title}" for $${listing.askingPrice} on ${listing.source}.`,
+        'success',
+      );
     }
-    SFX.buy();
-    get().pushNotification(
-      `Bought "${listing.title}" for $${listing.askingPrice} on ${listing.source}.`,
-      'success',
-    );
     get().evaluateAndApplyAchievements({ kind: 'bought', isFake: listing.isFake });
     get().save();
   },
 
-  sellInventoryItem(itemId, marketplaceOverride) {
+  sellInventoryItem(itemId, marketplaceOverride, opts) {
     const state = get();
     const item = state.inventory.find((i) => i.id === itemId);
-    if (!item || item.status === 'grading' || item.status === 'sold') return;
+    if (!item || item.status === 'grading' || item.status === 'sold') return null;
     if (state.showcaseItemIds.includes(itemId)) {
       get().pushNotification('This card is in your showcase. Remove it first.', 'warning');
-      return;
+      return null;
     }
     const marketplaceId: MarketplaceSource =
       marketplaceOverride ?? (item.status === 'graded' && state.marketplacesUnlocked.includes('SlabHub') ? 'SlabHub' : 'FeeBay');
     if (!state.marketplacesUnlocked.includes(marketplaceId)) {
       get().pushNotification(`${marketplaceId} is locked.`, 'warning');
-      return;
+      return null;
     }
     const mkt = getMarketplace(marketplaceId);
     const value = calculateCurrentValue(item, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state));
@@ -626,18 +652,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       stats: newStats,
       recentSellsByTag: updatedSells,
     });
-    if (profit >= 0) {
-      SFX.chaching();
-      get().pushNotification(
-        `Sold ${item.name} on ${marketplaceId} for $${sale.net.toFixed(2)} (+$${profit.toFixed(2)})`,
-        'success',
-      );
-    } else {
-      SFX.loss();
-      get().pushNotification(
-        `Sold ${item.name} for $${sale.net.toFixed(2)} (loss $${profit.toFixed(2)})`,
-        'warning',
-      );
+    if (!opts?.silent) {
+      if (profit >= 0) {
+        SFX.chaching();
+        get().pushNotification(
+          `Sold ${item.name} on ${marketplaceId} for $${sale.net.toFixed(2)} (+$${profit.toFixed(2)})`,
+          'success',
+        );
+      } else {
+        SFX.loss();
+        get().pushNotification(
+          `Sold ${item.name} for $${sale.net.toFixed(2)} (loss $${profit.toFixed(2)})`,
+          'warning',
+        );
+      }
     }
     // Reactive: if any tag has been mass-sold (5+ in 90s), trigger a supply crash event for it
     for (const [tag, info] of Object.entries(updatedSells)) {
@@ -663,6 +691,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().tryUnlockMarketplaces();
     get().evaluateAndApplyAchievements({ kind: 'sold', profit, profitPct, item });
     get().save();
+    return { profit, net: sale.net };
   },
 
   sellBundle(itemIds, marketplaceOverride) {
@@ -1544,80 +1573,89 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  tickHiredHelp() {
+  hireEmployee(role) {
     const state = get();
-    const u = state.upgradesPurchased;
-    if (
-      !u.includes('hire_apprentice') &&
-      !u.includes('hire_buyer_agent') &&
-      !u.includes('hire_marketing')
-    )
+    if (state.businessLevel < 2) {
+      get().pushNotification('Reach Business Level 2 to hire your first employee.', 'warning');
       return;
-
+    }
+    const cap = employeeCap(state.businessLevel);
+    if (state.employees.length >= cap) {
+      get().pushNotification(
+        `${getBusinessLevel(state.businessLevel).name} tops out at ${cap} employee${
+          cap === 1 ? '' : 's'
+        } — promote to grow the team.`,
+        'warning',
+      );
+      return;
+    }
+    const cost = hireCost(state.employees.length);
+    if (state.cash < cost) {
+      get().pushNotification(`Hiring costs $${cost.toLocaleString()} — not enough cash.`, 'warning');
+      return;
+    }
+    const tier = weightedPick(
+      EMPLOYEE_TIER_WEIGHTS.map((t) => t[0]),
+      EMPLOYEE_TIER_WEIGHTS.map((t) => t[1]),
+    );
+    const used = new Set(state.employees.map((e) => e.name));
+    let name = pick(EMPLOYEE_NAMES);
+    let guard = 0;
+    while (used.has(name) && guard++ < 50) name = pick(EMPLOYEE_NAMES);
     const now = Date.now();
-    const hs = state.hiredHelpState;
+    const roleDef = getEmployeeRole(role);
+    const emp: Employee = {
+      id: uid('emp_'),
+      name,
+      role,
+      tier,
+      hiredAt: now,
+      cycleStartedAt: now,
+      cycleEndsAt: now + roleDef.baseCycleMs,
+      actions: 0,
+      profit: 0,
+      mistakes: 0,
+      mistakeCost: 0,
+      log: [],
+    };
+    set({ cash: +(state.cash - cost).toFixed(2), employees: [...state.employees, emp] });
+    SFX.chaching();
+    get().pushNotification(
+      `Hired ${name} — a ${EMPLOYEE_TIERS[tier].label} ${roleDef.title}.`,
+      'success',
+    );
+    get().save();
+  },
 
-    // Apprentice: every ~30s, auto-flip the lowest-value raw card under $80 in inventory.
-    if (u.includes('hire_apprentice') && now - hs.apprenticeLastFlipAt > 30_000) {
-      // Only flips stock a hired helper bought — never cards the player bought.
-      const candidates = state.inventory
-        .filter((i) => i.status === 'raw' && !i.isFake && i.autoBought)
-        .map((i) => ({
-          item: i,
-          value: calculateCurrentValue(i, state.marketTrends, state.marketNoise, state.convention, vaultStableFor(state)),
-        }))
-        .filter((c) => c.value <= 80)
-        .sort((a, b) => a.value - b.value);
-      if (candidates.length > 0) {
-        const target = candidates[0].item;
-        const mkt = state.marketplacesUnlocked.includes('FeeBay') ? 'FeeBay' : state.marketplacesUnlocked[0];
-        get().sellInventoryItem(target.id, mkt);
-        get().pushNotification(`Apprentice flipped ${target.name}.`, 'info');
-      }
-      set((s) => ({
-        hiredHelpState: { ...s.hiredHelpState, apprenticeLastFlipAt: now },
-      }));
-    }
+  fireEmployee(employeeId) {
+    const state = get();
+    const emp = state.employees.find((e) => e.id === employeeId);
+    if (!emp) return;
+    set({ employees: state.employees.filter((e) => e.id !== employeeId) });
+    get().pushNotification(`Let ${emp.name} go. The desk is empty.`, 'info');
+    get().evaluateAndApplyAchievements({ kind: 'employee_fired' });
+    get().save();
+  },
 
-    // Buyer Agent: every ~25s, auto-buy the best ≤60% true-value listing under $500.
-    if (u.includes('hire_buyer_agent') && now - hs.buyerAgentLastBuyAt > 25_000) {
-      const targets = state.listings
-        .filter(
-          (l) =>
-            !l.isFake &&
-            l.lotType === 'single' &&
-            l.askingPrice <= 500 &&
-            l.askingPrice <= l.trueMarketValue * 0.6 &&
-            state.cash >= l.askingPrice,
-        )
-        .sort((a, b) => b.trueMarketValue - b.askingPrice - (a.trueMarketValue - a.askingPrice));
-      const slots = get().inventorySlots();
-      if (targets.length > 0 && occupiedSlots(state) < slots) {
-        const target = targets[0];
-        get().buyListing(target.id, { byHelper: true });
-        get().pushNotification(`Buyer Agent grabbed ${target.title.slice(0, 30)}.`, 'info');
-      }
-      set((s) => ({
-        hiredHelpState: { ...s.hiredHelpState, buyerAgentLastBuyAt: now },
-      }));
-    }
-
-    // Marketing Manager: +1 reputation per minute, applied 0.1/6s.
-    if (u.includes('hire_marketing')) {
-      const lastTick = hs.marketingLastTickAt || now;
-      const elapsed = now - lastTick;
-      if (elapsed >= 60_000) {
-        set((s) => ({
-          reputation: s.reputation + Math.floor(elapsed / 60_000),
-          hiredHelpState: { ...s.hiredHelpState, marketingLastTickAt: now },
-        }));
-        get().tryUnlockMarketplaces();
-      } else if (!hs.marketingLastTickAt) {
-        set((s) => ({
-          hiredHelpState: { ...s.hiredHelpState, marketingLastTickAt: now },
-        }));
+  tickEmployees() {
+    const state = get();
+    if (state.employees.length === 0) return;
+    const now = Date.now();
+    const due = state.employees.some((e) => now >= e.cycleEndsAt);
+    if (due) {
+      const managerCount = state.employees.filter((e) => e.role === 'manager').length;
+      for (const e of state.employees) {
+        if (now >= e.cycleEndsAt) runEmployeeCycle(e.id, now, managerCount);
       }
     }
+    // Sample the company-profit curve every tick so the chart updates live.
+    const cp = get().companyProfit;
+    set((s) => ({
+      companyProfitHistory: [...s.companyProfitHistory, +cp.toFixed(2)].slice(
+        -PROFIT_HISTORY_CAP,
+      ),
+    }));
+    if (due) get().save();
   },
 
   tickDay() {
@@ -1772,7 +1810,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pendingPayments: state.pendingPayments,
       storefrontBalance: state.storefrontBalance,
       autoWithdrawEnabled: state.autoWithdrawEnabled,
-      hiredHelpState: state.hiredHelpState,
+      employees: state.employees,
+      companyProfit: state.companyProfit,
+      companyProfitHistory: state.companyProfitHistory,
       // Session-only — always persist false so a save made while the console is
       // open doesn't auto-reopen it on the next load.
       cheatsConsoleOpen: false,
@@ -2171,6 +2211,193 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 }));
+
+/** Idle reason shown when a worker can't buy because the account is too low. */
+const NEEDS_CASH_IDLE = 'Account too low to buy stock';
+
+/** How many 1s profit samples the live company-profit chart retains (~4 min). */
+const PROFIT_HISTORY_CAP = 240;
+
+/** Run one work cycle for an employee. Workers only roll for a costly mistake
+ *  when they actually have a task — idle staff (out of cash, no stock) just
+ *  wait, they never bleed money. Manager presence speeds cycles and cuts
+ *  mistakes for everyone else. */
+function runEmployeeCycle(empId: string, now: number, managerCount: number) {
+  const store = useGameStore.getState();
+  const emp = store.employees.find((e) => e.id === empId);
+  if (!emp) return;
+  const roleDef = getEmployeeRole(emp.role);
+  const tierDef = EMPLOYEE_TIERS[emp.tier];
+
+  let logEntry: EmployeeLogEntry | null = null;
+  let profitDelta = 0;
+  let mistakeCost = 0;
+  let actionDelta = 0;
+  let idleReason: string | undefined;
+
+  // --- Work out whether there is a task this cycle ---
+  type Task =
+    | { kind: 'source'; item: InventoryItem }
+    | { kind: 'flip'; itemId: string; name: string; value: number }
+    | { kind: 'promote' };
+  let task: Task | null = null;
+
+  if (emp.role === 'scout') {
+    const cur = useGameStore.getState();
+    if (occupiedSlots(cur) >= useGameStore.getState().inventorySlots()) {
+      idleReason = 'Inventory full — no room for new stock';
+    } else {
+      // Scouts comb an endless wholesale supply and bring back the best find
+      // they can afford — better tiers and a wider hunt as they rank up.
+      const budget = Math.min(cur.cash, scoutBuyCap(emp.tier));
+      const tiers: ('mid' | 'premium' | 'whale')[] =
+        emp.tier === 3
+          ? ['whale', 'premium']
+          : emp.tier === 2
+          ? ['premium', 'whale']
+          : ['mid', 'premium'];
+      let best: InventoryItem | null = null;
+      for (const lt of tiers) {
+        for (let k = 0; k < 4; k++) {
+          const cand = sourceWholesaleCard(lt);
+          if (cand.purchasePrice <= budget && (!best || cand.baseValue > best.baseValue)) {
+            best = cand;
+          }
+        }
+      }
+      if (best) task = { kind: 'source', item: best };
+      else idleReason = NEEDS_CASH_IDLE;
+    }
+  } else if (emp.role === 'flipper') {
+    // Flip the most valuable scouted card (raw or slab) — never the player's own.
+    const cur = useGameStore.getState();
+    const stable = vaultStableFor(cur);
+    const best = cur.inventory
+      .filter(
+        (i) =>
+          (i.status === 'raw' || i.status === 'graded') &&
+          i.autoBought &&
+          !cur.showcaseItemIds.includes(i.id),
+      )
+      .map((i) => ({
+        i,
+        v: calculateCurrentValue(i, cur.marketTrends, cur.marketNoise, cur.convention, stable),
+      }))
+      .sort((a, b) => b.v - a.v)[0];
+    if (best) task = { kind: 'flip', itemId: best.i.id, name: best.i.name, value: best.v };
+    else idleReason = 'No scouted stock to flip yet';
+  } else if (emp.role === 'promoter') {
+    task = { kind: 'promote' };
+  }
+  // manager: no direct task — the buff is applied to everyone else's cycle.
+
+  // --- Carry out the task — but a working cycle can still go wrong ---
+  if (task) {
+    const mistakeChance = Math.max(
+      0.012,
+      0.05 * tierDef.mistake - 0.018 * Math.min(managerCount, 3),
+    );
+    if (chance(mistakeChance)) {
+      // A mistake stings in proportion to the item in play — a fraction of its
+      // value, never enough to wipe out the flip it would have earned.
+      let cost: number;
+      if (task.kind === 'flip') {
+        cost = Math.round(task.value * rand(0.1, 0.28));
+      } else if (task.kind === 'source') {
+        cost = Math.round(task.item.baseValue * rand(0.12, 0.32));
+      } else {
+        const [lo, hi] = mistakeCostRange(emp.role);
+        cost = randInt(lo, hi);
+      }
+      cost = Math.min(350, Math.max(6, cost));
+      mistakeCost = cost;
+      profitDelta = -cost;
+      const line = pick(MISTAKE_LINES[emp.role]);
+      logEntry = { id: uid('elog_'), at: now, kind: 'mistake', text: line, amount: -cost };
+      useGameStore.setState((s) => ({ cash: +(s.cash - cost).toFixed(2) }));
+      store.pushNotification(
+        `${emp.name} the ${roleDef.title} ${line} — it cost you $${cost}.`,
+        'warning',
+      );
+    } else if (task.kind === 'source') {
+      const it = task.item;
+      useGameStore.setState((s) => ({
+        cash: +(s.cash - it.purchasePrice).toFixed(2),
+        inventory: [...s.inventory, it],
+      }));
+      actionDelta = 1;
+      logEntry = {
+        id: uid('elog_'),
+        at: now,
+        kind: 'buy',
+        text: `Sourced ${it.name} for $${it.purchasePrice} (worth ~$${it.baseValue})`,
+        amount: 0,
+      };
+    } else if (task.kind === 'flip') {
+      const result = useGameStore
+        .getState()
+        .sellInventoryItem(task.itemId, undefined, { silent: true });
+      if (result) {
+        profitDelta = result.profit;
+        actionDelta = 1;
+        logEntry = {
+          id: uid('elog_'),
+          at: now,
+          kind: 'flip',
+          text: `Flipped ${task.name} for $${result.net.toFixed(0)} (${
+            result.profit >= 0 ? '+' : '-'
+          }$${Math.abs(result.profit).toFixed(0)})`,
+          amount: result.profit,
+        };
+      }
+    } else {
+      const rep = promoterRep(emp.tier);
+      useGameStore.setState((s) => ({ reputation: s.reputation + rep }));
+      useGameStore.getState().tryUnlockMarketplaces();
+      actionDelta = 1;
+      logEntry = {
+        id: uid('elog_'),
+        at: now,
+        kind: 'promo',
+        text: `Ran a brand push — +${rep} reputation`,
+        amount: 0,
+      };
+    }
+  }
+
+  // Flag the player once when a worker first stalls out for lack of cash.
+  if (idleReason === NEEDS_CASH_IDLE && emp.idle !== NEEDS_CASH_IDLE) {
+    store.pushNotification(
+      `${emp.name} the ${roleDef.title} is idle — your account is too low to buy stock.`,
+      'warning',
+    );
+  }
+
+  const managerSpeed = emp.role === 'manager' ? 1 : 1 - 0.1 * Math.min(managerCount, 3);
+  const duration = Math.max(
+    6_000,
+    Math.round(roleDef.baseCycleMs * tierDef.speed * managerSpeed),
+  );
+
+  useGameStore.setState((s) => ({
+    employees: s.employees.map((e) =>
+      e.id === empId
+        ? {
+            ...e,
+            cycleStartedAt: now,
+            cycleEndsAt: now + duration,
+            actions: e.actions + actionDelta,
+            profit: +(e.profit + profitDelta).toFixed(2),
+            mistakes: e.mistakes + (mistakeCost > 0 ? 1 : 0),
+            mistakeCost: +(e.mistakeCost + mistakeCost).toFixed(2),
+            log: logEntry ? [logEntry, ...e.log].slice(0, 30) : e.log,
+            idle: idleReason,
+          }
+        : e,
+    ),
+    companyProfit: +(s.companyProfit + profitDelta).toFixed(2),
+  }));
+}
 
 function awardWonAuction(auctionId: string, price: number) {
   const store = useGameStore.getState();

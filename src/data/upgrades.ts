@@ -193,28 +193,10 @@ export const UPGRADES: Upgrade[] = [
     description: 'See conventions 60s before they go public. +5% boost while attending.',
   },
 
-  // --- Hired help (idle automation) ---
-  {
-    id: 'hire_apprentice',
-    name: 'Hire: Apprentice',
-    cost: 5000,
-    effect: 'hire_apprentice',
-    description: 'Auto-flips raw cards your Buyer Agent picked up (worth under $80) every ~30s. Never touches cards you bought yourself.',
-  },
-  {
-    id: 'hire_buyer_agent',
-    name: 'Hire: Buyer Agent',
-    cost: 15000,
-    effect: 'hire_buyer_agent',
-    description: 'Quietly buys any listing priced at ≤60% of true value, capped at $500.',
-  },
-  {
-    id: 'hire_marketing',
-    name: 'Hire: Marketing Manager',
-    cost: 12000,
-    effect: 'hire_marketing',
-    description: 'Builds your brand. Passive +1 reputation per minute.',
-  },
+  // --- Hired help ---
+  // Note: the Apprentice / Buyer Agent / Marketing roles moved to the dedicated
+  // Employees tab (unlocked at Business Level 2). The Vault Keeper stays here as
+  // a passive market perk rather than a worker on a cycle.
   {
     id: 'hire_vault_keeper',
     name: 'Hire: Vault Keeper',
@@ -251,8 +233,5 @@ export const UPGRADE_EFFECTS = {
   UNLOCK_AUCTIONS: 'unlock_auctions',
   AUTO_SNIPE: 'auto_snipe',
   CONVENTION_INSIDER: 'convention_insider',
-  HIRE_APPRENTICE: 'hire_apprentice',
-  HIRE_BUYER_AGENT: 'hire_buyer_agent',
-  HIRE_MARKETING: 'hire_marketing',
   HIRE_VAULT_KEEPER: 'hire_vault_keeper',
 } as const;

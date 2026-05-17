@@ -428,3 +428,82 @@ export function resolveSlabBag(
   };
   return { item, isScam };
 }
+
+/* ---- Wholesale supply — the employee Scout's private card bank ---- */
+
+/**
+ * Source one wholesale card (sometimes a slab) for a Scout — an endless private
+ * supply, independent of the public marketplace feed. Priced well below value so
+ * the Flipper turns a reliable profit on the resale.
+ */
+export function sourceWholesaleCard(tier: LotTier): InventoryItem {
+  const card = pickCardForTier(tier);
+  const now = Date.now();
+  const asSlab = chance(0.14);
+
+  let value: number;
+  let status: 'raw' | 'graded';
+  let grade: number | undefined;
+  let gradeLabel: string | undefined;
+  let gradingCompany: GradingCompanyId | undefined;
+  let rawCondition: RawCondition;
+  let conditionScore: number;
+  let centeringOffsetX: number;
+  let centeringOffsetY: number;
+
+  if (asSlab) {
+    grade = pick([7, 8, 8, 9, 9, 9.5, 10]);
+    gradingCompany = weightedPick<GradingCompanyId>(['PZA', 'ZAG', 'Bucket'], [5, 6, 4]);
+    gradeLabel = grade === 10 ? `${gradingCompany} GEM 10` : `${gradingCompany} ${grade}`;
+    const gradeMult = GRADE_MULTIPLIER[grade] ?? 1;
+    const companyMult = gradingCompany === 'PZA' ? 1.2 : gradingCompany === 'Bucket' ? 0.85 : 0.95;
+    value = Math.max(
+      20,
+      Math.round(
+        card.baseValue * rarityMult(card.rarity) * gradeMult * companyMult * rand(0.92, 1.12),
+      ),
+    );
+    const cent = rollCenteringForGrade(grade);
+    centeringOffsetX = cent.centeringOffsetX;
+    centeringOffsetY = cent.centeringOffsetY;
+    status = 'graded';
+    rawCondition = 'Gem Candidate';
+    conditionScore = 95;
+  } else {
+    const { raw, score } = rollRandomCondition();
+    rawCondition = raw;
+    conditionScore = score;
+    const cent = card.variant === 'rainbow' ? rollRainbowCentering() : rollCenteringNeutral();
+    centeringOffsetX = cent.centeringOffsetX;
+    centeringOffsetY = cent.centeringOffsetY;
+    value = Math.max(
+      8,
+      Math.round(card.baseValue * rarityMult(card.rarity) * conditionMult(raw) * rand(0.92, 1.12)),
+    );
+    status = 'raw';
+  }
+
+  return {
+    id: uid('inv_'),
+    cardId: card.id,
+    name: card.name,
+    set: card.set,
+    rarity: card.rarity,
+    rawCondition,
+    actualConditionScore: conditionScore,
+    centeringOffsetX,
+    centeringOffsetY,
+    // Wholesale — bought well under value so the resale clears a profit.
+    purchasePrice: Math.max(5, Math.round(value * rand(0.5, 0.66))),
+    baseValue: value,
+    status,
+    grade,
+    gradeLabel,
+    gradingCompany,
+    acquiredFrom: 'JaredsList',
+    acquiredAt: now,
+    isFake: false,
+    autoBought: true,
+    hue: card.hue,
+  };
+}

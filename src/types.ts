@@ -342,6 +342,41 @@ export type EndOfDayReport = {
   newCards: number;
 };
 
+export type EmployeeRole = 'scout' | 'flipper' | 'promoter' | 'manager';
+
+/** 1 Rookie · 2 Pro · 3 Veteran. */
+export type EmployeeTier = 1 | 2 | 3;
+
+/** One entry in an employee's activity log. */
+export type EmployeeLogEntry = {
+  id: string;
+  at: number;
+  kind: 'flip' | 'buy' | 'promo' | 'mistake';
+  text: string;
+  /** Profit (+) or cost (−) in dollars. */
+  amount: number;
+};
+
+export type Employee = {
+  id: string;
+  name: string;
+  role: EmployeeRole;
+  tier: EmployeeTier;
+  hiredAt: number;
+  /** Current work-cycle window — drives the progress timer. */
+  cycleStartedAt: number;
+  cycleEndsAt: number;
+  /** Lifetime tallies. */
+  actions: number;
+  profit: number;
+  mistakes: number;
+  mistakeCost: number;
+  /** Recent activity, newest first, capped. */
+  log: EmployeeLogEntry[];
+  /** Set when the worker has nothing to do this cycle (e.g. out of cash). */
+  idle?: string;
+};
+
 export type GameState = {
   cash: number;
   reputation: number;
@@ -408,12 +443,12 @@ export type GameState = {
   storefrontBalance: number;
   /** Whether the player has toggled auto-withdraw on. Only effective if the upgrade is owned. */
   autoWithdrawEnabled: boolean;
-  /** Per-helper last-tick timestamps so we throttle their actions. */
-  hiredHelpState: {
-    apprenticeLastFlipAt: number;
-    buyerAgentLastBuyAt: number;
-    marketingLastTickAt: number;
-  };
+  /** Hired employees — the automation workforce. */
+  employees: Employee[];
+  /** Lifetime net profit booked by employees — survives hiring and firing. */
+  companyProfit: number;
+  /** Sampled `companyProfit` snapshots (1/sec) for the live profit chart, oldest first. */
+  companyProfitHistory: number[];
   /** Session-only — true while the hidden `/cheats` developer console is open. Not persisted. */
   cheatsConsoleOpen: boolean;
   /** Session-only UI state that survives screen navigation but isn't persisted. */

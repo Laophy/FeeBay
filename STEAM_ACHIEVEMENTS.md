@@ -3,11 +3,12 @@
 The **single source of truth** for the game's Steam achievements. Mirrors
 `src/data/achievements.ts` 1:1.
 
-**71 achievements** — 18 bronze, 27 silver, 16 gold, 10 mythic.
+**87 achievements** — 23 bronze, 32 silver, 20 gold, 12 mythic.
 Verified in sync with the game build and with the current live Steamworks config.
 
 > This file replaces the old `STEAM_ACHIEVEMENTS.md`, `STEAM_ACHIEVEMENTS_V2.md`
-> and `STEAM_ACHIEVEMENTS_NEW.md` — all three are now merged here.
+> and `STEAM_ACHIEVEMENTS_NEW.md`, and folds in the Employees-update batch from
+> the former `achievements_new.md` — all now merged here.
 
 ## How to set these up
 
@@ -144,6 +145,30 @@ Milestones for the Collection page Showcase display.
 | `showcase_value_10k` | Gallery Opening | Display $10,000+ worth of cards on your Collection showcase. | Silver | No |
 | `showcase_value_100k` | Museum Wing | Display $100,000+ worth of cards on your Collection showcase. | Gold | No |
 
+## Employees
+
+The automation workforce — hire Scouts, Flippers, Promoters, and Managers on the
+Employees tab (unlocks at Business Level 2).
+
+| API Name | Display Name | Description | Tier | Hidden |
+|---|---|---|---|---|
+| `first_hire` | On the Payroll | Hire your first employee. | Bronze | No |
+| `manager_hired` | Middle Management | Get a Manager running your floor. | Bronze | No |
+| `employee_mistake` | Shrinkage | Watch an employee blunder and cost you cash. | Bronze | No |
+| `worker_idle_broke` | Bench Warmer | Leave a worker idle because the account ran dry. | Bronze | No |
+| `first_fire` | You're Fired | Let an employee go. | Bronze | No |
+| `full_roster` | Fully Staffed | Fill every employee slot for your business level. | Silver | No |
+| `dream_team` | Dream Team | Have a Scout, Flipper, Promoter, and Manager on staff at once. | Silver | No |
+| `veteran_hired` | Headhunter | Land a 3-star Veteran employee. | Silver | No |
+| `company_profit_10k` | The Machine | Your team banks $10,000 in total profit. | Silver | No |
+| `employee_grinder` | Employee of the Month | A single employee completes 250 tasks. | Silver | No |
+| `company_profit_100k` | Hands-Off Income | Your team banks $100,000 in total profit. | Gold | No |
+| `big_team` | Whole Operation | Run a 10-strong workforce at once. | Gold | No |
+| `star_employee` | Star Employee | One employee personally earns $25,000 in profit. | Gold | No |
+| `costly_blunder` | Expensive Lesson | Eat a single employee mistake worth $300 or more. | Gold | No |
+| `company_profit_1m` | Corner Office | Your team banks $1,000,000 in total profit. | Mythic | No |
+| `all_veteran_team` | All-Star Roster | Field a full roster of nothing but Veterans (5+ slots). | Mythic | No |
+
 ## Codex set completion
 
 One "complete this set" achievement per card set. **Generated from the card
@@ -169,8 +194,10 @@ below before adding/resizing a set.
 
 ## Review notes
 
-- **✅ In sync.** Your live Steamworks list (71) matches the game code exactly —
+- **✅ In sync.** Your live Steamworks list (87) matches the game code exactly —
   nothing missing, nothing extra, all API names and display names line up.
+- **Employees batch (16).** The `## Employees` section is the workforce-update
+  achievements (formerly `achievements_new.md`), now merged here. None are hidden.
 - **⚠️ Fixed — `all_marketplaces`.** The in-game code description previously read
   *"Unlock all 6 marketplaces"* — but the game ships **7** marketplaces. Your
   Steam description (*"Unlock all marketplaces"*) was already correct, so the code
@@ -184,7 +211,7 @@ below before adding/resizing a set.
   easter-egg / scam / fake-sale ones (`logo_hover`, `scam_bag`, `slab_bag_jackpot`,
   `fake_sale_1`, `fake_sale_5`, `fake_sale_100`, `cheat_breach`,
   `achievement_cheater`) plus the 5 surprise / bad-outcome ones (`bag_holder`,
-  `rugged`, `triple_gem`, `top_pop`, `card_empire_level`). The other 58 are
+  `rugged`, `triple_gem`, `top_pop`, `card_empire_level`). The other 74 are
   visible.
 - **Optional — near-duplicate names.** `mogul_1m` is "Card Empire" and
   `card_empire_level` is "Card Empire (Level)". Both are correct, but the names
