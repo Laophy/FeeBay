@@ -45,6 +45,13 @@ const NAV_GROUPS: NavGroup[] = [
     color: 'text-ebayGreen-600',
     entries: [
       { id: 'inventory', label: 'Inventory', icon: 'inventory' },
+      { id: 'shop', label: 'Card Shop', icon: 'shop' },
+      {
+        id: 'employees',
+        label: 'Employees',
+        icon: 'users',
+        lock: (s) => (s.businessLevel >= 2 ? null : 'Reach Business Level 2'),
+      },
       {
         id: 'storefront',
         label: 'Storefront',
@@ -66,13 +73,6 @@ const NAV_GROUPS: NavGroup[] = [
           return owns ? null : 'Unlock a grading membership in Upgrades';
         },
       },
-      {
-        id: 'employees',
-        label: 'Employees',
-        icon: 'users',
-        lock: (s) => (s.businessLevel >= 2 ? null : 'Reach Business Level 2'),
-      },
-      { id: 'collection', label: 'Collection', icon: 'box' },
     ],
   },
   {
@@ -80,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Progress',
     color: 'text-ebayRed-500',
     entries: [
+      { id: 'collection', label: 'Collection', icon: 'box' },
       { id: 'stats', label: 'Stats', icon: 'chart-up' },
       { id: 'achievements', label: 'Achievements', icon: 'trophy' },
     ],

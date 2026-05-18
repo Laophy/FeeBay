@@ -375,6 +375,14 @@ export type CardFlowEntry = {
   amount: number;
 };
 
+/** One walk-in sale from the physical shop — feeds the shop activity feed. */
+export type ShopSaleEntry = {
+  id: string;
+  at: number;
+  name: string;
+  price: number;
+};
+
 export type Employee = {
   id: string;
   name: string;
@@ -479,6 +487,18 @@ export type GameState = {
   operatingCosts: Record<string, number>;
   /** 5-second net-worth samples for the dashboard's live chart, oldest first. */
   netWorthHistory: number[];
+  /** Physical-shop premises tier (index into SHOP_TIERS). */
+  shopTier: number;
+  /** Inventory item ids currently in the shop's display cases. */
+  displayedItemIds: string[];
+  /** Lifetime cash earned from walk-in shop customers. */
+  shopRevenue: number;
+  /** Recent walk-in sales, newest first — the shop activity feed. */
+  shopLog: ShopSaleEntry[];
+  /** Cosmetic shop branding — name, logo icon, and brand colour (hex). */
+  shopName: string;
+  shopLogo: string;
+  shopColor: string;
   /** Session-only — true while the hidden `/cheats` developer console is open. Not persisted. */
   cheatsConsoleOpen: boolean;
   /** Session-only UI state that survives screen navigation but isn't persisted. */

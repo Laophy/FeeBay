@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { getBusinessLevel, getNextBusinessLevel } from '../../data/businessLevels';
+import { DEFAULT_SHOP_NAME } from '../../data/branding';
 import {
   EMPLOYEE_ROLES,
   EMPLOYEE_TIERS,
@@ -8,6 +9,7 @@ import {
   employeeCap,
   getEmployeeRole,
   hireCost,
+  trainCost,
 } from '../../data/employees';
 import { Icon, type IconName } from '../../components/Icon';
 import { LiveChart } from '../../components/LiveChart';
@@ -34,6 +36,9 @@ export function Employees() {
   const inventory = useGameStore((s) => s.inventory);
   const claimStockItem = useGameStore((s) => s.claimStockItem);
   const operatingCosts = useGameStore((s) => s.operatingCosts);
+  const shopName = useGameStore((s) => s.shopName);
+  const shopLogo = useGameStore((s) => s.shopLogo);
+  const shopColor = useGameStore((s) => s.shopColor);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -63,17 +68,25 @@ export function Employees() {
 
   return (
     <div className="space-y-5">
-      {/* Company HQ header */}
+      {/* Company HQ header — branded to match the Card Shop */}
       <div className="rounded-xl border border-line bg-white shadow-card overflow-hidden">
-        <div className="flex items-center justify-between flex-wrap gap-3 px-5 py-4 bg-gradient-to-r from-feebay-50 to-white border-b border-line">
+        <div
+          className="flex items-center justify-between flex-wrap gap-3 px-5 py-4 border-b border-line"
+          style={{ background: `linear-gradient(to right, ${shopColor}1f, white)` }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg bg-feebay-500 text-white flex items-center justify-center shrink-0">
-              <Icon name="users" size={24} />
+            <div
+              className="w-11 h-11 rounded-lg text-white flex items-center justify-center shrink-0"
+              style={{ background: shopColor }}
+            >
+              <Icon name={shopLogo as IconName} size={24} />
             </div>
             <div>
-              <h1 className="text-2xl font-black leading-none text-ink-900">Your Company</h1>
+              <h1 className="text-2xl font-black leading-none text-ink-900">
+                {shopName.trim() || DEFAULT_SHOP_NAME}
+              </h1>
               <p className="text-ink-500 text-sm mt-1">
-                {levelName} - your automation workforce, on the clock for you.
+                {levelName} · your automation workforce, on the clock for you.
               </p>
             </div>
           </div>
@@ -221,9 +234,15 @@ function HqStat({
 
 function EmployeeCard({ employee: e, now }: { employee: Employee; now: number }) {
   const fire = useGameStore((s) => s.fireEmployee);
+  const train = useGameStore((s) => s.trainEmployee);
+  const cash = useGameStore((s) => s.cash);
   const [showLog, setShowLog] = useState(false);
   const role = getEmployeeRole(e.role);
   const tier = EMPLOYEE_TIERS[e.tier];
+
+  const maxedTier = e.tier >= 3;
+  const trainTo = maxedTier ? null : EMPLOYEE_TIERS[(e.tier + 1) as 1 | 2 | 3];
+  const trainPrice = maxedTier ? 0 : trainCost(e.tier);
 
   const span = Math.max(1, e.cycleEndsAt - e.cycleStartedAt);
   const pct = Math.min(100, Math.max(0, ((now - e.cycleStartedAt) / span) * 100));
@@ -319,6 +338,34 @@ function EmployeeCard({ employee: e, now }: { employee: Employee; now: number })
             accent={e.mistakes > 0 ? 'text-ebayRed-500' : 'text-ink-400'}
           />
         </div>
+
+        {/* Training — pay to rank the employee up a tier */}
+        {maxedTier ? (
+          <div className="mt-2 w-full rounded-md py-1.5 text-[11px] font-bold text-center text-ebayYellow-700 bg-paper border border-ebayYellow-300">
+            ★★★ Veteran — fully trained
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Train ${e.name} up to ${trainTo!.label} for ${fmtMoney(trainPrice)}? ` +
+                    `They'll work faster, slip up less, and earn more.`,
+                )
+              ) {
+                train(e.id);
+              }
+            }}
+            disabled={cash < trainPrice}
+            className={`mt-2 w-full rounded-md py-1.5 text-[11px] font-bold ${
+              cash >= trainPrice
+                ? 'bg-feebay-50 text-feebay-700 border border-feebay-300 hover:bg-feebay-100'
+                : 'bg-ink-100 text-ink-400 border border-line cursor-not-allowed'
+            }`}
+          >
+            Train to {trainTo!.label} — {fmtMoney(trainPrice)}
+          </button>
+        )}
 
         <button
           onClick={() => setShowLog((v) => !v)}

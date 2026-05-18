@@ -39,7 +39,8 @@ export type IconName =
   | 'filter'
   | 'discord'
   | 'coffee'
-  | 'users';
+  | 'users'
+  | 'shop';
 
 type Props = SVGProps<SVGSVGElement> & {
   name: IconName;
@@ -86,6 +87,13 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M3.5 20c0-3.3 2.5-5.6 5.5-5.6s5.5 2.3 5.5 5.6" />
       <path d="M16 5.1a3.2 3.2 0 0 1 0 5.9" />
       <path d="M17.2 14.7c2.3.6 3.8 2.6 3.8 5.3" />
+    </>
+  ),
+  shop: (
+    <>
+      <path d="M3 8l2-4h14l2 4" />
+      <rect x="4" y="8" width="16" height="12" rx="1" />
+      <path d="M9.5 20v-6h5v6" />
     </>
   ),
   cart: (

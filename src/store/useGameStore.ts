@@ -4,8 +4,10 @@ import type {
   BulkGradeReveal,
   Employee,
   CardFlowEntry,
+  ShopSaleEntry,
   EmployeeLogEntry,
   EmployeeRole,
+  EmployeeTier,
   GameNotification,
   GameState,
   GradeHistoryEntry,
@@ -43,6 +45,7 @@ import {
   employeeCap,
   getEmployeeRole,
   hireCost,
+  trainCost,
   mistakeCostRange,
   promoterRep,
   scoutBuyCap,
@@ -53,6 +56,13 @@ import {
   resolveStorageUnit,
   sourceWholesaleCard,
 } from '../game/lotResolver';
+import { SHOP_TIERS, getShopTier } from '../data/shop';
+import {
+  DEFAULT_SHOP_NAME,
+  DEFAULT_SHOP_LOGO,
+  DEFAULT_SHOP_COLOR,
+} from '../data/branding';
+import { money } from '../game/format';
 import { collectionSize, recordAcquisitions, recordGradeUpdate } from '../game/collection';
 import { initialMarketNoise, stepMarketNoise } from '../game/marketNoise';
 import { rollConvention } from '../game/conventions';
@@ -237,6 +247,13 @@ function defaultState(): GameState {
     autoWithdrawEnabled: false,
     dailyModalEnabled: true,
     backupIntervalMin: 30,
+    shopTier: 0,
+    displayedItemIds: [],
+    shopRevenue: 0,
+    shopLog: [],
+    shopName: DEFAULT_SHOP_NAME,
+    shopLogo: DEFAULT_SHOP_LOGO,
+    shopColor: DEFAULT_SHOP_COLOR,
     employees: [],
     companyProfit: 0,
     companyProfitHistory: [],
@@ -319,7 +336,13 @@ type Actions = {
   tickConvention(): void;
   hireEmployee(role: EmployeeRole): void;
   fireEmployee(employeeId: string): void;
+  trainEmployee(employeeId: string): void;
   claimStockItem(itemId: string): void;
+  upgradeShop(): void;
+  displayItem(itemId: string): void;
+  undisplayItem(itemId: string): void;
+  tickShop(): void;
+  updateBranding(patch: { shopName?: string; shopLogo?: string; shopColor?: string }): void;
   tickEmployees(): void;
   promoteBusinessLevel(): void;
   toggleShowcase(itemId: string): void;
@@ -1651,6 +1674,124 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 
+  trainEmployee(employeeId) {
+    const state = get();
+    const emp = state.employees.find((e) => e.id === employeeId);
+    if (!emp || emp.tier >= 3) return;
+    const cost = trainCost(emp.tier);
+    if (state.cash < cost) {
+      get().pushNotification('Not enough cash to train that employee.', 'warning');
+      return;
+    }
+    const nextTier = (emp.tier + 1) as EmployeeTier;
+    set({
+      cash: +(state.cash - cost).toFixed(2),
+      employees: state.employees.map((e) =>
+        e.id === employeeId ? { ...e, tier: nextTier } : e,
+      ),
+    });
+    SFX.chaching();
+    get().pushNotification(
+      `Trained ${emp.name} up to ${EMPLOYEE_TIERS[nextTier].label}.`,
+      'success',
+    );
+    get().save();
+  },
+
+  upgradeShop() {
+    const state = get();
+    const next = SHOP_TIERS[state.shopTier + 1];
+    if (!next) {
+      get().pushNotification('Your shop is already the biggest in the game.', 'info');
+      return;
+    }
+    if (state.cash < next.cost) {
+      get().pushNotification(
+        `Upgrading to ${next.name} costs ${money(next.cost)}.`,
+        'warning',
+      );
+      return;
+    }
+    set({ cash: +(state.cash - next.cost).toFixed(2), shopTier: state.shopTier + 1 });
+    SFX.achievement();
+    get().pushNotification(`Shop upgraded — welcome to your ${next.name}!`, 'achievement');
+    get().save();
+  },
+
+  displayItem(itemId) {
+    const state = get();
+    const tier = getShopTier(state.shopTier);
+    if (state.displayedItemIds.includes(itemId)) return;
+    if (state.showcaseItemIds.includes(itemId)) {
+      get().pushNotification(
+        'That card is on your Collection showcase — take it off there first.',
+        'warning',
+      );
+      return;
+    }
+    if (state.displayedItemIds.length >= tier.displaySlots) {
+      get().pushNotification('All your display cases are full.', 'warning');
+      return;
+    }
+    const item = state.inventory.find((i) => i.id === itemId);
+    if (!item || (item.status !== 'raw' && item.status !== 'graded')) return;
+    set({ displayedItemIds: [...state.displayedItemIds, itemId] });
+    get().save();
+  },
+
+  undisplayItem(itemId) {
+    set((s) => ({
+      displayedItemIds: s.displayedItemIds.filter((id) => id !== itemId),
+    }));
+    get().save();
+  },
+
+  tickShop() {
+    const state = get();
+    const tier = getShopTier(state.shopTier);
+    const displayed = state.inventory.filter(
+      (i) =>
+        state.displayedItemIds.includes(i.id) &&
+        (i.status === 'raw' || i.status === 'graded'),
+    );
+    if (displayed.length === 0) return;
+    // tickShop runs on the 1s game tick — convert traffic/min to a per-tick odds.
+    if (!chance(tier.trafficPerMin / 60)) return;
+    const item = pick(displayed);
+    const value = calculateCurrentValue(
+      item,
+      state.marketTrends,
+      state.marketNoise,
+      state.convention,
+      vaultStableFor(state),
+    );
+    const price = +(Math.max(1, value) * tier.markup).toFixed(2);
+    const entry: ShopSaleEntry = { id: uid('shop_'), at: Date.now(), name: item.name, price };
+    set({
+      cash: +(state.cash + price).toFixed(2),
+      inventory: state.inventory.filter((i) => i.id !== item.id),
+      displayedItemIds: state.displayedItemIds.filter((id) => id !== item.id),
+      showcaseItemIds: state.showcaseItemIds.filter((id) => id !== item.id),
+      shopRevenue: +(state.shopRevenue + price).toFixed(2),
+      shopLog: [entry, ...state.shopLog].slice(0, 12),
+    });
+    SFX.coin();
+    get().pushNotification(
+      `A walk-in customer bought ${item.name} for ${money(price)}.`,
+      'success',
+    );
+    get().save();
+  },
+
+  updateBranding(patch) {
+    set((s) => ({
+      shopName: patch.shopName ?? s.shopName,
+      shopLogo: patch.shopLogo ?? s.shopLogo,
+      shopColor: patch.shopColor ?? s.shopColor,
+    }));
+    get().save();
+  },
+
   claimStockItem(itemId) {
     const state = get();
     const item = state.inventory.find((i) => i.id === itemId);
@@ -1855,6 +1996,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       autoWithdrawEnabled: state.autoWithdrawEnabled,
       dailyModalEnabled: state.dailyModalEnabled,
       backupIntervalMin: state.backupIntervalMin,
+      shopTier: state.shopTier,
+      displayedItemIds: state.displayedItemIds,
+      shopRevenue: state.shopRevenue,
+      shopLog: state.shopLog,
+      shopName: state.shopName,
+      shopLogo: state.shopLogo,
+      shopColor: state.shopColor,
       employees: state.employees,
       companyProfit: state.companyProfit,
       companyProfitHistory: state.companyProfitHistory,

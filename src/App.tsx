@@ -9,6 +9,7 @@ import { Inventory } from './features/inventory/Inventory';
 import { Grading } from './features/grading/Grading';
 import { Upgrades } from './features/upgrades/Upgrades';
 import { Employees } from './features/employees/Employees';
+import { Shop } from './features/shop/Shop';
 import { MarketTrends } from './features/market/MarketTrends';
 import { Auctions } from './features/auctions/Auctions';
 import { Achievements } from './features/achievements/Achievements';
@@ -31,6 +32,7 @@ export type Route =
   | 'trends'
   | 'auctions'
   | 'employees'
+  | 'shop'
   | 'upgrades'
   | 'collection'
   | 'stats'
@@ -50,7 +52,9 @@ export default function App() {
   const tickConvention = useGameStore((s) => s.tickConvention);
   const tickPlayerListings = useGameStore((s) => s.tickPlayerListings);
   const tickEmployees = useGameStore((s) => s.tickEmployees);
+  const tickShop = useGameStore((s) => s.tickShop);
   const sampleNetWorth = useGameStore((s) => s.sampleNetWorth);
+  const shopColor = useGameStore((s) => s.shopColor);
   const backupIntervalMin = useGameStore((s) => s.backupIntervalMin);
   const refreshListings = useGameStore((s) => s.refreshListings);
   const lastListingRefresh = useGameStore((s) => s.lastListingRefresh);
@@ -87,6 +91,7 @@ export default function App() {
       tickConvention();
       tickPlayerListings();
       tickEmployees();
+      tickShop();
     }, 1000);
     return () => clearInterval(id);
   }, [
@@ -98,6 +103,7 @@ export default function App() {
     tickConvention,
     tickPlayerListings,
     tickEmployees,
+    tickShop,
   ]);
 
   useEffect(() => {
@@ -145,7 +151,10 @@ export default function App() {
         <Sidebar route={route} setRoute={setRoute} />
         <div className="flex flex-1 flex-col overflow-hidden">
           <TopBar route={route} bounceLogo={!booting} />
-          <main className="flex-1 overflow-y-auto p-6 bg-paper">
+          <main
+            className="flex-1 overflow-y-auto p-6 bg-paper"
+            style={{ backgroundColor: `${shopColor}12` }}
+          >
           {route === 'dashboard' && <Dashboard onNavigate={setRoute} />}
           {route === 'marketplace' && <Marketplace />}
           {route === 'inventory' && <Inventory />}
@@ -154,6 +163,7 @@ export default function App() {
           {route === 'trends' && <MarketTrends />}
           {route === 'auctions' && <Auctions />}
           {route === 'employees' && <Employees />}
+          {route === 'shop' && <Shop />}
           {route === 'upgrades' && <Upgrades />}
           {route === 'collection' && <Collection />}
           {route === 'stats' && <Stats />}

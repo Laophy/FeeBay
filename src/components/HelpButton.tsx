@@ -85,6 +85,14 @@ const HELP: Record<Route, { title: string; body: (string | JSX.Element)[] }> = {
       'Employees occasionally slip up — a damaged card, a fake bought — and it costs you cash. Higher-tier staff and Managers make that rarer.',
     ],
   },
+  shop: {
+    title: 'Card Shop',
+    body: [
+      'Your physical shop. Put cards in the display cases and walk-in customers buy them at a retail markup — no marketplace fees.',
+      'Upgrade your premises (Kitchen Table → Card Empire HQ) for more display slots, more foot traffic, and a fatter markup.',
+      'Displayed cards sell on their own over time, so keep the cases stocked with your best inventory.',
+    ],
+  },
   upgrades: {
     title: 'Upgrades',
     body: [

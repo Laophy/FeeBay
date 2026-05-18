@@ -66,6 +66,13 @@ export function hireCost(currentCount: number): number {
   return 2500 + currentCount * 2000;
 }
 
+/** Cash to train an employee up one tier — Rookie -> Pro, then Pro -> Veteran. */
+export function trainCost(currentTier: EmployeeTier): number {
+  if (currentTier === 1) return 15000;
+  if (currentTier === 2) return 45000;
+  return 0; // already a Veteran
+}
+
 export const EMPLOYEE_TIERS: Record<
   EmployeeTier,
   { label: string; stars: number; speed: number; mistake: number; potency: number }

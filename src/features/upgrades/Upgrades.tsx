@@ -1,6 +1,7 @@
 import { useGameStore } from '../../store/useGameStore';
 import { UPGRADES } from '../../data/upgrades';
 import { money } from '../../game/format';
+import { BusinessLevelCard } from '../../components/BusinessLevelCard';
 
 export function Upgrades() {
   const cash = useGameStore((s) => s.cash);
@@ -12,11 +13,15 @@ export function Upgrades() {
       <div>
         <h1 className="text-2xl font-bold">Upgrades</h1>
         <p className="text-ink-500 text-sm">
-          Spend cash on better tools. Each upgrade compounds your edge.
+          Promote your business, then spend cash on better tools — every upgrade compounds your edge.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <BusinessLevelCard interactive />
+
+      <div>
+        <h2 className="text-sm font-bold text-ink-800 mb-2">Tools &amp; equipment</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {UPGRADES.map((u) => {
           const owned = purchased.includes(u.id);
           const affordable = cash >= u.cost;
@@ -60,6 +65,7 @@ export function Upgrades() {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
