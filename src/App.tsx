@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from './store/useGameStore';
+import { exportSave } from './game/saveSystem';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { Dashboard } from './features/dashboard/Dashboard';
@@ -50,6 +51,7 @@ export default function App() {
   const tickPlayerListings = useGameStore((s) => s.tickPlayerListings);
   const tickEmployees = useGameStore((s) => s.tickEmployees);
   const sampleNetWorth = useGameStore((s) => s.sampleNetWorth);
+  const backupIntervalMin = useGameStore((s) => s.backupIntervalMin);
   const refreshListings = useGameStore((s) => s.refreshListings);
   const lastListingRefresh = useGameStore((s) => s.lastListingRefresh);
   const listingsCount = useGameStore((s) => s.listings.length);
@@ -113,6 +115,17 @@ export default function App() {
     sampleNetWorth();
     return () => clearInterval(id);
   }, [sampleNetWorth]);
+
+  // Periodic save backups to a folder on disk (desktop app only).
+  useEffect(() => {
+    if (!window.feebay?.backup || backupIntervalMin <= 0) return;
+    const id = setInterval(() => {
+      useGameStore.getState().save();
+      const data = exportSave();
+      if (data) void window.feebay?.backup?.write(data);
+    }, backupIntervalMin * 60_000);
+    return () => clearInterval(id);
+  }, [backupIntervalMin]);
 
   useEffect(() => {
     const id = setInterval(() => {

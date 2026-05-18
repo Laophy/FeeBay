@@ -235,6 +235,8 @@ function defaultState(): GameState {
     pendingPayments: [],
     storefrontBalance: 0,
     autoWithdrawEnabled: false,
+    dailyModalEnabled: true,
+    backupIntervalMin: 30,
     employees: [],
     companyProfit: 0,
     companyProfitHistory: [],
@@ -310,6 +312,8 @@ type Actions = {
   tickDay(): void;
   tickMarketNoise(): void;
   consumeEndOfDayReport(): void;
+  setDailyModalEnabled(enabled: boolean): void;
+  setBackupInterval(minutes: number): void;
   toggleWatch(cardId: string): void;
   startConvention(): void;
   tickConvention(): void;
@@ -1708,7 +1712,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       newCards: collected - state.dayStartStats.collectionSize,
     };
     set({
-      pendingEndOfDay: report,
+      pendingEndOfDay: state.dailyModalEnabled ? report : null,
       day: state.day + 1,
       dayStartedAt: now,
       dayStartStats: {
@@ -1785,6 +1789,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 
+  setDailyModalEnabled(enabled) {
+    set({ dailyModalEnabled: enabled });
+    get().save();
+  },
+
+  setBackupInterval(minutes) {
+    set({ backupIntervalMin: minutes });
+    get().save();
+  },
+
   resetGame() {
     localStorage.removeItem('feebay-simulator-save-v9');
     set({ ...defaultState() });
@@ -1839,6 +1853,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pendingPayments: state.pendingPayments,
       storefrontBalance: state.storefrontBalance,
       autoWithdrawEnabled: state.autoWithdrawEnabled,
+      dailyModalEnabled: state.dailyModalEnabled,
+      backupIntervalMin: state.backupIntervalMin,
       employees: state.employees,
       companyProfit: state.companyProfit,
       companyProfitHistory: state.companyProfitHistory,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Route } from '../App';
 import { useGameStore, occupiedSlots } from '../store/useGameStore';
-import { isMuted, setMuted, SFX } from '../game/audio';
+import { useMuted, setMuted, SFX } from '../game/audio';
 import { Icon, type IconName } from './Icon';
 import { NotificationStack } from './NotificationStack';
 
@@ -105,7 +105,7 @@ export function Sidebar({ route, setRoute }: Props) {
   const unclaimedAchievements = state.achievementsUnlocked.filter(
     (id) => !state.achievementsClaimed.includes(id),
   ).length;
-  const [muted, setMutedState] = useState(isMuted());
+  const muted = useMuted();
   const [lockedOpen, setLockedOpen] = useState(false);
   const [bouncingId, setBouncingId] = useState<Route | null>(null);
 
@@ -241,7 +241,6 @@ export function Sidebar({ route, setRoute }: Props) {
           onClick={() => {
             const next = !muted;
             setMuted(next);
-            setMutedState(next);
             if (!next) SFX.click();
           }}
           className="w-full flex items-center gap-2 rounded px-2.5 py-1.5 text-xs border border-line hover:border-ink-400 text-ink-700"

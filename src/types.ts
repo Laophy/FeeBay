@@ -463,6 +463,10 @@ export type GameState = {
   storefrontBalance: number;
   /** Whether the player has toggled auto-withdraw on. Only effective if the upgrade is owned. */
   autoWithdrawEnabled: boolean;
+  /** Whether the end-of-day summary modal pops up on each day rollover. */
+  dailyModalEnabled: boolean;
+  /** Minutes between automatic save backups (0 = off). Desktop app only. */
+  backupIntervalMin: number;
   /** Hired employees — the automation workforce. */
   employees: Employee[];
   /** Lifetime net profit booked by employees — survives hiring and firing. */

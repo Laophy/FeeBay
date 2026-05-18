@@ -1,7 +1,20 @@
+import { useSyncExternalStore } from 'react';
+
 /* Lightweight Web Audio synthesis. No asset pipeline. */
 
 let ctx: AudioContext | null = null;
 let muted = false;
+
+// External-store plumbing so React components stay in sync when audio settings
+// change from anywhere (sidebar toggle, dashboard settings, ...).
+const audioListeners = new Set<() => void>();
+function notifyAudio(): void {
+  for (const l of audioListeners) l();
+}
+function subscribeAudio(listener: () => void): () => void {
+  audioListeners.add(listener);
+  return () => audioListeners.delete(listener);
+}
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -22,6 +35,7 @@ export function setMuted(value: boolean): void {
   try {
     localStorage.setItem('feebay-muted', value ? '1' : '0');
   } catch {}
+  notifyAudio();
 }
 
 export function isMuted(): boolean {
@@ -30,6 +44,42 @@ export function isMuted(): boolean {
     if (stored !== null) muted = stored === '1';
   } catch {}
   return muted;
+}
+
+let volume = 1;
+let volumeLoaded = false;
+
+export function setVolume(value: number): void {
+  volume = Math.max(0, Math.min(1, value));
+  volumeLoaded = true;
+  try {
+    localStorage.setItem('feebay-volume', String(volume));
+  } catch {}
+  notifyAudio();
+}
+
+export function getVolume(): number {
+  if (!volumeLoaded) {
+    volumeLoaded = true;
+    try {
+      const stored = localStorage.getItem('feebay-volume');
+      if (stored !== null) {
+        const n = Number(stored);
+        if (Number.isFinite(n)) volume = Math.max(0, Math.min(1, n));
+      }
+    } catch {}
+  }
+  return volume;
+}
+
+/** React hook — re-renders any component when the mute state changes anywhere. */
+export function useMuted(): boolean {
+  return useSyncExternalStore(subscribeAudio, isMuted);
+}
+
+/** React hook — re-renders any component when the volume changes anywhere. */
+export function useVolume(): number {
+  return useSyncExternalStore(subscribeAudio, getVolume);
 }
 
 function tone(opts: {
@@ -41,6 +91,8 @@ function tone(opts: {
   delay?: number;
 }) {
   if (isMuted()) return;
+  const vol = getVolume();
+  if (vol < 0.01) return;
   const c = getCtx();
   if (!c) return;
   const now = c.currentTime + (opts.delay ?? 0);
@@ -51,7 +103,7 @@ function tone(opts: {
   if (opts.freqEnd !== undefined) {
     osc.frequency.exponentialRampToValueAtTime(Math.max(40, opts.freqEnd), now + opts.duration);
   }
-  const peak = opts.gain ?? 0.12;
+  const peak = (opts.gain ?? 0.12) * vol;
   g.gain.setValueAtTime(0.0001, now);
   g.gain.exponentialRampToValueAtTime(peak, now + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, now + opts.duration);
@@ -62,6 +114,8 @@ function tone(opts: {
 
 function noise(opts: { duration: number; gain?: number; delay?: number }) {
   if (isMuted()) return;
+  const vol = getVolume();
+  if (vol < 0.01) return;
   const c = getCtx();
   if (!c) return;
   const now = c.currentTime + (opts.delay ?? 0);
@@ -72,7 +126,7 @@ function noise(opts: { duration: number; gain?: number; delay?: number }) {
   const src = c.createBufferSource();
   src.buffer = buffer;
   const g = c.createGain();
-  g.gain.setValueAtTime(opts.gain ?? 0.1, now);
+  g.gain.setValueAtTime((opts.gain ?? 0.1) * vol, now);
   g.gain.exponentialRampToValueAtTime(0.0001, now + opts.duration);
   src.connect(g).connect(c.destination);
   src.start(now);

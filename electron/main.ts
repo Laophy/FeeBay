@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
@@ -106,6 +107,53 @@ ipcMain.on('steam:unlock-achievement', (_e, apiName: unknown) => {
     }
   } catch (err) {
     console.warn('[steam] achievement unlock failed:', (err as Error)?.message);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Automatic save backups
+// ---------------------------------------------------------------------------
+
+function backupDir(): string {
+  return path.join(app.getPath('userData'), 'backups');
+}
+
+// Write a timestamped save backup, keeping only the 20 most recent files.
+ipcMain.handle('backup:write', (_e, json: unknown) => {
+  if (typeof json !== 'string' || json.length < 2) return false;
+  try {
+    const dir = backupDir();
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.writeFileSync(path.join(dir, `feebay-backup-${stamp}.json`), json, 'utf-8');
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.startsWith('feebay-backup-') && f.endsWith('.json'))
+      .sort();
+    for (const old of files.slice(0, Math.max(0, files.length - 20))) {
+      try {
+        fs.unlinkSync(path.join(dir, old));
+      } catch {
+        /* ignore prune failure */
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('[backup] write failed:', (err as Error)?.message);
+    return false;
+  }
+});
+
+// Open the backups folder in the OS file explorer.
+ipcMain.handle('backup:open-folder', () => {
+  try {
+    const dir = backupDir();
+    fs.mkdirSync(dir, { recursive: true });
+    shell.openPath(dir);
+    return true;
+  } catch (err) {
+    console.warn('[backup] open folder failed:', (err as Error)?.message);
+    return false;
   }
 });
 

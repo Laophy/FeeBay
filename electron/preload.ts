@@ -48,4 +48,8 @@ contextBridge.exposeInMainWorld('feebay', {
       }
     },
   },
+  backup: {
+    write: (json: string): Promise<boolean> => ipcRenderer.invoke('backup:write', json),
+    openFolder: (): Promise<boolean> => ipcRenderer.invoke('backup:open-folder'),
+  },
 });

@@ -26,6 +26,12 @@ declare global {
         /** Unlock a Steam achievement by id (matches the in-game achievement id). */
         unlockAchievement: (id: string) => void;
       };
+      backup?: {
+        /** Write a timestamped save backup to the app's backups folder. */
+        write: (json: string) => Promise<boolean>;
+        /** Open the backups folder in the OS file explorer. */
+        openFolder: () => Promise<boolean>;
+      };
     };
   }
 }

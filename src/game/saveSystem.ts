@@ -71,3 +71,35 @@ export function clearSave(): void {
     console.error('clear save failed', e);
   }
 }
+
+/** The current save as a JSON string, for the player to download as a backup. */
+export function exportSave(): string | null {
+  try {
+    return localStorage.getItem(SAVE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Replace the local save with imported JSON. Returns false if it doesn't look
+ * like a FeeBay save. The caller should reload the page on success.
+ */
+export function importSave(json: string): boolean {
+  try {
+    const parsed = JSON.parse(json) as Record<string, unknown>;
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      typeof parsed.cash !== 'number' ||
+      typeof parsed.day !== 'number'
+    ) {
+      return false;
+    }
+    localStorage.setItem(SAVE_KEY, json);
+    localStorage.setItem(SAVE_AT_KEY, String(Date.now()));
+    return true;
+  } catch {
+    return false;
+  }
+}

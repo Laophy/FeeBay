@@ -9,6 +9,7 @@ import { collectionPercent } from '../../game/collection';
 import { getBusinessLevel, getNextBusinessLevel } from '../../data/businessLevels';
 import { LiveChart } from '../../components/LiveChart';
 import { money } from '../../game/format';
+import { SettingsPanel } from './SettingsPanel';
 import type { Employee } from '../../types';
 
 type Props = { onNavigate: (r: Route) => void };
@@ -248,6 +249,9 @@ export function Dashboard({ onNavigate }: Props) {
           </div>
         </Section>
       </div>
+
+      {/* Settings */}
+      <SettingsPanel />
 
       {/* Quick links footer */}
       <Section title="Jump to" className="">
