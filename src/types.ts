@@ -351,9 +351,27 @@ export type EmployeeTier = 1 | 2 | 3;
 export type EmployeeLogEntry = {
   id: string;
   at: number;
-  kind: 'flip' | 'buy' | 'promo' | 'mistake';
+  kind: 'flip' | 'buy' | 'promo' | 'mistake' | 'break';
   text: string;
   /** Profit (+) or cost (−) in dollars. */
+  amount: number;
+};
+
+/** One card that moved through the store — feeds the Employees-page flow belt.
+ *  Carries everything CardArt needs to render the real card. */
+export type CardFlowEntry = {
+  id: string;
+  cardId: string;
+  name: string;
+  rarity: CardRarity;
+  hue: number;
+  grade?: number;
+  gradingCompany?: GradingCompanyId;
+  centeringOffsetX?: number;
+  centeringOffsetY?: number;
+  /** `sourced` = a Scout bought it in; `flipped` = a Flipper sold it on. */
+  kind: 'sourced' | 'flipped';
+  /** Sourced: price paid. Flipped: profit booked (signed). */
   amount: number;
 };
 
@@ -375,6 +393,8 @@ export type Employee = {
   log: EmployeeLogEntry[];
   /** Set when the worker has nothing to do this cycle (e.g. out of cash). */
   idle?: string;
+  /** Set while the employee is off on a (non-productive) break. */
+  break?: string;
 };
 
 export type GameState = {
@@ -449,6 +469,12 @@ export type GameState = {
   companyProfit: number;
   /** Sampled `companyProfit` snapshots (1/sec) for the live profit chart, oldest first. */
   companyProfitHistory: number[];
+  /** Recent cards that moved through the store, newest first — the flow belt. */
+  cardFlow: CardFlowEntry[];
+  /** Lifetime operating overhead paid per category — shipping, supplies, prep. */
+  operatingCosts: Record<string, number>;
+  /** 5-second net-worth samples for the dashboard's live chart, oldest first. */
+  netWorthHistory: number[];
   /** Session-only — true while the hidden `/cheats` developer console is open. Not persisted. */
   cheatsConsoleOpen: boolean;
   /** Session-only UI state that survives screen navigation but isn't persisted. */

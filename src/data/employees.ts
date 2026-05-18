@@ -134,3 +134,59 @@ export const MISTAKE_LINES: Record<EmployeeRole, string[]> = {
   ],
   manager: [],
 };
+
+/** Funny downtime — a break parks the employee for a spell, no work done. */
+export type EmployeeBreak = { label: string; minMs: number; maxMs: number };
+
+export const EMPLOYEE_BREAKS: EmployeeBreak[] = [
+  { label: 'ducked out for a smoke', minMs: 10_000, maxMs: 22_000 },
+  { label: 'doomscrolling their phone', minMs: 12_000, maxMs: 26_000 },
+  { label: 'chatting by the water cooler', minMs: 12_000, maxMs: 24_000 },
+  { label: 'taking a personal call', minMs: 14_000, maxMs: 30_000 },
+  { label: 'hiding in the bathroom', minMs: 12_000, maxMs: 28_000 },
+  { label: 'grabbing lunch', minMs: 26_000, maxMs: 52_000 },
+  { label: 'on a coffee run', minMs: 20_000, maxMs: 42_000 },
+  { label: 'lost in the break room', minMs: 18_000, maxMs: 38_000 },
+  { label: 'running a "quick" errand', minMs: 24_000, maxMs: 50_000 },
+  { label: 'waiting on the slowest barista alive', minMs: 22_000, maxMs: 44_000 },
+  { label: 'watching card-opening videos', minMs: 16_000, maxMs: 36_000 },
+  { label: 'stuck in traffic', minMs: 34_000, maxMs: 78_000 },
+  { label: 'in a meeting that should have been an email', minMs: 30_000, maxMs: 62_000 },
+  { label: 'caught in a parking-lot fender-bender', minMs: 40_000, maxMs: 84_000 },
+  { label: 'on hold with the bank', minMs: 28_000, maxMs: 58_000 },
+];
+
+/** Base chance per completed work cycle that an employee slips off on a break.
+ *  Reduced by Managers keeping the floor on task. */
+export const EMPLOYEE_BREAK_CHANCE = 0.16;
+
+/** Social downtime — coworkers getting chatty instead of working. Only possible
+ *  with 2+ employees on the roster; Managers help keep the chatter down. */
+// `{name}` is filled in with the coworker they got pulled into talking with.
+export const EMPLOYEE_SOCIAL_BREAKS: EmployeeBreak[] = [
+  { label: 'chatting with {name}', minMs: 14_000, maxMs: 32_000 },
+  { label: 'deep in office gossip with {name}', minMs: 16_000, maxMs: 36_000 },
+  { label: 'arguing with {name} over the greatest card ever printed', minMs: 18_000, maxMs: 40_000 },
+  { label: 'showing {name} something on their phone', minMs: 12_000, maxMs: 28_000 },
+  { label: "pulled into {name}'s conversation", minMs: 14_000, maxMs: 30_000 },
+  { label: 'huddled up with {name} debating whether a card is fake', minMs: 16_000, maxMs: 34_000 },
+  { label: "stuck hearing {name}'s weekend recap", minMs: 18_000, maxMs: 38_000 },
+  { label: "ranking everyone's worst flips with {name}", minMs: 16_000, maxMs: 34_000 },
+  { label: 'planning a team lunch with {name} that will never happen', minMs: 14_000, maxMs: 30_000 },
+  { label: 'trading war stories with {name}', minMs: 16_000, maxMs: 36_000 },
+];
+
+/** Base chance per cycle of a social break — needs 2+ employees on the roster. */
+export const EMPLOYEE_SOCIAL_BREAK_CHANCE = 0.1;
+
+/**
+ * Itemized operating overhead charged on every employee sale — shipping,
+ * protection, and card prep. Per line, cost = round(base + rate * sale value).
+ * Keeps automated profit honest and gives the company a real cost ledger.
+ */
+export const OVERHEAD_LINES: { id: string; label: string; base: number; rate: number }[] = [
+  { id: 'shipping', label: 'Shipping & handling', base: 2, rate: 0.006 },
+  { id: 'toploaders', label: 'Top loaders & sleeves', base: 1, rate: 0.003 },
+  { id: 'cleaning', label: 'Card cleaning & prep', base: 1, rate: 0.002 },
+  { id: 'supplies', label: 'Packing & labels', base: 1, rate: 0 },
+];

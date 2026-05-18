@@ -1,14 +1,13 @@
 import { useGameStore } from '../../store/useGameStore';
 import { calculateCurrentValue } from '../../game/economyEngine';
 import { vaultStableFor } from '../../store/useGameStore';
-import { Sparkline } from '../../components/Sparkline';
 import { Icon, type IconName } from '../../components/Icon';
 import type { Route } from '../../App';
 import { ACHIEVEMENTS } from '../../data/achievements';
 import { CARDS } from '../../data/cards';
 import { collectionPercent } from '../../game/collection';
 import { getBusinessLevel, getNextBusinessLevel } from '../../data/businessLevels';
-import { ProfitChart } from '../../components/ProfitChart';
+import { LiveChart } from '../../components/LiveChart';
 import type { Employee } from '../../types';
 
 type Props = { onNavigate: (r: Route) => void };
@@ -28,7 +27,7 @@ export function Dashboard({ onNavigate }: Props) {
   const grading = useGameStore((s) => s.gradingSubmissions);
   const notes = useGameStore((s) => s.notifications);
   const marketplaces = useGameStore((s) => s.marketplacesUnlocked);
-  const samples = useGameStore((s) => s.netWorthSamples);
+  const netWorthHistory = useGameStore((s) => s.netWorthHistory);
   const achievementsUnlocked = useGameStore((s) => s.achievementsUnlocked);
   const claimed = useGameStore((s) => s.achievementsClaimed);
   const collection = useGameStore((s) => s.collection);
@@ -124,12 +123,13 @@ export function Dashboard({ onNavigate }: Props) {
 
       {/* Net worth chart + quick actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Section title="Net worth over time" className="lg:col-span-2">
-          <Sparkline data={samples} width={720} height={140} stroke="#0064d2" fill="rgba(0,100,210,0.12)" />
-          <div className="mt-2 text-[11px] text-ink-500">
-            Sampled every 5 seconds. Hit $1,000,000 to claim Card Empire.
-          </div>
-        </Section>
+        <LiveChart
+          title="Net worth · live"
+          history={netWorthHistory}
+          current={netWorth}
+          secondsPerSample={5}
+          className="lg:col-span-2"
+        />
 
         <Section title="Collection progress">
           <div className="flex items-center justify-between">
@@ -415,5 +415,11 @@ function WorkforcePanel({
       </div>
     );
   }
-  return <ProfitChart history={profitHistory} current={companyProfit} />;
+  return (
+    <LiveChart
+      title="Company profit · live"
+      history={profitHistory}
+      current={companyProfit}
+    />
+  );
 }

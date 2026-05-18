@@ -3,6 +3,7 @@ import type {
   AuctionListing,
   BulkGradeReveal,
   Employee,
+  CardFlowEntry,
   EmployeeLogEntry,
   EmployeeRole,
   GameNotification,
@@ -30,10 +31,15 @@ import { getMarketplace, MARKETPLACES } from '../data/marketplaces';
 import { UPGRADES, UPGRADE_EFFECTS } from '../data/upgrades';
 import { getCardById } from '../data/cards';
 import {
+  EMPLOYEE_BREAKS,
+  EMPLOYEE_BREAK_CHANCE,
   EMPLOYEE_NAMES,
+  EMPLOYEE_SOCIAL_BREAKS,
+  EMPLOYEE_SOCIAL_BREAK_CHANCE,
   EMPLOYEE_TIERS,
   EMPLOYEE_TIER_WEIGHTS,
   MISTAKE_LINES,
+  OVERHEAD_LINES,
   employeeCap,
   getEmployeeRole,
   hireCost,
@@ -209,6 +215,7 @@ function defaultState(): GameState {
     achievementsUnlocked: [],
     achievementsClaimed: [],
     netWorthSamples: [],
+    netWorthHistory: [],
     auctions: [],
     lastAuctionRefresh: 0,
     hasSeenIntro: false,
@@ -231,6 +238,8 @@ function defaultState(): GameState {
     employees: [],
     companyProfit: 0,
     companyProfitHistory: [],
+    cardFlow: [],
+    operatingCosts: {},
     cheatsConsoleOpen: false,
     ui: {
       inventoryFilter: 'all',
@@ -306,6 +315,7 @@ type Actions = {
   tickConvention(): void;
   hireEmployee(role: EmployeeRole): void;
   fireEmployee(employeeId: string): void;
+  claimStockItem(itemId: string): void;
   tickEmployees(): void;
   promoteBusinessLevel(): void;
   toggleShowcase(itemId: string): void;
@@ -1637,13 +1647,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 
+  claimStockItem(itemId) {
+    const state = get();
+    const item = state.inventory.find((i) => i.id === itemId);
+    if (!item || !item.autoBought) return;
+    set({
+      inventory: state.inventory.map((i) =>
+        i.id === itemId ? { ...i, autoBought: false } : i,
+      ),
+    });
+    get().pushNotification(
+      `Pulled ${item.name} out of store stock — it's yours now.`,
+      'success',
+    );
+    get().save();
+  },
+
   tickEmployees() {
     const state = get();
     if (state.employees.length === 0) return;
     const now = Date.now();
     const due = state.employees.some((e) => now >= e.cycleEndsAt);
     if (due) {
-      const managerCount = state.employees.filter((e) => e.role === 'manager').length;
+      const managerCount = state.employees.filter(
+        (e) => e.role === 'manager' && !e.break,
+      ).length;
       for (const e of state.employees) {
         if (now >= e.cycleEndsAt) runEmployeeCycle(e.id, now, managerCount);
       }
@@ -1791,6 +1819,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       achievementsUnlocked: state.achievementsUnlocked,
       achievementsClaimed: state.achievementsClaimed,
       netWorthSamples: state.netWorthSamples.slice(-200),
+      netWorthHistory: state.netWorthHistory,
       auctions: state.auctions,
       lastAuctionRefresh: state.lastAuctionRefresh,
       hasSeenIntro: state.hasSeenIntro,
@@ -1813,6 +1842,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       employees: state.employees,
       companyProfit: state.companyProfit,
       companyProfitHistory: state.companyProfitHistory,
+      cardFlow: state.cardFlow,
+      operatingCosts: state.operatingCosts,
       // Session-only — always persist false so a save made while the console is
       // open doesn't auto-reopen it on the next load.
       cheatsConsoleOpen: false,
@@ -2143,6 +2174,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       0,
     );
     const v = +(state.cash + state.storefrontBalance + inventoryValue).toFixed(2);
+    // 5s history feeding the dashboard's live net-worth chart.
+    set((s) => ({
+      netWorthHistory: [...s.netWorthHistory, v].slice(-NET_WORTH_HISTORY_CAP),
+    }));
     const sample = { t: Date.now(), v };
     const last = state.netWorthSamples[state.netWorthSamples.length - 1];
     if (!last || sample.t - last.t > 2_000) {
@@ -2215,8 +2250,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
 /** Idle reason shown when a worker can't buy because the account is too low. */
 const NEEDS_CASH_IDLE = 'Account too low to buy stock';
 
-/** How many 1s profit samples the live company-profit chart retains (~4 min). */
-const PROFIT_HISTORY_CAP = 240;
+/** How many 1s profit samples the live company-profit chart retains (~30 min). */
+const PROFIT_HISTORY_CAP = 1800;
+
+/** How many cards the store-history belt keeps — enough to fill a wide screen. */
+const CARD_FLOW_CAP = 30;
+
+/** How many 5s net-worth samples the dashboard chart keeps (~30 min). */
+const NET_WORTH_HISTORY_CAP = 400;
+
+/** Itemized operating overhead on an employee sale of the given net value. */
+function computeOverhead(value: number): {
+  lines: { id: string; cost: number }[];
+  total: number;
+} {
+  const v = Math.max(0, value);
+  let total = 0;
+  const lines = OVERHEAD_LINES.map((l) => {
+    const cost = Math.max(1, Math.round(l.base + l.rate * v));
+    total += cost;
+    return { id: l.id, cost };
+  });
+  return { lines, total };
+}
 
 /** Run one work cycle for an employee. Workers only roll for a costly mistake
  *  when they actually have a task — idle staff (out of cash, no stock) just
@@ -2229,16 +2285,43 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
   const roleDef = getEmployeeRole(emp.role);
   const tierDef = EMPLOYEE_TIERS[emp.tier];
 
+  // One work cycle's length — sped by tier skill and by managers on the floor.
+  const managerSpeed = emp.role === 'manager' ? 1 : 1 - 0.1 * Math.min(managerCount, 3);
+  const workDuration = Math.max(
+    6_000,
+    Math.round(roleDef.baseCycleMs * tierDef.speed * managerSpeed),
+  );
+
+  // CASE A — the cycle that just ended was a break. Clock back in to work.
+  if (emp.break) {
+    useGameStore.setState((s) => ({
+      employees: s.employees.map((e) =>
+        e.id === empId
+          ? {
+              ...e,
+              break: undefined,
+              idle: undefined,
+              cycleStartedAt: now,
+              cycleEndsAt: now + workDuration,
+            }
+          : e,
+      ),
+    }));
+    return;
+  }
+
   let logEntry: EmployeeLogEntry | null = null;
   let profitDelta = 0;
   let mistakeCost = 0;
   let actionDelta = 0;
   let idleReason: string | undefined;
+  let flowEntry: CardFlowEntry | null = null;
+  let overhead: { lines: { id: string; cost: number }[]; total: number } | null = null;
 
   // --- Work out whether there is a task this cycle ---
   type Task =
     | { kind: 'source'; item: InventoryItem }
-    | { kind: 'flip'; itemId: string; name: string; value: number }
+    | { kind: 'flip'; item: InventoryItem; value: number }
     | { kind: 'promote' };
   let task: Task | null = null;
 
@@ -2284,7 +2367,7 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
         v: calculateCurrentValue(i, cur.marketTrends, cur.marketNoise, cur.convention, stable),
       }))
       .sort((a, b) => b.v - a.v)[0];
-    if (best) task = { kind: 'flip', itemId: best.i.id, name: best.i.name, value: best.v };
+    if (best) task = { kind: 'flip', item: best.i, value: best.v };
     else idleReason = 'No scouted stock to flip yet';
   } else if (emp.role === 'promoter') {
     task = { kind: 'promote' };
@@ -2293,9 +2376,11 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
 
   // --- Carry out the task — but a working cycle can still go wrong ---
   if (task) {
+    // Scouts handle sketchy wholesale deals — they slip up more than the rest.
+    const mistakeBase = emp.role === 'scout' ? 0.085 : 0.05;
     const mistakeChance = Math.max(
       0.012,
-      0.05 * tierDef.mistake - 0.018 * Math.min(managerCount, 3),
+      mistakeBase * tierDef.mistake - 0.018 * Math.min(managerCount, 3),
     );
     if (chance(mistakeChance)) {
       // A mistake stings in proportion to the item in play — a fraction of its
@@ -2333,21 +2418,52 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
         text: `Sourced ${it.name} for $${it.purchasePrice} (worth ~$${it.baseValue})`,
         amount: 0,
       };
+      flowEntry = {
+        id: uid('flow_'),
+        cardId: it.cardId,
+        name: it.name,
+        rarity: it.rarity,
+        hue: it.hue,
+        grade: it.grade,
+        gradingCompany: it.gradingCompany,
+        centeringOffsetX: it.centeringOffsetX,
+        centeringOffsetY: it.centeringOffsetY,
+        kind: 'sourced',
+        amount: it.purchasePrice,
+      };
     } else if (task.kind === 'flip') {
+      const it = task.item;
       const result = useGameStore
         .getState()
-        .sellInventoryItem(task.itemId, undefined, { silent: true });
+        .sellInventoryItem(it.id, undefined, { silent: true });
       if (result) {
-        profitDelta = result.profit;
+        // Operating overhead — shipping, top loaders, cleaning, supplies.
+        overhead = computeOverhead(result.net);
+        useGameStore.setState((s) => ({ cash: +(s.cash - overhead!.total).toFixed(2) }));
+        const netProfit = +(result.profit - overhead.total).toFixed(2);
+        profitDelta = netProfit;
         actionDelta = 1;
         logEntry = {
           id: uid('elog_'),
           at: now,
           kind: 'flip',
-          text: `Flipped ${task.name} for $${result.net.toFixed(0)} (${
-            result.profit >= 0 ? '+' : '-'
-          }$${Math.abs(result.profit).toFixed(0)})`,
-          amount: result.profit,
+          text: `Flipped ${it.name} for $${result.net.toFixed(0)} (${
+            netProfit >= 0 ? '+' : '-'
+          }$${Math.abs(netProfit).toFixed(0)} after $${overhead.total} costs)`,
+          amount: netProfit,
+        };
+        flowEntry = {
+          id: uid('flow_'),
+          cardId: it.cardId,
+          name: it.name,
+          rarity: it.rarity,
+          hue: it.hue,
+          grade: it.grade,
+          gradingCompany: it.gradingCompany,
+          centeringOffsetX: it.centeringOffsetX,
+          centeringOffsetY: it.centeringOffsetY,
+          kind: 'flipped',
+          amount: netProfit,
         };
       }
     } else {
@@ -2373,11 +2489,41 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
     );
   }
 
-  const managerSpeed = emp.role === 'manager' ? 1 : 1 - 0.1 * Math.min(managerCount, 3);
-  const duration = Math.max(
-    6_000,
-    Math.round(roleDef.baseCycleMs * tierDef.speed * managerSpeed),
-  );
+  // Schedule the next cycle — sometimes the employee slips off for a break.
+  let breakEntry: EmployeeLogEntry | null = null;
+  let nextBreak: string | undefined;
+  let nextDuration = workDuration;
+  if (!idleReason) {
+    const managerEase = 1 - 0.1 * Math.min(managerCount, 3);
+    // Social breaks need coworkers around to get distracted with.
+    const hasCoworkers = store.employees.length > 1;
+    if (chance(EMPLOYEE_BREAK_CHANCE * managerEase)) {
+      const b = pick(EMPLOYEE_BREAKS);
+      nextBreak = b.label;
+      nextDuration = randInt(b.minMs, b.maxMs);
+      breakEntry = {
+        id: uid('elog_'),
+        at: now,
+        kind: 'break',
+        text: `Slipped out — ${b.label}`,
+        amount: 0,
+      };
+    } else if (hasCoworkers && chance(EMPLOYEE_SOCIAL_BREAK_CHANCE * managerEase)) {
+      const b = pick(EMPLOYEE_SOCIAL_BREAKS);
+      const coworker = pick(store.employees.filter((e) => e.id !== empId));
+      const label = b.label.replace('{name}', coworker.name);
+      nextBreak = label;
+      nextDuration = randInt(b.minMs, b.maxMs);
+      breakEntry = {
+        id: uid('elog_'),
+        at: now,
+        kind: 'break',
+        text: `Got distracted — ${label}`,
+        amount: 0,
+      };
+    }
+  }
+  const newEntries = [breakEntry, logEntry].filter(Boolean) as EmployeeLogEntry[];
 
   useGameStore.setState((s) => ({
     employees: s.employees.map((e) =>
@@ -2385,17 +2531,25 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
         ? {
             ...e,
             cycleStartedAt: now,
-            cycleEndsAt: now + duration,
+            cycleEndsAt: now + nextDuration,
             actions: e.actions + actionDelta,
             profit: +(e.profit + profitDelta).toFixed(2),
             mistakes: e.mistakes + (mistakeCost > 0 ? 1 : 0),
             mistakeCost: +(e.mistakeCost + mistakeCost).toFixed(2),
-            log: logEntry ? [logEntry, ...e.log].slice(0, 30) : e.log,
+            log: newEntries.length ? [...newEntries, ...e.log].slice(0, 30) : e.log,
             idle: idleReason,
+            break: nextBreak,
           }
         : e,
     ),
     companyProfit: +(s.companyProfit + profitDelta).toFixed(2),
+    cardFlow: flowEntry ? [flowEntry, ...s.cardFlow].slice(0, CARD_FLOW_CAP) : s.cardFlow,
+    operatingCosts: overhead
+      ? overhead.lines.reduce(
+          (acc, l) => ({ ...acc, [l.id]: +((acc[l.id] ?? 0) + l.cost).toFixed(2) }),
+          { ...s.operatingCosts },
+        )
+      : s.operatingCosts,
   }));
 }
 

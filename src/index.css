@@ -184,3 +184,12 @@ body {
 .pit-closing {
   animation: pitPulse 1s ease-in-out infinite;
 }
+
+/* The Employees-page card-flow belt — the row slides one slot as each card lands. */
+@keyframes cardFlowIn {
+  from { transform: translateX(-76px); }
+  to   { transform: translateX(0); }
+}
+.card-flow-row {
+  animation: cardFlowIn 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
