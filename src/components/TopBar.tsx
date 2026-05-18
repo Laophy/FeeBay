@@ -5,9 +5,10 @@ import { vaultStableFor } from '../store/useGameStore';
 import { HelpButton } from './HelpButton';
 import { Icon } from './Icon';
 import type { Route } from '../App';
+import { money } from '../game/format';
 
 function fmt(n: number) {
-  return `$${n.toFixed(2)}`;
+  return money(n);
 }
 
 const LOGO_LETTERS: { char: string; color: string }[] = [
@@ -371,7 +372,7 @@ function CashStat({ cash }: { cash: number }) {
           }`}
         >
           {pop.delta >= 0 ? '+' : ''}
-          {pop.delta.toFixed(2)}
+          {money(pop.delta)}
         </span>
       )}
       <style>{`

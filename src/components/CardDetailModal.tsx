@@ -12,6 +12,7 @@ import {
   centeringScore,
 } from '../game/centering';
 import { calculateCurrentValue } from '../game/economyEngine';
+import { money } from '../game/format';
 import type { GradingCompanyId, InventoryItem, MarketplaceSource } from '../types';
 import { GRADING_COMPANIES } from '../data/gradingCompanies';
 
@@ -129,7 +130,7 @@ export function CardDetailModal(props: Props) {
                     : 'text-ebayRed-500'
                 }
               />
-              <Pill label="Base value" value={`$${card.baseValue}`} />
+              <Pill label="Base value" value={money(card.baseValue)} />
               <Pill label="Popularity" value={`${card.popularity}/100`} />
               <Pill label="Supply" value={`${card.supply}/100`} />
               <Pill label="Volatility" value={`${card.volatility}/100`} />
@@ -184,10 +185,10 @@ export function CardDetailModal(props: Props) {
                   centeringLabel(item.centeringOffsetX, item.centeringOffsetY)
                 }
               />
-              <Pill label="Paid" value={`$${item.purchasePrice.toFixed(2)}`} />
+              <Pill label="Paid" value={money(item.purchasePrice)} />
               <Pill
                 label="Current value"
-                value={`$${currentItemValue}`}
+                value={money(currentItemValue ?? 0)}
                 accent="text-feebay-600"
               />
               {item.grade !== undefined && (

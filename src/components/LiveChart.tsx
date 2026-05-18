@@ -1,8 +1,8 @@
 import { useId, useState } from 'react';
+import { money } from '../game/format';
 
 function fmtMoney(n: number): string {
-  const a = Math.abs(Math.round(n));
-  return `${n < 0 ? '-' : ''}$${a.toLocaleString()}`;
+  return money(n);
 }
 
 /** Selectable time windows — seconds of history to show. */

@@ -1,6 +1,7 @@
 import { useGameStore } from '../../store/useGameStore';
 import { ACHIEVEMENTS } from '../../data/achievements';
 import { Icon, type IconName } from '../../components/Icon';
+import { money } from '../../game/format';
 
 const TIER_LABEL: Record<string, string> = {
   bronze: 'Bronze',
@@ -70,7 +71,7 @@ export function Achievements() {
             {unlocked.length} / {ACHIEVEMENTS.length} unlocked
             {unclaimedIds.length > 0 && (
               <>
-                {' '}• <span className="text-ebayGreen-600 font-semibold">${unclaimedReward.toFixed(2)} unclaimed</span>
+                {' '}• <span className="text-ebayGreen-600 font-semibold">{money(unclaimedReward)} unclaimed</span>
               </>
             )}
           </p>
@@ -81,7 +82,7 @@ export function Achievements() {
             className="rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white px-4 py-2 text-sm font-semibold flex items-center gap-2"
           >
             <Icon name="cash" size={16} />
-            Claim all (${unclaimedReward.toFixed(2)})
+            Claim all ({money(unclaimedReward)})
           </button>
         )}
       </div>
@@ -141,7 +142,7 @@ export function Achievements() {
                     <div className="flex items-center justify-between mt-1">
                       <div className="text-xs text-ink-500">
                         Reward:{' '}
-                        <span className="text-ebayGreen-600 font-semibold">${a.cashReward}</span>
+                        <span className="text-ebayGreen-600 font-semibold">{money(a.cashReward)}</span>
                       </div>
                       {!isUnlocked ? (
                         <span className="text-[10px] uppercase tracking-widest text-ink-400">
@@ -156,7 +157,7 @@ export function Achievements() {
                           onClick={() => claim(a.id)}
                           className="rounded bg-ebayGreen-500 hover:bg-ebayGreen-600 text-white px-3 py-1 text-xs font-semibold animate-pulse"
                         >
-                          Claim ${a.cashReward}
+                          Claim {money(a.cashReward)}
                         </button>
                       )}
                     </div>

@@ -3,6 +3,7 @@ import { useGameStore } from '../store/useGameStore';
 import { calculateCurrentValue } from '../game/economyEngine';
 import { saleProbabilityPerTick } from '../game/storefront';
 import { Icon } from './Icon';
+import { money } from '../game/format';
 import type { InventoryItem, MarketplaceSource } from '../types';
 
 type Props = {
@@ -43,7 +44,7 @@ export function ListForSaleModal({ item, onClose }: Props) {
         <div className="text-xs uppercase tracking-widest text-ink-500">List for sale</div>
         <div className="mt-1 text-lg font-semibold">{item.name}</div>
         <div className="text-xs text-ink-500 mt-0.5">
-          Reference value: <span className="text-feebay-600 font-semibold">${refValue}</span>
+          Reference value: <span className="text-feebay-600 font-semibold">{money(refValue)}</span>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -72,7 +73,7 @@ export function ListForSaleModal({ item, onClose }: Props) {
             <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-ink-500 mb-1">
               <span>Price</span>
               <span>
-                $<span className="text-ebayGreen-600 font-semibold">{price}</span> /{' '}
+                <span className="text-ebayGreen-600 font-semibold">{money(price)}</span> /{' '}
                 <span className="text-ink-700">{(price / Math.max(1, refValue)).toFixed(2)}× ref</span>
               </span>
             </div>

@@ -4,6 +4,7 @@ import { useGameStore } from '../store/useGameStore';
 import { CardArt } from './CardArt';
 import { SFX } from '../game/audio';
 import { Icon } from './Icon';
+import { money } from '../game/format';
 import type { BulkGradeReveal } from '../types';
 
 type Phase = 'intro' | 'flip' | 'show' | 'summary';
@@ -95,12 +96,12 @@ export function BulkGradeRevealModal() {
             <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
               <Stat
                 label="Total paid (grading)"
-                value={`$${totals.totalPaid.toFixed(2)}`}
+                value={money(totals.totalPaid)}
                 accent="text-ebayRed-600"
               />
               <Stat
                 label="Total est. value"
-                value={`$${totals.totalValue.toFixed(2)}`}
+                value={money(totals.totalValue)}
                 accent="text-ebayGreen-700"
               />
             </div>
@@ -113,8 +114,8 @@ export function BulkGradeRevealModal() {
             >
               <Icon name={totals.totalProfit >= 0 ? 'chart-up' : 'chart-down'} size={16} />
               {totals.totalProfit >= 0
-                ? `Net potential profit: +$${totals.totalProfit.toFixed(2)}`
-                : `Net potential loss: $${totals.totalProfit.toFixed(2)}`}
+                ? `Net potential profit: +${money(totals.totalProfit)}`
+                : `Net potential loss: ${money(totals.totalProfit)}`}
             </div>
             {totals.best && (
               <div className="mt-3 text-center text-[11px] text-ink-500">
@@ -185,8 +186,8 @@ export function BulkGradeRevealModal() {
                   }`}
                 >
                   <Icon name={current.profit >= 0 ? 'chart-up' : 'chart-down'} size={13} />
-                  {current.profit >= 0 ? '+' : ''}${current.profit.toFixed(2)} vs paid $
-                  {current.paid.toFixed(2)}
+                  {current.profit >= 0 ? '+' : ''}{money(current.profit)} vs paid{' '}
+                  {money(current.paid)}
                 </div>
               </>
             )}
@@ -198,7 +199,7 @@ export function BulkGradeRevealModal() {
                     runningProfit >= 0 ? 'text-ebayGreen-700' : 'text-ebayRed-600'
                   }`}
                 >
-                  {runningProfit >= 0 ? '+' : ''}${runningProfit.toFixed(2)}
+                  {runningProfit >= 0 ? '+' : ''}{money(runningProfit)}
                 </div>
               </div>
               <div className="rounded-md border border-line bg-paper px-2 py-1.5">

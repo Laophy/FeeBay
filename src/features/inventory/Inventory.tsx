@@ -10,6 +10,7 @@ import { getCardById } from '../../data/cards';
 import { CardDetailModal } from '../../components/CardDetailModal';
 import { ListForSaleModal } from '../../components/ListForSaleModal';
 import { SellStoreModal } from '../../components/SellStoreModal';
+import { money } from '../../game/format';
 
 type SortKey = 'value' | 'profit' | 'rarity' | 'condition' | 'recent';
 
@@ -244,8 +245,8 @@ export function Inventory() {
           {selectedIds.size >= 2 && (
             <div className="flex items-center gap-3 text-xs">
               <span className="text-ink-500">
-                Est. net <span className="text-ebayGreen-600 font-semibold">${bundleNetEstimate}</span>{' '}
-                ({bundleProfitEstimate >= 0 ? '+' : ''}${bundleProfitEstimate.toFixed(0)} vs cost)
+                Est. net <span className="text-ebayGreen-600 font-semibold">{money(bundleNetEstimate)}</span>{' '}
+                ({bundleProfitEstimate >= 0 ? '+' : ''}{money(bundleProfitEstimate)} vs cost)
               </span>
               {unlocked.filter((m) => m !== 'SlabHub').map((m) => (
                 <button
@@ -439,11 +440,11 @@ function ItemCard({
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-xs">
-        <Pill label="Paid" value={`$${item.purchasePrice.toFixed(2)}`} />
-        <Pill label="Value" value={`$${currentValue}`} accent="text-feebay-300" />
+        <Pill label="Paid" value={money(item.purchasePrice)} />
+        <Pill label="Value" value={money(currentValue)} accent="text-feebay-300" />
         <Pill
           label="Margin"
-          value={`${profit >= 0 ? '+' : ''}$${profit.toFixed(0)} (${profitPct.toFixed(0)}%)`}
+          value={`${profit >= 0 ? '+' : ''}${money(profit)} (${profitPct.toFixed(0)}%)`}
           accent={profit >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'}
         />
       </div>

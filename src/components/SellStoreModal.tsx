@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useGameStore, feeDiscountFor } from '../store/useGameStore';
 import { MARKETPLACES } from '../data/marketplaces';
 import { Icon } from './Icon';
+import { money } from '../game/format';
 
 /** Set your primary sell store and compare marketplace fees. */
 export function SellStoreModal({ onClose }: { onClose: () => void }) {
@@ -55,7 +56,7 @@ export function SellStoreModal({ onClose }: { onClose: () => void }) {
             const isPrimary = m.id === primary;
             const slabsOnly = m.id === 'SlabHub';
             const feeLabel = `${Math.round(m.feePct * 100)}% fee${
-              m.flatFee > 0 ? ` + $${m.flatFee.toFixed(2)}` : ''
+              m.flatFee > 0 ? ` + ${money(m.flatFee)}` : ''
             }`;
             return (
               <div

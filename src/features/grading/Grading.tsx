@@ -5,6 +5,7 @@ import { GradingRevealModal } from '../../components/GradingRevealModal';
 import { BulkGradeRevealModal } from '../../components/BulkGradeRevealModal';
 import { CardArt } from '../../components/CardArt';
 import { Icon } from '../../components/Icon';
+import { money } from '../../game/format';
 
 export function Grading() {
   const submissions = useGameStore((s) => s.gradingSubmissions);
@@ -55,8 +56,8 @@ export function Grading() {
               </div>
               <div className="text-xs text-ink-500 mt-1">{c.tagline}</div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <Stat label="Grade fee" value={`$${c.cost}`} />
-                <Stat label="Shipping" value={`$${c.shippingFee}`} accent="text-ebayYellow-700" />
+                <Stat label="Grade fee" value={money(c.cost)} />
+                <Stat label="Shipping" value={money(c.shippingFee)} accent="text-ebayYellow-700" />
                 <Stat label="Speed" value={`${c.turnaroundMs / 1000}s`} />
                 <Stat
                   label="Resale"
@@ -69,7 +70,7 @@ export function Grading() {
                   Chaos: {(c.chaosChance * 100).toFixed(0)}% upset
                 </span>
                 <span className="text-ink-700 font-semibold">
-                  Total <span className="text-ink-900">${c.cost + c.shippingFee}</span>
+                  Total <span className="text-ink-900">{money(c.cost + c.shippingFee)}</span>
                 </span>
               </div>
             </div>
@@ -157,9 +158,9 @@ export function Grading() {
                           <div className="text-[11px] text-ink-500 mt-0.5">
                             <span className="text-feebay-600 font-semibold">@ {s.company}</span>
                             <span className="text-ink-300 mx-1.5">•</span>
-                            Paid ${s.cost}
+                            Paid {money(s.cost)}
                             {s.shippingFee ? (
-                              <span className="text-ink-400"> (incl ${s.shippingFee} ship)</span>
+                              <span className="text-ink-400"> (incl {money(s.shippingFee)} ship)</span>
                             ) : null}
                           </div>
                         </div>
@@ -244,15 +245,15 @@ export function Grading() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[11px] text-ink-500">
-                      ${h.rawValue.toFixed(0)} <span className="text-ink-300">→</span>{' '}
-                      <span className="font-bold text-ink-900">${h.gradedValue.toFixed(0)}</span>
+                      {money(h.rawValue)} <span className="text-ink-300">→</span>{' '}
+                      <span className="font-bold text-ink-900">{money(h.gradedValue)}</span>
                     </div>
                     <div
                       className={`text-[11px] font-bold ${
                         net >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'
                       }`}
                     >
-                      {net >= 0 ? '+' : ''}${net.toFixed(0)} net
+                      {net >= 0 ? '+' : ''}{money(net)} net
                     </div>
                   </div>
                   <div className="text-[11px] text-ink-400 shrink-0 w-14 text-right">

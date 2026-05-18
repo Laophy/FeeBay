@@ -5,6 +5,7 @@ import { CardArt } from '../../components/CardArt';
 import { CardZoomOverlay } from '../../components/CardZoomOverlay';
 import { Icon } from '../../components/Icon';
 import { minNextBid, rivalHeat, type RivalHeat } from '../../game/auctionEngine';
+import { money } from '../../game/format';
 import type { AuctionBid, AuctionListing, AuctionRival } from '../../types';
 
 function fmtTime(ms: number): string {
@@ -215,7 +216,7 @@ function LotRow({
         <div className="text-xs font-bold truncate">{card.name}</div>
         <div className="text-[10px] text-ink-500 truncate">{auction.rarity}</div>
         <div className="text-[11px] font-mono font-bold text-ink-800 mt-0.5">
-          ${auction.currentBid}
+          {money(auction.currentBid)}
         </div>
       </div>
       <div className="shrink-0 text-right">
@@ -408,7 +409,7 @@ function BiddingPit({
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-600">
               <span>
                 Est. value{' '}
-                <b className="text-ebayGreen-700">${auction.trueMarketValue}</b>
+                <b className="text-ebayGreen-700">{money(auction.trueMarketValue)}</b>
               </span>
               <span className="flex items-center gap-1">
                 <Icon name="eye" size={11} /> {auction.watchers} watching
@@ -448,7 +449,7 @@ function BiddingPit({
                 leading && !ended ? 'text-ebayGreen-700' : 'text-ink-900'
               }`}
             >
-              ${auction.currentBid}
+              {money(auction.currentBid)}
             </div>
             <div
               className={`text-xs mt-1 font-bold ${
@@ -530,7 +531,7 @@ function BiddingPit({
                       : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                   }`}
                 >
-                  Place bid · ${minNext}
+                  Place bid · {money(minNext)}
                 </button>
                 {auction.buyoutPrice && (
                   <button
@@ -542,7 +543,7 @@ function BiddingPit({
                         : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                     }`}
                   >
-                    Buyout ${auction.buyoutPrice}
+                    Buyout {money(auction.buyoutPrice)}
                   </button>
                 )}
               </div>
@@ -554,7 +555,7 @@ function BiddingPit({
                 <input
                   type="number"
                   value={jumpInput}
-                  placeholder={`> ${minNext}`}
+                  placeholder={`> ${money(minNext)}`}
                   onChange={(e) => setJumpInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && jumpValid) {
@@ -599,7 +600,7 @@ function BiddingPit({
                 />
                 {auction.myMaxBid ? (
                   <span className="text-ebayGreen-600 text-[11px] font-semibold">
-                    armed @ ${auction.myMaxBid}
+                    armed @ {money(auction.myMaxBid)}
                   </span>
                 ) : (
                   <span className="text-[10px] text-ink-400">defends your lead automatically</span>
@@ -613,7 +614,7 @@ function BiddingPit({
             )}
 
             <div className="text-[10px] text-ink-500 border-t border-lineSoft pt-1.5">
-              Win at ${auction.currentBid} and you'd be{' '}
+              Win at {money(auction.currentBid)} and you'd be{' '}
               <span
                 className={
                   valueGap >= 0
@@ -621,7 +622,7 @@ function BiddingPit({
                     : 'text-ebayRed-500 font-semibold'
                 }
               >
-                {valueGap >= 0 ? `~$${valueGap} under` : `~$${Math.abs(valueGap)} over`}
+                {valueGap >= 0 ? `~${money(valueGap)} under` : `~${money(Math.abs(valueGap))} over`}
               </span>{' '}
               est. value. Bid wars feed the goblin, not you.
             </div>
@@ -636,8 +637,8 @@ function BiddingPit({
           >
             <div>
               {auction.wonByPlayer
-                ? `Won for $${auction.currentBid}. Hauled into your inventory.`
-                : `Lot closed at $${auction.currentBid}${
+                ? `Won for ${money(auction.currentBid)}. Hauled into your inventory.`
+                : `Lot closed at ${money(auction.currentBid)}${
                     auction.leaderName && auction.leaderName !== 'You'
                       ? ` — ${auction.leaderName} took it.`
                       : '.'
@@ -736,7 +737,7 @@ function FeedRow({ bid }: { bid: AuctionBid }) {
         {isYou ? 'You' : bid.bidder}
       </span>
       <span className="text-ink-400">bid</span>
-      <span className="ml-auto font-mono font-bold text-ink-900">${bid.amount}</span>
+      <span className="ml-auto font-mono font-bold text-ink-900">{money(bid.amount)}</span>
     </div>
   );
 }

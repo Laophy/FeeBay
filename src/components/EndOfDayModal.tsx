@@ -1,5 +1,6 @@
 import { useGameStore } from '../store/useGameStore';
 import { Icon } from './Icon';
+import { money } from '../game/format';
 
 export function EndOfDayModal() {
   const report = useGameStore((s) => s.pendingEndOfDay);
@@ -22,25 +23,25 @@ export function EndOfDayModal() {
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
           <Stat
             label="Cash change"
-            value={`${cashDelta >= 0 ? '+' : ''}$${cashDelta.toFixed(2)}`}
+            value={`${cashDelta >= 0 ? '+' : ''}${money(cashDelta)}`}
             accent={cashDelta >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'}
           />
           <Stat
             label="Net profit"
-            value={`${profitable ? '+' : ''}$${profit.toFixed(2)}`}
+            value={`${profitable ? '+' : ''}${money(profit)}`}
             accent={profitable ? 'text-ebayGreen-600' : 'text-ebayRed-500'}
           />
           <Stat label="Bought" value={`${report.bought}`} />
           <Stat label="Sold" value={`${report.sold}`} />
-          <Stat label="Fees paid" value={`$${report.feesPaid.toFixed(2)}`} accent="text-ebayRed-600" />
+          <Stat label="Fees paid" value={money(report.feesPaid)} accent="text-ebayRed-600" />
           <Stat
             label="Best sale today"
-            value={`+$${report.bestSale.toFixed(2)}`}
+            value={`+${money(report.bestSale)}`}
             accent="text-ebayGreen-700"
           />
           <Stat
             label="Worst sale today"
-            value={`$${report.worstSale.toFixed(2)}`}
+            value={money(report.worstSale)}
             accent="text-ebayRed-600"
           />
           <Stat label="Grades returned" value={`${report.gradesReceived}`} />

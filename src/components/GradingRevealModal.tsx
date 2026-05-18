@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { SFX } from '../game/audio';
 import { Icon } from './Icon';
+import { money } from '../game/format';
 
 export function GradingRevealModal() {
   const reveals = useGameStore((s) => s.pendingGradeReveals);
@@ -73,8 +74,8 @@ export function GradingRevealModal() {
               {reveal.grade === 0 ? 'AUTH FAIL' : reveal.gradeLabel}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <Stat label="Paid" value={`$${purchase.toFixed(2)}`} />
-              <Stat label="Graded value" value={`$${reveal.finalValue.toFixed(2)}`} />
+              <Stat label="Paid" value={money(purchase)} />
+              <Stat label="Graded value" value={money(reveal.finalValue)} />
             </div>
             <div
               className={`mt-3 rounded-md border px-3 py-2 text-center text-sm font-semibold flex items-center justify-center gap-2 ${
@@ -85,8 +86,8 @@ export function GradingRevealModal() {
             >
               <Icon name={profit >= 0 ? 'chart-up' : 'chart-down'} size={16} />
               {profit >= 0
-                ? `Potential profit: +$${profit.toFixed(2)}`
-                : `Potential loss: $${profit.toFixed(2)}`}
+                ? `Potential profit: +${money(profit)}`
+                : `Potential loss: ${money(profit)}`}
             </div>
             <button
               onClick={() => consume(reveal.submissionId)}

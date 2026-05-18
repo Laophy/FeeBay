@@ -1,5 +1,6 @@
 import { useGameStore } from '../../store/useGameStore';
 import { UPGRADES } from '../../data/upgrades';
+import { money } from '../../game/format';
 
 export function Upgrades() {
   const cash = useGameStore((s) => s.cash);
@@ -34,7 +35,7 @@ export function Upgrades() {
                   <div className="text-xs text-ink-500 mt-1">{u.description}</div>
                 </div>
                 <div className="text-xs uppercase tracking-widest text-ink-500 whitespace-nowrap">
-                  ${u.cost}
+                  {money(u.cost)}
                 </div>
               </div>
               <div className="mt-auto">
@@ -52,7 +53,7 @@ export function Upgrades() {
                         : 'bg-ink-100 text-ink-400 cursor-not-allowed'
                     }`}
                   >
-                    {affordable ? `Buy for $${u.cost}` : `Need $${u.cost}`}
+                    {affordable ? `Buy for ${money(u.cost)}` : `Need ${money(u.cost)}`}
                   </button>
                 )}
               </div>

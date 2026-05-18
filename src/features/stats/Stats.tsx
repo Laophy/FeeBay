@@ -5,6 +5,7 @@ import { Icon } from '../../components/Icon';
 import { BUSINESS_LEVELS, getBusinessLevel, getNextBusinessLevel } from '../../data/businessLevels';
 import { calculateCurrentValue } from '../../game/economyEngine';
 import { vaultStableFor } from '../../store/useGameStore';
+import { money } from '../../game/format';
 
 export function Stats() {
   const stats = useGameStore((s) => s.stats);
@@ -81,11 +82,11 @@ export function Stats() {
               <div className="text-xs text-ink-700 mt-1 space-x-1">
                 <span className="inline-flex items-center gap-1 rounded bg-paper border border-line px-1.5 py-0.5">
                   <Icon name="wallet" size={10} className="text-ebayGreen-600" />
-                  ${nextLevel.promotionCost.toLocaleString()}
+                  {money(nextLevel.promotionCost)}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-paper border border-line px-1.5 py-0.5">
                   <Icon name="chart-up" size={10} className="text-feebay-600" />
-                  ${nextLevel.netWorthRequirement.toLocaleString()}
+                  {money(nextLevel.netWorthRequirement)}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-paper border border-line px-1.5 py-0.5">
                   <Icon name="sparkle" size={10} className="text-ebayYellow-700" />
@@ -283,7 +284,7 @@ function Row({
 }
 
 function fmt(n: number): string {
-  return `$${n.toFixed(2)}`;
+  return money(n);
 }
 
 function PerkStat({ label, value }: { label: string; value: string }) {

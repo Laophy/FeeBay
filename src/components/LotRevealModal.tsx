@@ -3,6 +3,7 @@ import { useGameStore } from '../store/useGameStore';
 import { CardArt } from './CardArt';
 import { SFX } from '../game/audio';
 import { Icon } from './Icon';
+import { money } from '../game/format';
 import type { CardRarity, InventoryItem, LotReveal } from '../types';
 
 const RARITY_RANK: Record<CardRarity, number> = {
@@ -176,15 +177,15 @@ export function LotRevealModal() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Stat label="Paid" value={`$${lot.pricePaid}`} muted />
+            <Stat label="Paid" value={money(lot.pricePaid)} muted />
             <Stat label="Cards" value={`${cardCount}`} muted />
             {phase === 'done' && (
-              <Stat label="Lot value" value={`$${totalCurrent}`} accent="text-ebayGreen-700" />
+              <Stat label="Lot value" value={money(totalCurrent)} accent="text-ebayGreen-700" />
             )}
             {phase === 'done' && (
               <Stat
                 label="Net"
-                value={`${profit >= 0 ? '+' : ''}$${profit.toFixed(0)}`}
+                value={`${profit >= 0 ? '+' : ''}${money(profit)}`}
                 accent={profit >= 0 ? 'text-ebayGreen-700' : 'text-ebayRed-600'}
               />
             )}

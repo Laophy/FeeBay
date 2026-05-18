@@ -4,6 +4,7 @@ import { CardArt } from '../../components/CardArt';
 import { getCardById } from '../../data/cards';
 import { saleProbabilityPerTick } from '../../game/storefront';
 import { Icon } from '../../components/Icon';
+import { money } from '../../game/format';
 
 export function Storefront() {
   const listings = useGameStore((s) => s.playerListings);
@@ -59,21 +60,21 @@ export function Storefront() {
             <WalletStat
               icon="chart-up"
               label="Total sales"
-              value={`$${totalSalesRevenue.toFixed(2)}`}
+              value={money(totalSalesRevenue)}
               sub={`${totalSalesCount} order${totalSalesCount === 1 ? '' : 's'} · ${listings.length} active · ${pending.length} pending`}
               accent="text-ebayGreen-700"
             />
             <WalletStat
               icon="tag"
               label="Listed value"
-              value={`$${totalListedValue.toFixed(2)}`}
+              value={money(totalListedValue)}
               sub="Sum of active asking prices"
               accent="text-feebay-700"
             />
             <WalletStat
               icon="wallet"
               label="In transit"
-              value={`$${pendingValue.toFixed(2)}`}
+              value={money(pendingValue)}
               sub="Buyers about to pay"
               accent="text-ebayYellow-700"
             />
@@ -89,7 +90,7 @@ export function Storefront() {
                   Storefront wallet
                 </div>
                 <div className="text-2xl font-black text-ebayGreen-700 tabular-nums leading-none mt-0.5">
-                  ${balance.toFixed(2)}
+                  {money(balance)}
                 </div>
               </div>
             </div>
@@ -114,7 +115,7 @@ export function Storefront() {
                   </span>
                 </span>
                 <span className="font-bold text-ebayRed-500 tabular-nums">
-                  −${previewFee.toFixed(2)}
+                  −{money(previewFee)}
                 </span>
               </div>
               {(feeBreakdown.upgradeReduction > 0 || feeBreakdown.businessDiscount > 0) && (
@@ -143,7 +144,7 @@ export function Storefront() {
               <div className="flex items-center justify-between border-t border-lineSoft pt-1 mt-1">
                 <span className="text-ink-700 font-semibold">You receive</span>
                 <span className="font-black text-ink-900 tabular-nums">
-                  ${previewNet.toFixed(2)}
+                  {money(previewNet)}
                 </span>
               </div>
             </div>
@@ -156,7 +157,7 @@ export function Storefront() {
                   : 'bg-ink-100 text-ink-400 border-line cursor-not-allowed'
               }`}
             >
-              {balance > 0 ? `Withdraw $${previewNet.toFixed(2)}` : 'Nothing to withdraw'}
+              {balance > 0 ? `Withdraw ${money(previewNet)}` : 'Nothing to withdraw'}
             </button>
             <label
               className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 ${
@@ -236,8 +237,8 @@ export function Storefront() {
                     </div>
                     <div className="mt-2 text-xs flex items-center gap-2">
                       <span className="text-ink-500">Price</span>
-                      <span className="text-ebayGreen-600 font-semibold">${l.askingPrice}</span>
-                      <span className="text-ink-400">vs ref ${l.refValue}</span>
+                      <span className="text-ebayGreen-600 font-semibold">{money(l.askingPrice)}</span>
+                      <span className="text-ink-400">vs ref {money(l.refValue)}</span>
                     </div>
                     <div className="text-[11px] text-ink-500 mt-0.5">
                       ratio {ratio.toFixed(2)}× • est{' '}
@@ -341,7 +342,7 @@ export function Storefront() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-black text-ink-900">
-                      ${p.netRevenue.toFixed(2)}
+                      {money(p.netRevenue)}
                     </div>
                     <div className="text-[11px] text-ink-500">if paid</div>
                   </div>
@@ -377,8 +378,8 @@ export function Storefront() {
                     : 'text-ebayRed-600 font-bold'
                 }
               >
-                {history.reduce((s, h) => s + h.profit, 0) >= 0 ? '+' : ''}$
-                {history.reduce((s, h) => s + h.profit, 0).toFixed(2)}
+                {history.reduce((s, h) => s + h.profit, 0) >= 0 ? '+' : ''}
+                {money(history.reduce((s, h) => s + h.profit, 0))}
               </span>
             </div>
           )}
@@ -440,14 +441,14 @@ export function Storefront() {
                     ) : (
                       <>
                         <div className="text-sm font-black text-ink-900">
-                          ${h.netRevenue.toFixed(2)}
+                          {money(h.netRevenue)}
                         </div>
                         <div
                           className={`text-[11px] font-bold ${
                             h.profit >= 0 ? 'text-ebayGreen-600' : 'text-ebayRed-500'
                           }`}
                         >
-                          {h.profit >= 0 ? '+' : ''}${h.profit.toFixed(2)}
+                          {h.profit >= 0 ? '+' : ''}{money(h.profit)}
                         </div>
                       </>
                     )}

@@ -8,12 +8,13 @@ import { CARDS } from '../../data/cards';
 import { collectionPercent } from '../../game/collection';
 import { getBusinessLevel, getNextBusinessLevel } from '../../data/businessLevels';
 import { LiveChart } from '../../components/LiveChart';
+import { money } from '../../game/format';
 import type { Employee } from '../../types';
 
 type Props = { onNavigate: (r: Route) => void };
 
 function fmt(n: number) {
-  return `$${n.toFixed(2)}`;
+  return money(n);
 }
 
 export function Dashboard({ onNavigate }: Props) {
@@ -71,7 +72,7 @@ export function Dashboard({ onNavigate }: Props) {
             <p className="text-ink-600 text-sm mt-1">
               {current.tagline} {nextLevel && (
                 <span className="text-feebay-600">
-                  Next: <span className="font-semibold">{nextLevel.name}</span> at ${nextLevel.netWorthRequirement.toLocaleString()} net worth.
+                  Next: <span className="font-semibold">{nextLevel.name}</span> at {money(nextLevel.netWorthRequirement)} net worth.
                 </span>
               )}
             </p>

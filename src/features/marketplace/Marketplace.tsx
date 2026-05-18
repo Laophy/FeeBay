@@ -8,6 +8,7 @@ import { Icon } from '../../components/Icon';
 import { centeringLabel, centeringLean } from '../../game/centering';
 import { isNegotiableListing } from '../../game/negotiation';
 import { CardZoomOverlay } from '../../components/CardZoomOverlay';
+import { money } from '../../game/format';
 
 export function Marketplace() {
   const listings = useGameStore((s) => s.listings);
@@ -356,13 +357,13 @@ function ListingCard({
 
         <div>
           <div className="text-2xl font-black text-ink-900 leading-none">
-            ${listing.askingPrice}
+            {money(listing.askingPrice)}
           </div>
           <div className="text-[11px] text-ink-500 mt-1">
             est value{' '}
             {showRange ? (
               <span className="font-bold text-ebayGreen-700">
-                ${listing.estimatedValueMin}–${listing.estimatedValueMax}
+                {money(listing.estimatedValueMin)}–{money(listing.estimatedValueMax)}
               </span>
             ) : (
               <span
@@ -427,7 +428,7 @@ function ListingCard({
                 : 'bg-ink-100 text-ink-400 cursor-not-allowed'
             }`}
           >
-            Buy ${listing.askingPrice}
+            Buy {money(listing.askingPrice)}
           </button>
         </div>
       </div>
@@ -622,13 +623,13 @@ function ListingDetailModal({
             <div className="text-lg font-bold mt-1 text-ink-900">{listing.title}</div>
             <div className="text-xs text-ink-500">Seller: @{listing.sellerName}</div>
             <div className="text-sm text-ink-700 mt-2">{listing.description}</div>
-            <div className="text-2xl font-black text-ink-900 mt-3">${listing.askingPrice}</div>
+            <div className="text-2xl font-black text-ink-900 mt-3">{money(listing.askingPrice)}</div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
           <Pill
             label="Est. value"
-            value={showRange ? `$${listing.estimatedValueMin}–$${listing.estimatedValueMax}` : '???'}
+            value={showRange ? `${money(listing.estimatedValueMin)}–${money(listing.estimatedValueMax)}` : '???'}
             accent="text-feebay-600"
           />
           <Pill label="Condition" value={listing.rawCondition} accent="text-ink-900" />
@@ -685,7 +686,7 @@ function ListingDetailModal({
                 : 'bg-ink-100 text-ink-400 cursor-not-allowed'
             }`}
           >
-            Buy It Now · ${listing.askingPrice}
+            Buy It Now · {money(listing.askingPrice)}
           </button>
         </div>
       </div>
@@ -741,8 +742,8 @@ function NegotiationBlock({ listing }: { listing: MarketplaceListing }) {
       />
       <div className="flex items-center justify-between text-xs">
         <span className="text-ink-700">
-          Offer: <span className="font-bold text-ink-900">${offer}</span>
-          <span className="text-ink-400"> / ${listing.askingPrice} ask</span>
+          Offer: <span className="font-bold text-ink-900">{money(offer)}</span>
+          <span className="text-ink-400"> / {money(listing.askingPrice)} ask</span>
         </span>
         <button
           onClick={send}
@@ -765,7 +766,7 @@ function NegotiationBlock({ listing }: { listing: MarketplaceListing }) {
               }
             >
               <span className="uppercase font-bold mr-1">{h.kind}</span>
-              {h.flavor} {h.price ? `($${h.price})` : ''}
+              {h.flavor} {h.price ? `(${money(h.price)})` : ''}
             </li>
           ))}
         </ul>

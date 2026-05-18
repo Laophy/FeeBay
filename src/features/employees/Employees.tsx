@@ -13,10 +13,10 @@ import { Icon, type IconName } from '../../components/Icon';
 import { LiveChart } from '../../components/LiveChart';
 import { CardArt } from '../../components/CardArt';
 import type { CardFlowEntry, Employee, EmployeeLogEntry, InventoryItem } from '../../types';
+import { money } from '../../game/format';
 
 function fmtMoney(n: number): string {
-  const a = Math.abs(Math.round(n));
-  return `${n < 0 ? '-' : ''}$${a.toLocaleString()}`;
+  return money(n);
 }
 
 function tierStars(stars: number): string {
@@ -469,8 +469,8 @@ function CardFlow({ flow }: { flow: CardFlowEntry[] }) {
 function FlowCard({ entry, fresh }: { entry: CardFlowEntry; fresh: boolean }) {
   const sourced = entry.kind === 'sourced';
   const amountText = sourced
-    ? `$${Math.round(entry.amount).toLocaleString()}`
-    : `${entry.amount >= 0 ? '+' : '-'}$${Math.abs(Math.round(entry.amount)).toLocaleString()}`;
+    ? money(entry.amount)
+    : `${entry.amount >= 0 ? '+' : ''}${money(entry.amount)}`;
   const tone = sourced
     ? 'text-feebay-600'
     : entry.amount >= 0
@@ -563,7 +563,7 @@ function StoreStock({
                 {it.name}
               </div>
               <div className="text-[10px] text-ink-500 text-center leading-tight">
-                paid ${Math.round(it.purchasePrice).toLocaleString()} · worth ~
+                paid {money(it.purchasePrice)} · worth ~
                 {fmtMoney(it.baseValue ?? 0)}
               </div>
               <button

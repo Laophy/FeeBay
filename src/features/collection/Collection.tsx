@@ -6,6 +6,7 @@ import { CardArt } from '../../components/CardArt';
 import { cardsBySet, collectionPercent } from '../../game/collection';
 import { calculateCurrentValue } from '../../game/economyEngine';
 import { CardDetailModal } from '../../components/CardDetailModal';
+import { money } from '../../game/format';
 import { Icon } from '../../components/Icon';
 
 export function Collection() {
@@ -106,7 +107,7 @@ export function Collection() {
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="text-base font-black text-ebayGreen-700 leading-tight">
-                ${showcaseValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                {money(showcaseValue)}
               </div>
               <div className="text-[9px] uppercase tracking-widest text-ink-400 font-bold">
                 {showcaseItems.length} card{showcaseItems.length === 1 ? '' : 's'} on display
