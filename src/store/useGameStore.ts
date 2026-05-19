@@ -57,6 +57,7 @@ import {
   sourceWholesaleCard,
 } from '../game/lotResolver';
 import { SHOP_TIERS, getShopTier } from '../data/shop';
+import { generateDailyDeals } from '../game/dailyDeals';
 import {
   DEFAULT_SHOP_NAME,
   DEFAULT_SHOP_LOGO,
@@ -254,6 +255,8 @@ function defaultState(): GameState {
     shopName: DEFAULT_SHOP_NAME,
     shopLogo: DEFAULT_SHOP_LOGO,
     shopColor: DEFAULT_SHOP_COLOR,
+    dailyDeals: [],
+    dailyDealsDay: 0,
     employees: [],
     companyProfit: 0,
     companyProfitHistory: [],
@@ -343,6 +346,10 @@ type Actions = {
   undisplayItem(itemId: string): void;
   tickShop(): void;
   updateBranding(patch: { shopName?: string; shopLogo?: string; shopColor?: string }): void;
+  /** Buy a card off the Daily Deals shelf. */
+  buyDailyDeal(dealId: string): void;
+  /** Rebuild the Daily Deals shelf if it's stale (new day, or never built). */
+  ensureDailyDeals(): void;
   tickEmployees(): void;
   promoteBusinessLevel(): void;
   toggleShowcase(itemId: string): void;
@@ -408,6 +415,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (get().listings.length === 0) {
       get().refreshListings();
     }
+    get().ensureDailyDeals();
     // Re-push earned achievements to Steam — covers saves made before the Steam
     // integration and any achievements earned while offline. Steam ignores dupes.
     const steam = window.feebay?.steam;
@@ -1792,6 +1800,91 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().save();
   },
 
+  ensureDailyDeals() {
+    const state = get();
+    // One shelf per day. An empty shelf mid-day means the player cleared it —
+    // it stays empty until the next day rather than instantly restocking.
+    if (state.dailyDealsDay === state.day) return;
+    set({
+      dailyDeals: generateDailyDeals(state.marketTrends, state.reputation),
+      dailyDealsDay: state.day,
+    });
+    get().save();
+  },
+
+  buyDailyDeal(dealId) {
+    const state = get();
+    const deal = state.dailyDeals.find((d) => d.id === dealId);
+    if (!deal) return;
+    if (state.cash < deal.price) {
+      get().pushNotification('Not enough cash for that card.', 'warning');
+      return;
+    }
+    if (occupiedSlots(state) >= get().inventorySlots()) {
+      get().pushNotification('Inventory full. Sell or buy more storage.', 'warning');
+      return;
+    }
+    const isSlab = deal.grade !== undefined && !!deal.gradingCompany;
+    let invName = `Card ${deal.cardId}`;
+    let invSet = '';
+    try {
+      const def = getCardById(deal.cardId);
+      invName = def.name;
+      invSet = def.set;
+    } catch {
+      /* unknown card id — keep the placeholder name */
+    }
+    const item: InventoryItem = {
+      id: uid('inv_'),
+      cardId: deal.cardId,
+      name: invName,
+      set: invSet,
+      rarity: deal.rarity,
+      rawCondition: deal.rawCondition,
+      actualConditionScore: deal.actualConditionScore,
+      centeringOffsetX: deal.centeringOffsetX,
+      centeringOffsetY: deal.centeringOffsetY,
+      purchasePrice: deal.price,
+      baseValue: deal.trueValue,
+      status: isSlab ? 'graded' : 'raw',
+      grade: isSlab ? deal.grade : undefined,
+      gradeLabel: isSlab
+        ? deal.grade === 10
+          ? `${deal.gradingCompany} GEM 10`
+          : `${deal.gradingCompany} ${deal.grade}`
+        : undefined,
+      gradingCompany: isSlab ? deal.gradingCompany : undefined,
+      acquiredFrom: 'FeeBay',
+      acquiredAt: Date.now(),
+      isFake: false,
+      hue: Math.floor(Math.abs(hashString(deal.cardId)) % 360),
+    };
+    const acq = recordAcquisitions(state.collection, [item]);
+    const duringConvention = !!state.convention && state.convention.endsAt > Date.now();
+    set({
+      cash: +(state.cash - deal.price).toFixed(2),
+      inventory: [...state.inventory, item],
+      dailyDeals: state.dailyDeals.filter((d) => d.id !== dealId),
+      collection: acq.collection,
+      stats: {
+        ...state.stats,
+        totalBought: state.stats.totalBought + 1,
+        highestSinglePurchase: Math.max(state.stats.highestSinglePurchase, deal.price),
+        conventionBuys: state.stats.conventionBuys + (duringConvention ? 1 : 0),
+      },
+    });
+    SFX.buy();
+    if (acq.newCardIds.length > 0) {
+      get().pushNotification(`New card added to collection: ${item.name}.`, 'success');
+    }
+    get().pushNotification(
+      `Picked up ${item.name} from the Daily Deals shop for ${money(deal.price)}.`,
+      'success',
+    );
+    get().evaluateAndApplyAchievements({ kind: 'bought', isFake: false });
+    get().save();
+  },
+
   claimStockItem(itemId) {
     const state = get();
     const item = state.inventory.find((i) => i.id === itemId);
@@ -1872,6 +1965,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
     SFX.marketEvent();
     get().evaluateAndApplyAchievements({ kind: 'tick' });
+    // A new day means a fresh Daily Deals shelf.
+    get().ensureDailyDeals();
   },
 
   promoteBusinessLevel() {
@@ -2003,6 +2098,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       shopName: state.shopName,
       shopLogo: state.shopLogo,
       shopColor: state.shopColor,
+      dailyDeals: state.dailyDeals,
+      dailyDealsDay: state.dailyDealsDay,
       employees: state.employees,
       companyProfit: state.companyProfit,
       companyProfitHistory: state.companyProfitHistory,

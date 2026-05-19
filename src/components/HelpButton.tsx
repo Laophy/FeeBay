@@ -93,6 +93,15 @@ const HELP: Record<Route, { title: string; body: (string | JSX.Element)[] }> = {
       'Displayed cards sell on their own over time, so keep the cases stocked with your best inventory.',
     ],
   },
+  daily: {
+    title: 'Daily Deals',
+    body: [
+      'A curated shop that restocks once per in-game day. The countdown up top shows when fresh stock lands.',
+      'Most of the shelf is everyday raw cards to flip and clean grading candidates — plus a couple of graded slabs.',
+      'Every day a "Headliner" appears: one genuinely high-end slabbed chase card. Pricier shelves show up as your reputation grows.',
+      'Inspect any card for the detail view, and use the zoom button to check centering before you buy.',
+    ],
+  },
   upgrades: {
     title: 'Upgrades',
     body: [

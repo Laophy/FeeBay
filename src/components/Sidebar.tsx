@@ -89,7 +89,10 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'shop',
     title: 'Shop',
     color: 'text-ebayYellow-700',
-    entries: [{ id: 'upgrades', label: 'Upgrades', icon: 'upgrades' }],
+    entries: [
+      { id: 'upgrades', label: 'Upgrades', icon: 'upgrades' },
+      { id: 'daily', label: 'Daily Deals', icon: 'calendar' },
+    ],
   },
 ];
 

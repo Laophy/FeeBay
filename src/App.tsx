@@ -10,6 +10,7 @@ import { Grading } from './features/grading/Grading';
 import { Upgrades } from './features/upgrades/Upgrades';
 import { Employees } from './features/employees/Employees';
 import { Shop } from './features/shop/Shop';
+import { DailyDeals } from './features/dailydeals/DailyDeals';
 import { MarketTrends } from './features/market/MarketTrends';
 import { Auctions } from './features/auctions/Auctions';
 import { Achievements } from './features/achievements/Achievements';
@@ -33,6 +34,7 @@ export type Route =
   | 'auctions'
   | 'employees'
   | 'shop'
+  | 'daily'
   | 'upgrades'
   | 'collection'
   | 'stats'
@@ -164,6 +166,7 @@ export default function App() {
           {route === 'auctions' && <Auctions />}
           {route === 'employees' && <Employees />}
           {route === 'shop' && <Shop />}
+          {route === 'daily' && <DailyDeals />}
           {route === 'upgrades' && <Upgrades />}
           {route === 'collection' && <Collection />}
           {route === 'stats' && <Stats />}

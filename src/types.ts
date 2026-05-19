@@ -383,6 +383,26 @@ export type ShopSaleEntry = {
   price: number;
 };
 
+/** One card on the Daily Deals shelf — a curated, daily-rotating shop listing. */
+export type DailyDeal = {
+  id: string;
+  cardId: string;
+  rarity: CardRarity;
+  rawCondition: RawCondition;
+  actualConditionScore: number;
+  centeringOffsetX: number;
+  centeringOffsetY: number;
+  /** Shelf price the player pays. */
+  price: number;
+  /** True market value (raw or graded) — drives the est-value readout. */
+  trueValue: number;
+  /** Set when this deal is an encapsulated slab. */
+  grade?: number;
+  gradingCompany?: GradingCompanyId;
+  /** Curation bucket — drives the badge shown on the card. */
+  kind: 'flip' | 'grading_find' | 'slab' | 'headliner';
+};
+
 export type Employee = {
   id: string;
   name: string;
@@ -499,6 +519,10 @@ export type GameState = {
   shopName: string;
   shopLogo: string;
   shopColor: string;
+  /** Curated daily-rotating shop stock. */
+  dailyDeals: DailyDeal[];
+  /** The `day` value the current `dailyDeals` were generated for. */
+  dailyDealsDay: number;
   /** Session-only — true while the hidden `/cheats` developer console is open. Not persisted. */
   cheatsConsoleOpen: boolean;
   /** Session-only UI state that survives screen navigation but isn't persisted. */
