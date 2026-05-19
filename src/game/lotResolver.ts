@@ -190,7 +190,7 @@ export function resolveMysteryLot(
     sizeMin = Math.max(2, sizeMin - 1);
     sizeMax = Math.max(3, sizeMax - 1);
   }
-  const size = randInt(sizeMin, sizeMax);
+  const size = listing.lotSize ?? randInt(sizeMin, sizeMax);
   const tier = tierForPrice(listing.askingPrice);
 
   const items: InventoryItem[] = [];

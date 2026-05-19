@@ -1,7 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { useGameStore, vaultStableFor } from '../../store/useGameStore';
 import { CARDS } from '../../data/cards';
-import type { CardDef, CollectionEntry } from '../../types';
+import type { CardDef, CollectionEntry, InventoryItem } from '../../types';
 import { CardArt } from '../../components/CardArt';
 import { cardsBySet, collectionPercent } from '../../game/collection';
 import { calculateCurrentValue } from '../../game/economyEngine';
@@ -14,10 +14,6 @@ export function Collection() {
   const inventory = useGameStore((s) => s.inventory);
   const showcaseIds = useGameStore((s) => s.showcaseItemIds);
   const toggleShowcase = useGameStore((s) => s.toggleShowcase);
-  const trends = useGameStore((s) => s.marketTrends);
-  const noise = useGameStore((s) => s.marketNoise);
-  const convention = useGameStore((s) => s.convention);
-  const upgrades = useGameStore((s) => s.upgradesPurchased);
   const sets = useMemo(() => cardsBySet(), []);
   const totalUnique = CARDS.length;
   const owned = Object.keys(collection).length;
@@ -25,29 +21,25 @@ export function Collection() {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [editShowcase, setEditShowcase] = useState(false);
 
-  // 1st Edition sets float to the top of the codex.
+  // 1st Edition sets float to the top; set completion stats are pre-computed here
+  // so they don't re-run on every noise/trends tick (only when collection changes).
   const sortedSets = useMemo(() => {
-    return Object.entries(sets).sort(([a], [b]) => {
-      const aFe = a.includes('1st Edition') ? 0 : 1;
-      const bFe = b.includes('1st Edition') ? 0 : 1;
-      return aFe - bFe;
-    });
-  }, [sets]);
+    return Object.entries(sets)
+      .sort(([a], [b]) => {
+        const aFe = a.includes('1st Edition') ? 0 : 1;
+        const bFe = b.includes('1st Edition') ? 0 : 1;
+        return aFe - bFe;
+      })
+      .map(([setName, cards]) => {
+        const setOwned = cards.filter((c) => collection[c.id]).length;
+        const setPct = Math.round((setOwned / cards.length) * 100);
+        return { setName, cards, setOwned, setPct };
+      });
+  }, [sets, collection]);
 
   const showcaseItems = useMemo(
     () => inventory.filter((i) => showcaseIds.includes(i.id)),
     [inventory, showcaseIds],
-  );
-
-  const showcaseValue = useMemo(
-    () =>
-      showcaseItems.reduce(
-        (sum, i) =>
-          sum +
-          calculateCurrentValue(i, trends, noise, convention, vaultStableFor({ upgradesPurchased: upgrades })),
-        0,
-      ),
-    [showcaseItems, trends, noise, convention, upgrades],
   );
 
   // Build a doubled marquee track so the showcase scrolls in a seamless loop.
@@ -106,9 +98,7 @@ export function Collection() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-base font-black text-ebayGreen-700 leading-tight">
-                {money(showcaseValue)}
-              </div>
+              <ShowcaseValue items={showcaseItems} />
               <div className="text-[9px] uppercase tracking-widest text-ink-400 font-bold">
                 {showcaseItems.length} card{showcaseItems.length === 1 ? '' : 's'} on display
               </div>
@@ -216,9 +206,7 @@ export function Collection() {
       </div>
 
       <div className="space-y-6">
-        {sortedSets.map(([setName, cards]) => {
-          const setOwned = cards.filter((c) => collection[c.id]).length;
-          const setPct = Math.round((setOwned / cards.length) * 100);
+        {sortedSets.map(({ setName, cards, setOwned, setPct }) => {
           const isFirstEd = setName.includes('1st Edition');
           return (
             <div
@@ -270,6 +258,20 @@ export function Collection() {
   );
 }
 
+/** Isolated component so noise/trends subscriptions don't re-render the whole Collection. */
+const ShowcaseValue = memo(function ShowcaseValue({ items }: { items: InventoryItem[] }) {
+  const trends = useGameStore((s) => s.marketTrends);
+  const noise = useGameStore((s) => s.marketNoise);
+  const convention = useGameStore((s) => s.convention);
+  const upgrades = useGameStore((s) => s.upgradesPurchased);
+  const stable = vaultStableFor({ upgradesPurchased: upgrades });
+  const value = useMemo(
+    () => items.reduce((sum, i) => sum + calculateCurrentValue(i, trends, noise, convention, stable), 0),
+    [items, trends, noise, convention, stable],
+  );
+  return <div className="text-base font-black text-ebayGreen-700 leading-tight">{money(value)}</div>;
+});
+
 const CodexCard = memo(function CodexCard({
   card,
   entry,
@@ -297,18 +299,17 @@ const CodexCard = memo(function CodexCard({
       }
     >
       <div
-        className={`codex-card relative group-hover:z-10 group-hover:drop-shadow-xl ${
-          owned
-            ? ''
-            : hidden
-            ? 'opacity-65 group-hover:opacity-100'
-            : 'opacity-45 grayscale group-hover:grayscale-0 group-hover:opacity-100'
-        }`}
+        className={`codex-card relative group-hover:z-10 group-hover:shadow-xl ${
+          owned || hidden ? '' : 'opacity-60'
+        } ${hidden ? 'group-hover:opacity-100' : ''}`}
       >
         {hidden ? (
           <MysteryCard />
         ) : (
           <CardArt name={card.name} rarity={card.rarity} hue={card.hue} cardId={card.id} small animated={false} />
+        )}
+        {!owned && !hidden && (
+          <div className="absolute inset-0 rounded-md bg-ink-900/55 group-hover:opacity-0 transition-opacity pointer-events-none" />
         )}
       </div>
       <div

@@ -497,6 +497,10 @@ export type GameState = {
   backupIntervalMin: number;
   /** Hired employees — the automation workforce. */
   employees: Employee[];
+  /** Active all-hands meeting called by a manager, or null when none is running. */
+  teamMeeting: { endsAt: number; calledBy: string } | null;
+  /** Timestamp when the last team meeting ended — used for cooldown. */
+  lastTeamMeeting: number;
   /** Lifetime net profit booked by employees — survives hiring and firing. */
   companyProfit: number;
   /** Sampled `companyProfit` snapshots (1/sec) for the live profit chart, oldest first. */

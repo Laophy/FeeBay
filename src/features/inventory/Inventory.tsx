@@ -49,6 +49,8 @@ export function Inventory() {
     const showcaseSet = new Set(showcaseIds);
     const items = inventory
       .filter((i) => {
+        // Store stock (autoBought) lives on the Employees page — never shown here.
+        if (i.autoBought) return false;
         if (filter === 'showcased') return showcaseSet.has(i.id);
         // Showcased items only appear in the 'showcased' filter — never in all/raw/grading/graded.
         if (showcaseSet.has(i.id)) return false;
@@ -128,7 +130,7 @@ export function Inventory() {
         <div>
           <h1 className="text-2xl font-bold">Inventory</h1>
           <p className="text-ink-500 text-sm">
-            {inventory.length - showcaseIds.length} / {slots} slots used. Showcased
+            {inventory.filter((i) => !i.autoBought && !showcaseIds.includes(i.id)).length} / {slots} slots used. Showcased
             cards don&apos;t count. Sell raw, bundle, or grade.
           </p>
         </div>

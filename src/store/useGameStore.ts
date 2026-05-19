@@ -258,6 +258,8 @@ function defaultState(): GameState {
     dailyDeals: [],
     dailyDealsDay: 0,
     employees: [],
+    teamMeeting: null,
+    lastTeamMeeting: 0,
     companyProfit: 0,
     companyProfitHistory: [],
     cardFlow: [],
@@ -1905,6 +1907,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (state.employees.length === 0) return;
     const now = Date.now();
+
+    // Expire an active team meeting and notify when it wraps up.
+    if (state.teamMeeting && now >= state.teamMeeting.endsAt) {
+      set({ teamMeeting: null, lastTeamMeeting: now });
+      get().pushNotification("Meeting's finally over. Everyone back to work.", 'info');
+    }
+
+    // Maybe trigger a new all-hands meeting — only when a manager is on the floor
+    // and the cooldown since the last meeting has passed.
+    const activeManagers = state.employees.filter((e) => e.role === 'manager' && !e.break);
+    const refreshedState = get();
+    if (
+      !refreshedState.teamMeeting &&
+      activeManagers.length > 0 &&
+      now - refreshedState.lastTeamMeeting > 300_000 &&
+      chance(0.004)
+    ) {
+      const caller = pick(activeManagers);
+      const durationMs = randInt(45_000, 90_000);
+      set({ teamMeeting: { endsAt: now + durationMs, calledBy: caller.name } });
+      get().pushNotification(
+        `${caller.name} just called an all-hands — everyone's in the meeting room. Production paused.`,
+        'event',
+      );
+    }
+
     const due = state.employees.some((e) => now >= e.cycleEndsAt);
     if (due) {
       const managerCount = state.employees.filter(
@@ -2564,6 +2592,26 @@ function runEmployeeCycle(empId: string, now: number, managerCount: number) {
               idle: undefined,
               cycleStartedAt: now,
               cycleEndsAt: now + workDuration,
+            }
+          : e,
+      ),
+    }));
+    return;
+  }
+
+  // CASE B — all-hands meeting is running. Park the employee until it ends.
+  const activeMeeting = store.teamMeeting;
+  if (activeMeeting && now < activeMeeting.endsAt) {
+    const remainingMs = Math.max(1_000, activeMeeting.endsAt - now + 500);
+    useGameStore.setState((s) => ({
+      employees: s.employees.map((e) =>
+        e.id === empId
+          ? {
+              ...e,
+              break: undefined,
+              idle: 'in the all-hands meeting',
+              cycleStartedAt: now,
+              cycleEndsAt: now + remainingMs,
             }
           : e,
       ),
